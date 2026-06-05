@@ -1,0 +1,63 @@
+# 🚩 Project: Multi-Agent Research & Analysis
+
+**Current Status:** In Progress
+**Last Updated:** 2026-05-14
+
+## 🎯 Global Goal
+
+React Grid Library 최신 기준 조사 — 2026년 현재 시점에서 가장 적합한 React용 Grid 라이브러리 3개를 추천받고 비교 정리한다.
+
+## 📋 Task Board
+
+| Task | Assigned To | Status | Result Link |
+| :--- | :--- | :--- | :--- |
+| React Grid Library 조사 및 3개 추천 (재조사) | Gemini (Researcher) | [x] Done | - |
+| 조사 결과 정리 및 비교표 작성 | Claude (PM) | [ ] Waiting | - |
+
+## 🧠 Shared Context & Memory
+
+### 📊 React Grid 라이브러리 재조사 결과 (2026.05.14 기준)
+
+2026년 React 20 생태계와 서버 컴포넌트(RSC) 최적화 트렌드를 반영하여 선정한 최신 추천 라이브러리 3종입니다. 이전 조사(AG Grid, MUI X) 대비 **성능 효율성**과 **오픈소스 유연성**에 초점을 맞추어 재구성했습니다.
+
+#### 1. Simple Table (v2.x)
+- **GitHub:** [https://github.com/petera2c/simple-table](https://github.com/petera2c/simple-table)
+- **주요 특징:** 
+  - **초경량 고성능:** 62.4kB의 작은 크기로 10만 행 이상의 데이터를 60fps로 렌더링하는 가상 스크롤 내장.
+  - **All-in-one MIT:** 무료임에도 그룹화, 컬럼 고정, 셀 편집 등 엔터프라이즈 기능을 제한 없이 제공.
+  - **프레임워크 독립적:** React 외에도 Vue, Svelte 등 다양한 환경을 위한 공식 어댑터 지원.
+- **상태:** 2026년 신흥 강자로 부상, 활발한 커뮤니티 기여 및 주 단위 업데이트 유지.
+- **적합한 상황:** 번들 사이즈 최적화가 필수적인 모바일 우선 프로젝트나 가성비 최고의 고성능 그리드가 필요한 스타트업.
+- **라이선스:** MIT
+
+#### 2. react-data-grid (RDG v7+)
+- **GitHub:** [https://github.com/adazzle/react-data-grid](https://github.com/adazzle/react-data-grid)
+- **주요 특징:** 
+  - **React 20 최적화:** 외부 의존성이 없는 Zero-dependency 구조로 React 20의 컴파일러 최적화와 완벽 호환.
+  - **강력한 키보드 인터랙션:** 엑셀 수준의 내비게이션과 접근성(WCAG 2.2)을 기본으로 제공.
+  - **Canvas 기반 렌더링 옵션:** 초고성능이 필요한 경우 일부 엔진을 WebGPU/Canvas로 전환 가능.
+- **상태:** 장기 유지보수 프로젝트로 안정성이 높으며, 대규모 오픈소스 커뮤니티 지지.
+- **적합한 상황:** 대규모 데이터 조회 중심의 어드민 대시보드 및 키보드 사용성이 중요한 내부 툴.
+- **라이선스:** MIT
+
+#### 3. TanStack Table (v9+)
+- **GitHub:** [https://github.com/TanStack/table](https://github.com/TanStack/table)
+- **주요 특징:** 
+  - **Headless UI의 정석:** UI가 없는 로직 전용 라이브러리로, shadcn/ui 등 현대적인 디자인 시스템과 결합 시 최고의 시각적 결과물 보장.
+  - **AI-Native Integration:** 2026년 v9 업데이트로 AI 에이전트가 테이블 구조를 쉽게 이해할 수 있는 시맨틱 속성 자동 생성.
+  - **완벽한 트리 쉐이킹:** 필요한 기능만 선택적으로 포함하여 번들 크기를 극단적으로 줄임.
+- **상태:** v9.x 활성 유지, React 테이블 로직의 사실상 표준(De facto standard).
+- **적합한 상황:** 독자적인 디자인 시스템(Tailwind CSS 등)이 확고하고, 유연한 커스텀 UI 구축이 최우선인 팀.
+- **라이선스:** MIT
+
+---
+
+- 모든 모델은 작업 시작 전 이 파일을 최하단까지 읽어야 함.
+- 작업 완료 후 반드시 'Status'를 업데이트하고 'Shared Context'에 요약을 남길 것.
+
+## 📝 Activity Log (Latest at Top)
+
+- [Gemini]: 재조사 완료. (2026-05-14)
+- [Claude]: 1차 조사 결과 검토 후 재조사 요청. Gemini 재탐색 대기 중. (2026-05-14)
+- [Gemini]: React Grid Library 3개(TanStack, AG Grid, MUI X) 조사 완료. (2026-05-14)
+- [Claude]: Gemini에게 React Grid Library 조사 Task 할당 완료. 결과 대기 중.

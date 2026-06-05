@@ -1,0 +1,113 @@
+﻿# 02. 환경 설정 가이드
+
+## 1. Node.js 환경
+
+```bash
+# Node.js 18+ 필요
+node --version
+
+# 의존성 설치
+npm install
+
+# Playwright 브라우저 설치
+npx playwright install chromium
+```
+
+## 2. Android 테스트 환경
+
+### ADB 설치
+
+1. [Android SDK Platform Tools](https://developer.android.com/tools/releases/platform-tools) 다운로드
+2. 압축 해제 후 `platform-tools` 경로를 시스템 PATH에 추가
+3. 확인:
+   ```bash
+   adb version
+   ```
+
+### Android 기기 설정
+
+1. **개발자 옵션 활성화**: 설정 → 휴대전화 정보 → 빌드 번호를 7번 탭
+2. **USB 디버깅 활성화**: 설정 → 개발자 옵션 → USB 디버깅 ON
+3. USB로 PC에 연결 후 확인:
+   ```bash
+   adb devices
+   # 출력 예: R3CX10F9XAP    device
+   ```
+
+### 앱 WebView 디버깅 활성화
+
+앱 개발자가 앱 코드에 아래를 추가해야 함 (앱 빌드 필요):
+
+```kotlin
+// Android (Kotlin)
+WebView.setWebContentsDebuggingEnabled(true)
+```
+
+## 3. Tibero DB 환경
+
+### oracledb 설치
+
+```bash
+npm install oracledb
+npm install --save-dev @types/oracledb
+```
+
+### Oracle Instant Client (필요 시)
+
+Tibero는 Oracle 호환 프로토콜을 사용하므로 oracledb Thin 모드로 연결 가능한 경우가 많음.
+Thin 모드 연결이 안 될 경우:
+
+1. [Oracle Instant Client](https://www.oracle.com/database/technologies/instant-client/downloads.html) 설치
+2. 환경 변수 설정:
+   ```powershell
+   $env:OCI_LIB_DIR = "C:\oracle\instantclient_21_x"
+   $env:PATH += ";C:\oracle\instantclient_21_x"
+   ```
+
+### Tibero 연결 정보 확인
+
+```typescript
+// TestCase 또는 Scenario의 dbConfig에 입력할 값
+const tiberoConfig = {
+  host: "192.168.1.100", // Tibero 서버 IP
+  port: 8629, // 기본 포트
+  username: "testuser",
+  password: "testpass",
+  serviceName: "tibero", // Tibero 서비스명 (tnsnames.ora의 SERVICE_NAME)
+};
+```
+
+## 4. 개발 서버 실행
+
+```bash
+npm run dev
+# → http://localhost:3001
+```
+
+## 5. 빌드 확인
+
+```bash
+npx tsc --noEmit   # 타입 오류 확인
+npm run build      # Next.js 프로덕션 빌드
+```
+
+## 6. 데이터 디렉토리 구조
+
+```
+data/
+  scenarios/          시나리오 JSON 파일 저장
+    .gitkeep
+  snapshots/          AS-IS 스냅샷 JSON 파일 저장
+    .gitkeep
+    {scenarioId}/
+      latest.json     최신 스냅샷
+      2026-05-11T12-00-00.json
+```
+
+```powershell
+# 디렉토리 초기 생성
+New-Item -ItemType Directory -Force -Path data\scenarios
+New-Item -ItemType File -Force -Path data\scenarios\.gitkeep
+New-Item -ItemType Directory -Force -Path data\snapshots
+New-Item -ItemType File -Force -Path data\snapshots\.gitkeep
+```

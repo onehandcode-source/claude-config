@@ -1,0 +1,363 @@
+# Universal Regression Test — Design
+
+- 작성일: 2026-06-04
+- 작성자: 김영건
+- 상태: 승인됨 (브레인스토밍 종료)
+- 다음 단계: 구현 계획 작성 (writing-plans 스킬)
+
+## 목적
+
+특정 사이트에 종속되지 않고, **어떤 사이트여도** Playwright 기반으로 회귀 테스트를 돌릴 수 있는 도구로 현 시스템을 확장한다. 사용자는 사이트 URL과 옵션만 주면 자동 탐색으로 회귀 베이스라인을 만들고, 이후 실행 시 베이스라인과 비교해 변경을 감지한다.
+
+## 결정 사항 (브레인스토밍 결과)
+
+| 항목 | 결정 |
+|---|---|
+| 탐색 모델 | BFS 크롤링 (same-origin, 깊이 제한) |
+| 비교 차원 | DOM 구조/텍스트 + 시각 스크린샷 픽셀 diff (마스킹 가능) |
+| 비교 모드 | 시점 비교 (베이스라인 ↔ 현재) |
+| 인증 | Playwright `storageState` 사전 주입 |
+| 트리거 | UI 버튼 (현재 시스템과 동일) |
+| 데이터 모델 | 신규 `Site` 도메인 신설 — 기존 `Scenario`와 분리 |
+
+## 현 시스템 평가 (gap 분석)
+
+기존 `lib/`는 `Scenario / TestCase / Step` 모델을 중심으로 만들어졌다. 회귀는 step output을 `deepEqual`로 비교한다. "어떤 사이트여도 회귀테스트" 목적에서 부족한 점:
+
+1. **수동 시나리오 작성 부담** — 사이트마다 step을 사람이 정의해야 한다. 자동 탐색·녹화기 없음.
+2. **시각 회귀 부재** — 스크린샷은 캡처되지만 base64 문자열을 `deepEqual`로 비교 → 사실상 항상 different.
+3. **DOM 구조 회귀 부재** — step output은 "Clicked: ..." 같은 메시지 문자열. 페이지 자체의 구조 변화는 감지 못 함.
+4. **셀렉터 깨짐 대응 부재** — `lib/locator-utils.ts`는 normalize만 한다. 사이트 구조가 살짝 바뀌면 그대로 깨진다.
+5. **확장성 모델 문제** — 50페이지짜리 사이트 회귀를 표현하려면 TestCase 50개가 필요. UI/비교 엔진 모두 무너진다.
+
+따라서 **신규 도메인(Site)**을 도입해 기존 흐름과 분리한다. 기존 코드는 0줄도 건드리지 않는다.
+
+## 아키텍처
+
+```
+        ┌─────────────────────── 기존 (그대로 유지) ──────────────────────┐
+        │   Scenario / TestCase / Step  →  PlaywrightExecutor             │
+        │   step output deepEqual 기반 회귀                                │
+        └──────────────────────────────────────────────────────────────────┘
+
+        ┌─────────────────────── 신규 (Site 도메인) ──────────────────────┐
+        │   Site (URL + crawl 옵션 + storageState + mask)                 │
+        │      ├─► SiteCrawler (BFS, depth-limited)                       │
+        │      │      └─ 공유 browser-bootstrap (storageState 주입)       │
+        │      └─► SiteRunner ──► SitePage[] (DOM hash + screenshot)      │
+        │              ├─► data/sites/<id>/baseline.json                  │
+        │              └─► data/sites/<id>/runs/<runId>.json              │
+        │                                                                 │
+        │   SiteDiffEngine (DOM diff + Visual diff)                       │
+        │      └─► SiteReport (페이지별 diff)                             │
+        └──────────────────────────────────────────────────────────────────┘
+```
+
+원칙:
+- 기존 `Scenario` 코드는 변경하지 않는다.
+- Playwright 부트스트랩(`launch` + `newContext`)은 신규 헬퍼 `lib/browser-bootstrap.ts`로 추출해 Site 쪽만 사용. 기존 `PlaywrightExecutor`는 그대로 둔다.
+- 신규 npm 의존성: `pixelmatch`, `pngjs`, `diff`.
+
+## 데이터 모델 (`lib/site-types.ts`)
+
+```ts
+export interface SiteCrawlConfig {
+  startUrls: string[];           // 진입점
+  maxDepth: number;              // 기본 2
+  maxPages: number;              // 안전장치, 기본 50
+  includePatterns?: string[];    // 정규식 화이트리스트
+  excludePatterns?: string[];    // 정규식 블랙리스트
+  allowSubdomains: boolean;      // 기본 false
+}
+
+export interface VisualConfig {
+  enabled: boolean;
+  maskSelectors: string[];       // page.screenshot({ mask }) 인자로 사용
+  threshold: number;             // pixelmatch threshold, 기본 0.1
+  maxDiffRatio: number;          // 페이지당 허용 비율, 기본 0.01
+  viewport: { width: number; height: number };  // 기본 1280x800
+}
+
+export interface DomConfig {
+  enabled: boolean;
+  ignoreSelectors: string[];     // 비교 전 DOM에서 제거
+  normalizeWhitespace: boolean;
+}
+
+export interface Site {
+  id: string;
+  name: string;
+  description?: string;
+  crawl: SiteCrawlConfig;
+  visual: VisualConfig;
+  dom: DomConfig;
+  storageStatePath?: string;
+  createdAt: string;             // ISO 8601
+  updatedAt: string;             // ISO 8601
+}
+
+export interface SitePageCapture {
+  url: string;
+  finalUrl: string;
+  httpStatus: number;
+  domHash: string;
+  domSerialized: string;
+  screenshotPath?: string;
+  capturedAt: string;            // ISO 8601
+}
+
+export interface SiteRunResult {
+  runId: string;
+  siteId: string;
+  startedAt: string;             // ISO 8601
+  finishedAt: string;            // ISO 8601
+  status: "completed" | "partial" | "error";
+  pages: SitePageCapture[];
+  errors: { url: string; message: string }[];
+}
+
+export type PageDiffStatus =
+  | "identical" | "domChanged" | "visualChanged"
+  | "both" | "missing" | "added" | "error";
+
+export interface PageDiff {
+  url: string;
+  status: PageDiffStatus;
+  domDiff?: { added: string[]; removed: string[]; changed: string[] };
+  visualDiff?: { diffPixels: number; diffRatio: number; diffImagePath: string };
+  severity: "critical" | "warning" | "info";
+}
+
+export interface SiteReport {
+  siteId: string;
+  baselineRunId: string;
+  currentRunId: string;
+  comparedAt: string;            // ISO 8601
+  overall: "identical" | "different" | "error";
+  pageDiffs: PageDiff[];
+}
+```
+
+### 저장 레이아웃
+
+```
+data/
+  sites/
+    <siteId>.json                       # Site 정의
+    <siteId>/
+      storage-state.json                # 사용자 업로드 (옵션, .gitignore)
+      baseline.json                     # 베이스라인 SiteRunResult
+      baseline/
+        page-001.png ...                # 베이스라인 스크린샷
+      runs/
+        <runId>.json
+        <runId>/
+          page-001.png ...              # 실행 스크린샷
+          diff/
+            page-001.diff.png           # diff 이미지
+```
+
+## BFS 크롤러 (`lib/site-crawler.ts`)
+
+순수 함수형, Playwright `Page`를 주입받는다.
+
+```ts
+export async function crawl(
+  page: Page,
+  config: SiteCrawlConfig,
+  onVisit?: (record: VisitRecord) => Promise<void>
+): Promise<CrawlOutcome>;
+```
+
+알고리즘:
+1. `queue = [{ url, depth: 0 } for url in startUrls]`, `visited = Set<normalizedUrl>`.
+2. URL 정규화: protocol+host 소문자, trailing slash 통일, fragment 제거, **쿼리스트링 유지**.
+3. dequeue 후 가드: visited / depth / origin / patterns 체크.
+4. `page.goto(url, { waitUntil: "load" })`. 4xx/5xx여도 캡처는 진행.
+5. `onVisit` 콜백 호출 (capture는 SiteRunner가 주입).
+6. `a[href]` 수집 → 정규화 → 필터링 → 큐에 추가.
+7. `visited.size >= maxPages` 도달 시 종료.
+
+엣지 케이스:
+- 비-HTTP 스킴(`mailto:`, `tel:`, `javascript:`) → skip(pattern).
+- 비-HTML `Content-Type`(PDF/이미지) → skip.
+- robots.txt → **무시** (사내 회귀 도구 가정).
+- 무한 페이지네이션 → `maxPages` + 사용자 `excludePatterns`.
+
+## 인증 (storageState 주입)
+
+1. 사용자가 Site 편집 페이지에서 storageState JSON 업로드 → `data/sites/<id>/storage-state.json`.
+2. Run 시작 시 `browser.newContext({ storageState: storageStatePath })`로 컨텍스트 생성.
+3. 만료는 회귀 결과로 감지 — `finalUrl != url`(로그인 페이지로 리다이렉트)이면 UI에 만료 가능성 경고.
+4. 자동 갱신은 범위 외.
+
+## DOM 정규화 + diff (`lib/dom-normalizer.ts`)
+
+브라우저 안에서 `page.evaluate`로 수행:
+1. `document.cloneNode(true)`.
+2. `<script>`, `<style>`, `<noscript>`, `<svg>` 메타속성 제거.
+3. `config.ignoreSelectors` 매칭 노드 제거.
+4. 자동 생성 ID 포함 속성(`aria-describedby` 등) ID 부분 마스킹.
+5. `normalizeWhitespace=true`면 텍스트 노드 공백 정규화.
+6. 알파벳순 속성 정렬 후 직렬화.
+7. SHA-256 해시.
+
+diff 생성:
+- `domHash` 동일 → `identical` 단락. 비교 비용 0.
+- 다르면 직렬화 HTML을 `diff` npm으로 라인 단위 diff. added/removed/changed 요약. 풀 diff는 다운로드 링크.
+
+(접근성 트리 비교는 v2.)
+
+## 시각 diff (`lib/visual-diff.ts`)
+
+캡처:
+1. `page.setViewportSize(config.viewport)`.
+2. `page.screenshot({ mask: maskSelectors.map(s => page.locator(s)), fullPage: true })`.
+3. 디스크 저장.
+
+비교:
+1. `pngjs`로 두 PNG 읽기.
+2. 크기 다르면 더 큰 캔버스로 패딩 (크기 차이는 큰 회귀로 간주).
+3. `pixelmatch(img1, img2, diff, w, h, { threshold, includeAA: false })`.
+4. `diffRatio = diffPixels / (w*h)`. `diffRatio > maxDiffRatio`면 `visualChanged`.
+5. diff PNG 저장.
+
+성능: 풀페이지 4000×8000 기준 100ms 내외, 50페이지면 합산 ~5초. 메모리는 페이지 단위로 즉시 해제.
+
+## SiteDiffEngine (`lib/site-diff-engine.ts`)
+
+```ts
+export async function diffSiteRuns(
+  site: Site,
+  baseline: SiteRunResult,
+  current: SiteRunResult
+): Promise<SiteReport>;
+```
+
+URL key 기준 outer-join:
+- 양쪽 존재: DOM hash 동일하면 일단 `identical`. 시각 diff 결과로 `visualChanged` 가능. DOM/시각 모두 다르면 `both`.
+- 베이스라인만 → `missing`.
+- 현재만 → `added`.
+
+severity:
+- `missing` / `both` → `critical`
+- `domChanged` / `visualChanged` → `warning`
+- `added` → `info`
+
+`overall = pageDiffs.some(d => d.status !== "identical") ? "different" : "identical"`. `error` 항목 있으면 `error`.
+
+## 베이스라인 갱신 워크플로
+
+- 첫 실행 후 UI에서 "베이스라인으로 채택" 버튼 → `runs/<runId>` → `baseline.json` + `baseline/`.
+- 의도된 변경 후 "현재 실행을 새 베이스라인으로" 버튼으로 갱신.
+- 기존 베이스라인은 `baseline.<timestamp>.archive.json`로 이력 보관.
+
+## UI 라우트 (Next.js)
+
+```
+/sites                           # Site 목록
+/sites/new                       # 생성
+/sites/[id]/edit                 # 편집 (storageState 업로드 포함)
+/sites/[id]/run                  # 실행 + 진행률 + 베이스라인 채택
+/sites/[id]/report/[runId]       # 페이지별 diff 뷰
+```
+
+헤더에 "Scenarios | Sites" 탭 추가. `/scenarios` 기존 흐름은 그대로.
+
+신규 컴포넌트:
+- `components/site/SiteForm.tsx`
+- `components/site/SiteRunView.tsx`
+- `components/site/PageDiffCard.tsx`
+- `components/site/VisualDiffViewer.tsx` (baseline/current/diff 3장, 슬라이더 비교)
+
+## API 라우트
+
+```
+GET    /api/sites
+POST   /api/sites
+GET    /api/sites/[id]
+PUT    /api/sites/[id]
+DELETE /api/sites/[id]
+POST   /api/sites/[id]/storage-state            # multipart 업로드
+POST   /api/sites/[id]/run                      # 실행 시작
+GET    /api/sites/[id]/run-status               # 진행률
+POST   /api/sites/[id]/baseline                 # { runId } 채택
+POST   /api/sites/[id]/compare                  # 비교 실행
+GET    /api/sites/[id]/runs
+GET    /api/sites/[id]/runs/[runId]/report
+GET    /api/sites/[id]/runs/[runId]/screenshot/[pageId]
+```
+
+기존 시나리오 API와 동일한 `{ success, data?, error? }` 래퍼 사용.
+
+## 에러 처리
+
+| 상황 | 처리 |
+|---|---|
+| `chromium.launch` 실패 | run 즉시 종료, progress 갱신, UI 에러 표시 |
+| `page.goto` 타임아웃 | 해당 URL을 `errors[]`에 누적, 다음 URL 계속, `partial` 종료 |
+| storageState 누락/파싱 실패 | run 시작 전 검증, 400 응답 |
+| `maxPages` 초과 | 정상 종료, skipped 누적, UI 경고 배지 |
+| 베이스라인 없음 + compare | 400 "베이스라인을 먼저 채택하세요" |
+| 이미지 크기 차이 | 패딩 후 비교 + 보고서에 viewport mismatch 노트 |
+| Site JSON 손상 | listSites 시 try/catch로 해당 항목만 스킵 |
+| 정규식 컴파일 실패 | Site 저장 시 검증, 400 |
+
+## 보안
+
+- `storage-state.json` → `.gitignore` 추가.
+- `startUrls` URL 파싱 검증, `http(s):` 스킴만 허용.
+- 정규식은 컴파일 가능성만 검증. ReDoS 방어는 사내 도구 가정으로 생략(명시).
+- 스크린샷 서빙은 `[siteId]`/`[runId]`/`[pageId]`를 영숫자+하이픈으로만 제한 (path traversal 방지).
+
+## 테스트 전략
+
+| 모듈 | 테스트 |
+|---|---|
+| `url-normalizer` | 단위: trailing slash, fragment, 대소문자, 쿼리, 비-http |
+| `site-crawler` | 단위: 모킹된 Page로 BFS, depth/maxPages/패턴 |
+| `dom-normalizer` | 단위: jsdom으로 정규화 스냅샷 |
+| `visual-diff` | 단위: 픽스처 PNG로 diffRatio 검증 |
+| `site-diff-engine` | 단위: identical/missing/added/changed 합성 입력 |
+| `site-manager` | 단위: save/list/get/delete |
+| `tests/site-run.spec.ts` | e2e: 픽스처 사이트 v1/v2를 Playwright route handler로 서빙, crawl → baseline → 변경 → compare → 보고서 검증 |
+
+e2e 픽스처는 `tests/fixtures/site-v1/`, `tests/fixtures/site-v2/`에 정적 HTML로 구성. 별도 서버 의존성 안 늘림.
+
+## 범위 외 / Future
+
+다음은 의도적으로 빼고 v2로 미룬다 — 사용자 결정 사항이며 명시한다.
+
+- 콘솔/네트워크/Web Vitals 수집 (Q3에서 제외)
+- BFS + 인터랙션 시뮬레이션 (Q2에서 제외)
+- CLI/CI 통합 (Q6에서 제외)
+- 환경 비교 모드 (stg vs prod) (Q4에서 제외)
+- 접근성 트리 비교
+- 자동 로그인 시퀀스
+- robots.txt 준수
+
+## 신규/수정 파일 요약
+
+신규:
+- `lib/site-types.ts`
+- `lib/url-normalizer.ts`
+- `lib/browser-bootstrap.ts`
+- `lib/site-manager.ts`
+- `lib/site-crawler.ts`
+- `lib/site-runner.ts`
+- `lib/dom-normalizer.ts`
+- `lib/visual-diff.ts`
+- `lib/site-diff-engine.ts`
+- `lib/site-run-progress.ts`
+- `app/sites/...` (페이지 4개)
+- `app/api/sites/...` (라우트 다수)
+- `components/site/*` (컴포넌트 4개)
+- `tests/unit/url-normalizer.test.ts`, 외 6개
+- `tests/site-run.spec.ts` + `tests/fixtures/site-v1/`, `tests/fixtures/site-v2/`
+
+수정:
+- `package.json` (`pixelmatch`, `pngjs`, `diff` 추가)
+- `.gitignore` (`data/sites/*/storage-state.json` 추가)
+- `app/layout.tsx` (헤더에 Sites 탭 1줄 추가)
+
+기존 `lib/`/`components/`/`app/scenarios/...` 0줄 수정.

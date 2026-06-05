@@ -1,0 +1,624 @@
+{
+  "sessions": {
+    "02fb0004-79f5-4617-90c8-faa9d1167059": {
+      "tool_counts": {
+        "Skill": 2,
+        "Bash": 13,
+        "Read": 15,
+        "Glob": 4,
+        "Edit": 1,
+        "PowerShell": 16
+      },
+      "last_tool": "Bash",
+      "total_calls": 51,
+      "started_at": 1778811211,
+      "updated_at": 1778818998
+    },
+    "83d1ef05-1595-4b81-962b-89f4178b16d4": {
+      "tool_counts": {
+        "Glob": 1,
+        "Read": 14,
+        "Grep": 2,
+        "ToolSearch": 1,
+        "EnterWorktree": 1,
+        "Write": 1,
+        "Edit": 1
+      },
+      "last_tool": "Edit",
+      "total_calls": 21,
+      "started_at": 1778831188,
+      "updated_at": 1778833503
+    },
+    "572f16e8-cf72-45dc-8781-ab37de7ce221": {
+      "tool_counts": {
+        "Read": 12,
+        "Glob": 1,
+        "ToolSearch": 2,
+        "EnterWorktree": 1,
+        "Write": 1,
+        "Bash": 3,
+        "ExitWorktree": 1
+      },
+      "last_tool": "ExitWorktree",
+      "total_calls": 21,
+      "started_at": 1778831622,
+      "updated_at": 1778834250
+    },
+    "4e307d26-4fd8-4273-b497-15b43adfb08b": {
+      "tool_counts": {
+        "Glob": 1,
+        "Read": 13,
+        "ToolSearch": 1,
+        "EnterWorktree": 1,
+        "Edit": 14,
+        "Grep": 1,
+        "Bash": 3
+      },
+      "last_tool": "Read",
+      "total_calls": 34,
+      "started_at": 1778831683,
+      "updated_at": 1778833135
+    },
+    "685255ec-75a8-4f4c-9eda-b496b632d1e0": {
+      "tool_counts": {
+        "Read": 5,
+        "Bash": 1
+      },
+      "last_tool": "Bash",
+      "total_calls": 6,
+      "started_at": 1778833659,
+      "updated_at": 1778833758
+    },
+    "58199c03-11b4-4a84-85b5-1ff4e4d599de": {
+      "tool_counts": {
+        "Read": 2
+      },
+      "last_tool": "Read",
+      "total_calls": 2,
+      "started_at": 1778835697,
+      "updated_at": 1778835704
+    },
+    "bae3f5f3-8986-4644-931a-92a615e320fe": {
+      "tool_counts": {
+        "Glob": 2,
+        "Read": 2,
+        "Grep": 1
+      },
+      "last_tool": "Read",
+      "total_calls": 5,
+      "started_at": 1778835814,
+      "updated_at": 1778835983
+    },
+    "93584330-4747-4132-a92e-46fc2f242d46": {
+      "tool_counts": {
+        "Read": 1
+      },
+      "last_tool": "Read",
+      "total_calls": 1,
+      "started_at": 1778836275,
+      "updated_at": 1778836275
+    },
+    "cfcb8994-65d3-4063-ae8a-ff2a9d40efa3": {
+      "tool_counts": {
+        "Read": 26,
+        "Grep": 5,
+        "Edit": 26,
+        "Agent": 6,
+        "ToolSearch": 1
+      },
+      "last_tool": "ToolSearch",
+      "total_calls": 64,
+      "started_at": 1779078319,
+      "updated_at": 1779083588
+    },
+    "111648a5-cecf-41e5-8d4c-b1414307bce6": {
+      "tool_counts": {
+        "Glob": 38,
+        "AskUserQuestion": 12,
+        "Bash": 37,
+        "Read": 103,
+        "Grep": 47,
+        "Agent": 20,
+        "Skill": 1,
+        "Edit": 87,
+        "PowerShell": 24,
+        "Write": 21,
+        "ToolSearch": 2,
+        "mcp__playwright__browser_navigate": 3,
+        "mcp__playwright__browser_snapshot": 4,
+        "mcp__playwright__browser_type": 2,
+        "mcp__playwright__browser_click": 1
+      },
+      "last_tool": "Edit",
+      "total_calls": 402,
+      "started_at": 1779080803,
+      "updated_at": 1779173361
+    },
+    "d5f1b03d-ebab-4702-8e37-897a3482639a": {
+      "tool_counts": {
+        "Read": 6,
+        "Write": 1,
+        "Glob": 2,
+        "Edit": 2
+      },
+      "last_tool": "Glob",
+      "total_calls": 11,
+      "started_at": 1779080976,
+      "updated_at": 1779085726
+    },
+    "77ac2710-f058-4a8a-9d86-8090b523ae3e": {
+      "tool_counts": {
+        "Glob": 62,
+        "Read": 438,
+        "Write": 35,
+        "Grep": 76,
+        "Edit": 92,
+        "Bash": 96,
+        "ToolSearch": 3,
+        "Agent": 25,
+        "PowerShell": 12,
+        "mcp__plugin_playwright_playwright__browser_navigate": 6,
+        "mcp__plugin_playwright_playwright__browser_snapshot": 6,
+        "mcp__plugin_playwright_playwright__browser_console_messages": 7,
+        "mcp__plugin_playwright_playwright__browser_evaluate": 26,
+        "mcp__plugin_playwright_playwright__browser_close": 1,
+        "AskUserQuestion": 7,
+        "TaskCreate": 2,
+        "TaskUpdate": 4,
+        "Skill": 1
+      },
+      "last_tool": "Write",
+      "total_calls": 899,
+      "started_at": 1779083971,
+      "updated_at": 1779323431
+    },
+    "244249f0-15f3-4c4c-a90d-cdce794c534d": {
+      "tool_counts": {
+        "Grep": 17,
+        "Read": 4
+      },
+      "last_tool": "Read",
+      "total_calls": 21,
+      "started_at": 1779261845,
+      "updated_at": 1779262247
+    },
+    "9621354f-308c-44fd-a915-927fda06febd": {
+      "tool_counts": {
+        "Glob": 9,
+        "Read": 115,
+        "Skill": 1,
+        "Grep": 12,
+        "Edit": 15,
+        "Bash": 14,
+        "Write": 4,
+        "Agent": 10,
+        "PowerShell": 1
+      },
+      "last_tool": "PowerShell",
+      "total_calls": 181,
+      "started_at": 1779326604,
+      "updated_at": 1779339538
+    },
+    "c41782d8-0e19-42ef-b859-98c2b9fad863": {
+      "tool_counts": {
+        "Grep": 15,
+        "Read": 17,
+        "Bash": 12,
+        "Edit": 22,
+        "PowerShell": 3
+      },
+      "last_tool": "Edit",
+      "total_calls": 69,
+      "started_at": 1779341738,
+      "updated_at": 1779349236
+    },
+    "d77547f4-8541-4657-ac08-60fe9f891067": {
+      "tool_counts": {
+        "Read": 7,
+        "Glob": 5,
+        "AskUserQuestion": 3,
+        "Grep": 2,
+        "PowerShell": 1
+      },
+      "last_tool": "Read",
+      "total_calls": 18,
+      "started_at": 1779342050,
+      "updated_at": 1779342724
+    },
+    "76f4bc16-b927-4b45-b3c8-05d13e16e226": {
+      "tool_counts": {
+        "Bash": 14,
+        "Read": 15,
+        "Agent": 1
+      },
+      "last_tool": "Agent",
+      "total_calls": 30,
+      "started_at": 1779413863,
+      "updated_at": 1779424610
+    },
+    "6cf58105-adc3-4323-9860-e5dbd118352e": {
+      "tool_counts": {
+        "Skill": 1,
+        "Read": 54,
+        "Glob": 10,
+        "Agent": 1,
+        "Grep": 9,
+        "AskUserQuestion": 2,
+        "Write": 8,
+        "Edit": 10,
+        "Bash": 4
+      },
+      "last_tool": "Bash",
+      "total_calls": 99,
+      "started_at": 1779427638,
+      "updated_at": 1779753537
+    },
+    "b4991e22-443c-4e7f-b3ae-d83670d0f7a6": {
+      "tool_counts": {
+        "Read": 14,
+        "Glob": 3,
+        "Write": 1,
+        "ToolSearch": 1,
+        "Grep": 2
+      },
+      "last_tool": "Grep",
+      "total_calls": 21,
+      "started_at": 1779839643,
+      "updated_at": 1779840340
+    },
+    "fff1955b-cb82-4ebe-a690-4f4732f0306d": {
+      "tool_counts": {
+        "Glob": 39,
+        "Read": 98,
+        "Write": 45,
+        "Edit": 26,
+        "Grep": 8,
+        "Bash": 14,
+        "Agent": 19,
+        "AskUserQuestion": 4,
+        "Skill": 2,
+        "PowerShell": 7,
+        "ToolSearch": 1,
+        "ExitPlanMode": 1
+      },
+      "last_tool": "Write",
+      "total_calls": 264,
+      "started_at": 1779840819,
+      "updated_at": 1779860529
+    },
+    "70e3c9f1-ded1-4709-8290-58bbffbb0b03": {
+      "tool_counts": {
+        "Bash": 13,
+        "Read": 5,
+        "AskUserQuestion": 10,
+        "Glob": 1,
+        "Write": 2,
+        "Agent": 1,
+        "Edit": 12,
+        "ToolSearch": 1
+      },
+      "last_tool": "AskUserQuestion",
+      "total_calls": 45,
+      "started_at": 1779863910,
+      "updated_at": 1779866750
+    },
+    "00887322-1259-4b20-8ec1-fa88063f9f82": {
+      "tool_counts": {
+        "Bash": 1,
+        "PowerShell": 3
+      },
+      "last_tool": "PowerShell",
+      "total_calls": 4,
+      "started_at": 1779864413,
+      "updated_at": 1779864603
+    },
+    "b11c228d-d10b-4d1e-95a1-2409cf797cdf": {
+      "tool_counts": {
+        "Skill": 2,
+        "Read": 34,
+        "AskUserQuestion": 6,
+        "Bash": 10,
+        "Write": 9,
+        "Agent": 1,
+        "Edit": 80,
+        "Glob": 2,
+        "Grep": 14,
+        "PowerShell": 1,
+        "ToolSearch": 1,
+        "WebFetch": 9
+      },
+      "last_tool": "Read",
+      "total_calls": 169,
+      "started_at": 1779927692,
+      "updated_at": 1780289614
+    },
+    "efe6b9ef-4ef3-4ab7-bd1b-5a63930e3d23": {
+      "tool_counts": {
+        "Read": 2,
+        "Write": 1
+      },
+      "last_tool": "Read",
+      "total_calls": 3,
+      "started_at": 1779946376,
+      "updated_at": 1779949411
+    },
+    "714a2337-7dcf-41ea-830b-2055409d9a00": {
+      "tool_counts": {
+        "Glob": 1,
+        "Grep": 8,
+        "Bash": 12,
+        "Read": 1
+      },
+      "last_tool": "Bash",
+      "total_calls": 22,
+      "started_at": 1779957810,
+      "updated_at": 1779958239
+    },
+    "17da920e-9a6f-4561-bb20-55435994d8b5": {
+      "tool_counts": {
+        "ToolSearch": 4,
+        "Glob": 48,
+        "TaskCreate": 17,
+        "Read": 65,
+        "TaskUpdate": 24,
+        "AskUserQuestion": 17,
+        "Write": 62,
+        "Bash": 110,
+        "Agent": 24,
+        "Edit": 40,
+        "Skill": 2,
+        "PowerShell": 7,
+        "Monitor": 3,
+        "Grep": 19
+      },
+      "last_tool": "Edit",
+      "total_calls": 442,
+      "started_at": 1780019602,
+      "updated_at": 1780367954
+    },
+    "8cc1f2bd-a9d2-4fdd-94bf-6ce5a48c1cba": {
+      "tool_counts": {
+        "Skill": 1,
+        "Read": 254,
+        "Glob": 81,
+        "ToolSearch": 2,
+        "TaskCreate": 7,
+        "TaskUpdate": 20,
+        "PowerShell": 18,
+        "Bash": 65,
+        "Write": 35,
+        "Agent": 34,
+        "Edit": 53,
+        "Grep": 12
+      },
+      "last_tool": "Edit",
+      "total_calls": 582,
+      "started_at": 1780303898,
+      "updated_at": 1780359869
+    },
+    "4048bc58-3b81-4147-836e-b52b1b8af985": {
+      "tool_counts": {
+        "Glob": 5,
+        "Read": 7,
+        "Grep": 2,
+        "AskUserQuestion": 1,
+        "Edit": 1,
+        "Bash": 1
+      },
+      "last_tool": "Read",
+      "total_calls": 17,
+      "started_at": 1780363119,
+      "updated_at": 1780364860
+    },
+    "6f63c90e-9421-44d1-9ced-1a1fc5dcd3cf": {
+      "tool_counts": {
+        "Read": 22,
+        "Grep": 13,
+        "Edit": 26,
+        "Glob": 2
+      },
+      "last_tool": "Grep",
+      "total_calls": 63,
+      "started_at": 1780384961,
+      "updated_at": 1780388424
+    },
+    "1a632669-da06-45b8-b7b6-0d81eed500e3": {
+      "tool_counts": {
+        "Grep": 11,
+        "Read": 14,
+        "Edit": 18,
+        "Bash": 2
+      },
+      "last_tool": "Read",
+      "total_calls": 45,
+      "started_at": 1780545157,
+      "updated_at": 1780548187
+    },
+    "3e5e8745-b096-4c03-b8c3-aa4af9d0c221": {
+      "tool_counts": {
+        "AskUserQuestion": 9,
+        "Bash": 43,
+        "Read": 61,
+        "Write": 38,
+        "ToolSearch": 1,
+        "TaskCreate": 6,
+        "TaskUpdate": 11,
+        "Glob": 32,
+        "Edit": 17,
+        "Skill": 2,
+        "Grep": 4,
+        "Agent": 5,
+        "PowerShell": 16
+      },
+      "last_tool": "Bash",
+      "total_calls": 245,
+      "started_at": 1780555679,
+      "updated_at": 1780563353
+    },
+    "027f4858-977f-4d76-aa09-834336464522": {
+      "tool_counts": {
+        "ToolSearch": 2,
+        "TaskCreate": 6,
+        "TaskUpdate": 12,
+        "Read": 34,
+        "Glob": 25,
+        "AskUserQuestion": 15,
+        "Bash": 69,
+        "Write": 39,
+        "Skill": 2,
+        "Edit": 3,
+        "Agent": 18,
+        "PowerShell": 6
+      },
+      "last_tool": "Bash",
+      "total_calls": 231,
+      "started_at": 1780556018,
+      "updated_at": 1780562344
+    },
+    "60e2da7c-7aab-4724-84c5-4ebe023a5289": {
+      "tool_counts": {
+        "Bash": 5,
+        "Read": 24,
+        "ToolSearch": 2,
+        "TaskCreate": 11,
+        "TaskUpdate": 18,
+        "mcp__plugin_context7_context7__resolve-library-id": 1,
+        "AskUserQuestion": 4,
+        "Glob": 7,
+        "Write": 8,
+        "Skill": 1,
+        "Agent": 8,
+        "Edit": 4,
+        "Grep": 2
+      },
+      "last_tool": "Bash",
+      "total_calls": 95,
+      "started_at": 1780558241,
+      "updated_at": 1780561140
+    },
+    "982e1dd5-7728-4413-a682-063f8baf107b": {
+      "tool_counts": {
+        "Skill": 2,
+        "AskUserQuestion": 6,
+        "Glob": 1,
+        "Write": 1,
+        "Read": 5,
+        "Edit": 8
+      },
+      "last_tool": "Read",
+      "total_calls": 23,
+      "started_at": 1780561863,
+      "updated_at": 1780563101
+    },
+    "49dcea81-aadd-42f2-9346-a8e21cc4453f": {
+      "tool_counts": {
+        "Read": 2,
+        "Edit": 7,
+        "Glob": 1,
+        "Write": 1
+      },
+      "last_tool": "Edit",
+      "total_calls": 11,
+      "started_at": 1780617677,
+      "updated_at": 1780620797
+    },
+    "6fbce02a-f093-45aa-a502-3a5a6e0d4a7b": {
+      "tool_counts": {
+        "Read": 27,
+        "Glob": 6,
+        "Edit": 17,
+        "Write": 2,
+        "Bash": 7,
+        "PowerShell": 16,
+        "ToolSearch": 1
+      },
+      "last_tool": "Bash",
+      "total_calls": 76,
+      "started_at": 1780623381,
+      "updated_at": 1780634265
+    },
+    "205735dc-bc06-462d-a358-31912ae2aea8": {
+      "tool_counts": {
+        "Grep": 18,
+        "Read": 8,
+        "Edit": 11
+      },
+      "last_tool": "Edit",
+      "total_calls": 37,
+      "started_at": 1780624272,
+      "updated_at": 1780625977
+    },
+    "966a6d4a-c8ea-44c3-9af6-fa38989fe910": {
+      "tool_counts": {
+        "Read": 1
+      },
+      "last_tool": "Read",
+      "total_calls": 1,
+      "started_at": 1780631750,
+      "updated_at": 1780631750
+    },
+    "4228e98f-1bae-4d17-a1bc-4e97cb82516e": {
+      "tool_counts": {
+        "Bash": 70,
+        "PowerShell": 10,
+        "Read": 54,
+        "Glob": 20,
+        "Edit": 15,
+        "Grep": 2,
+        "Agent": 3,
+        "Write": 1
+      },
+      "last_tool": "Read",
+      "total_calls": 175,
+      "started_at": 1780634500,
+      "updated_at": 1780641632
+    },
+    "853e2eb7-c5ac-44b1-a9aa-aeb1ba2be4e5": {
+      "tool_counts": {
+        "Glob": 11,
+        "Bash": 3,
+        "Read": 15,
+        "Agent": 2,
+        "ToolSearch": 1,
+        "mcp__plugin_playwright_playwright__browser_navigate": 4,
+        "mcp__plugin_playwright_playwright__browser_snapshot": 3,
+        "mcp__plugin_playwright_playwright__browser_fill_form": 2,
+        "mcp__plugin_playwright_playwright__browser_click": 4,
+        "mcp__plugin_playwright_playwright__browser_wait_for": 3,
+        "mcp__plugin_playwright_playwright__browser_take_screenshot": 4,
+        "Write": 2
+      },
+      "last_tool": "Glob",
+      "total_calls": 54,
+      "started_at": 1780636585,
+      "updated_at": 1780637522
+    },
+    "6e91d38e-dde2-4330-8b61-b853b0cd0b8f": {
+      "tool_counts": {
+        "Skill": 4,
+        "Read": 6,
+        "ToolSearch": 5,
+        "TaskCreate": 7,
+        "Glob": 1,
+        "Write": 1,
+        "TaskUpdate": 13,
+        "PowerShell": 1,
+        "mcp__plugin_playwright_playwright__browser_navigate": 4,
+        "mcp__plugin_playwright_playwright__browser_snapshot": 11,
+        "mcp__plugin_playwright_playwright__browser_fill_form": 1,
+        "mcp__plugin_playwright_playwright__browser_click": 9,
+        "mcp__plugin_playwright_playwright__browser_wait_for": 7,
+        "mcp__plugin_playwright_playwright__browser_take_screenshot": 8,
+        "mcp__plugin_playwright_playwright__browser_tabs": 3,
+        "mcp__plugin_playwright_playwright__browser_evaluate": 6,
+        "Grep": 7,
+        "Bash": 6,
+        "Edit": 2
+      },
+      "last_tool": "Bash",
+      "total_calls": 102,
+      "started_at": 1780638938,
+      "updated_at": 1780640968
+    }
+  }
+}

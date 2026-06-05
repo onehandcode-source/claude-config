@@ -1,0 +1,109 @@
+import { BookOpen, LogOut, Menu } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { Button } from '@/shared/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/shared/components/ui/sheet';
+import { ThemeToggle } from '@/shared/components/ThemeToggle/ThemeToggle';
+import { SidebarSurface } from './SidebarSurface';
+import { MENU_ITEMS } from '../menuItems';
+
+const navLinkStyle = ({ isActive }) => ({
+    display: 'flex',
+    alignItems: 'center',
+    padding: '0 14px',
+    height: '100%',
+    fontSize: '13.5px',
+    fontWeight: 500,
+    textDecoration: 'none',
+    whiteSpace: 'nowrap',
+    color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+    borderBottom: `2px solid ${isActive ? 'hsl(var(--primary))' : 'transparent'}`,
+    transition: 'color 0.12s',
+});
+
+export const LayoutHeader = ({ mobileMenuOpen, onMobileMenuOpenChange, onLogout, user }) => {
+    const visibleItems = MENU_ITEMS.filter(
+        (item) => !item.requiredRole || item.requiredRole === user?.role,
+    );
+
+    return (
+        <>
+            <Sheet open={mobileMenuOpen} onOpenChange={onMobileMenuOpenChange}>
+                <SheetContent side='left' className='w-72 max-w-[85vw] p-0'>
+                    <SheetHeader
+                        className='flex h-[52px] items-center justify-start px-4'
+                        style={{ borderBottom: '1px solid hsl(var(--border))' }}
+                    >
+                        <SheetTitle className='text-sm font-bold text-foreground'>TrmWordDict</SheetTitle>
+                    </SheetHeader>
+                    <SidebarSurface user={user} onNavigate={() => onMobileMenuOpenChange(false)} />
+                </SheetContent>
+            </Sheet>
+
+            <header
+                className='fixed inset-x-0 top-0 z-50 flex items-center bg-card border-b border-border px-5'
+                style={{ height: 'var(--nav-h)' }}
+            >
+                <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    className='lg:hidden mr-2 h-8 w-8'
+                    aria-label='메뉴 열기'
+                    onClick={() => onMobileMenuOpenChange(true)}
+                >
+                    <Menu aria-hidden='true' className='h-4 w-4' />
+                </Button>
+
+                <NavLink to='/home' style={{ textDecoration: 'none', marginRight: '24px', flexShrink: 0 }}>
+                    <div className='flex items-center gap-2'>
+                        <div
+                            className='flex items-center justify-center rounded-lg flex-shrink-0'
+                            style={{ width: '28px', height: '28px', background: 'hsl(var(--primary))' }}
+                        >
+                            <BookOpen aria-hidden='true' style={{ width: '14px', height: '14px', color: '#fff' }} />
+                        </div>
+                        <span
+                            className='hidden sm:block'
+                            style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '-0.025em', color: 'hsl(var(--foreground))' }}
+                        >
+                            Trm<span style={{ color: 'hsl(var(--primary))' }}>WordDict</span>
+                        </span>
+                    </div>
+                </NavLink>
+
+                <nav className='hidden lg:flex' style={{ height: '100%' }}>
+                    {visibleItems.map((item) => (
+                        <NavLink key={item.route} to={item.route} style={navLinkStyle}>
+                            {item.label}
+                        </NavLink>
+                    ))}
+                </nav>
+
+                <div className='flex-1' />
+
+                <div className='flex items-center gap-1'>
+                    <ThemeToggle />
+                    {user?.name && (
+                        <span
+                            className='hidden md:block text-sm px-2'
+                            style={{ color: 'hsl(var(--muted-foreground))' }}
+                        >
+                            {user.name}
+                        </span>
+                    )}
+                    <Button
+                        variant='ghost'
+                        size='sm'
+                        className='gap-1.5'
+                        style={{ color: 'hsl(var(--muted-foreground))' }}
+                        onClick={() => void onLogout()}
+                    >
+                        <LogOut aria-hidden='true' className='h-4 w-4' />
+                        <span className='hidden sm:inline'>로그아웃</span>
+                        <span className='sr-only'>로그아웃</span>
+                    </Button>
+                </div>
+            </header>
+        </>
+    );
+};

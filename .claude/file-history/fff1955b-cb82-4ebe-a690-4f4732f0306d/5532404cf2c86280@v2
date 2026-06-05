@@ -1,0 +1,70 @@
+import { NavLink } from 'react-router-dom';
+import { MENU_ITEMS } from '../menuItems';
+import { cn } from '@/lib/utils';
+
+const NAV_GROUPS = [
+    { label: '관리', key: 'manage' },
+    { label: '가져오기', key: 'import' },
+];
+
+const getVisibleGroups = (user) =>
+    NAV_GROUPS.map((group) => {
+        const items = MENU_ITEMS.filter(
+            (item) => item.group === group.key && (!item.requiredRole || item.requiredRole === user?.role),
+        );
+        return items.length > 0 ? { ...group, items } : null;
+    }).filter(Boolean);
+
+export const SidebarSurface = ({ user, onNavigate }) => {
+    const groups = getVisibleGroups(user);
+    const initials = user?.name?.charAt(0) ?? 'U';
+
+    return (
+        <div className='flex flex-col h-full'>
+            <nav className='py-4 flex-1 overflow-y-auto' aria-label='주요 메뉴'>
+                {groups.map((group) => (
+                    <section key={group.key} className='mb-5'>
+                        <p className='px-4 mb-1.5 text-[10px] font-bold tracking-[0.1em] uppercase text-muted-foreground'>
+                            {group.label}
+                        </p>
+                        <div>
+                            {group.items.map((item) => (
+                                <NavLink
+                                    key={item.route}
+                                    to={item.route}
+                                    onClick={onNavigate}
+                                    className={({ isActive }) =>
+                                        cn(
+                                            'flex items-center py-2 px-4 text-[13px] no-underline transition-all border-l-2',
+                                            isActive
+                                                ? 'font-semibold text-accent border-l-accent bg-accent-soft'
+                                                : 'font-normal text-muted-foreground border-l-transparent hover:bg-surface hover:text-fg',
+                                        )
+                                    }
+                                >
+                                    {item.label}
+                                </NavLink>
+                            ))}
+                        </div>
+                    </section>
+                ))}
+            </nav>
+
+            <div className='p-3 border-t border-border-lt'>
+                <div className='flex items-center gap-2.5 px-1 py-2'>
+                    <div className='w-7 h-7 rounded-full bg-accent text-white flex items-center justify-center text-[12px] font-bold shrink-0'>
+                        {initials}
+                    </div>
+                    <div className='min-w-0 flex-1'>
+                        <p className='m-0 text-[12.5px] font-medium text-fg truncate'>
+                            {user?.name}
+                        </p>
+                        <p className='m-0 text-[11px] text-muted-foreground truncate'>
+                            {user?.role}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};

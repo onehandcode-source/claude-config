@@ -1,0 +1,60 @@
+import '@testing-library/jest-dom/vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { DataGrid } from './DataGrid';
+
+const columns = [
+    { key: 'name', header: 'Name', sortable: true },
+    { key: 'status', header: 'Status', sortable: false },
+];
+
+const pageData = {
+    items: [
+        { id: 1, name: 'Alpha', status: 'ACTIVE' },
+        { id: 2, name: 'Beta', status: 'PENDING' },
+    ],
+    page: 1,
+    size: 10,
+    totalElements: 12,
+    totalPages: 2,
+};
+
+describe('DataGrid', () => {
+    test('renders rows and emits row click and sorting', async () => {
+        const user = userEvent.setup();
+        const onRowClick = vi.fn();
+        const onSortChange = vi.fn();
+
+        render(
+            <DataGrid columns={columns} pageData={pageData} onRowClick={onRowClick} onSortChange={onSortChange} />,
+        );
+
+        await user.click(screen.getByRole('button', { name: /sort by name/i }));
+        await user.click(screen.getByText('Alpha'));
+
+        expect(onSortChange).toHaveBeenCalledWith({ active: 'name', direction: 'asc' });
+        expect(onRowClick).toHaveBeenCalledWith(pageData.items[0]);
+    });
+
+    test('supports selection and page change callbacks', async () => {
+        const user = userEvent.setup();
+        const onSelectionChange = vi.fn();
+        const onPageChange = vi.fn();
+
+        render(
+            <DataGrid
+                columns={columns}
+                pageData={pageData}
+                selectable
+                onSelectionChange={onSelectionChange}
+                onPageChange={onPageChange}
+            />,
+        );
+
+        await user.click(screen.getByRole('checkbox', { name: 'Select all rows' }));
+        await user.click(screen.getByRole('button', { name: 'Next page' }));
+
+        expect(onSelectionChange).toHaveBeenLastCalledWith(pageData.items);
+        expect(onPageChange).toHaveBeenCalledWith({ page: 2, size: 10 });
+    });
+});

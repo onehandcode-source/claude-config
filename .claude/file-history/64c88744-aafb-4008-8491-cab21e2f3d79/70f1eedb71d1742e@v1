@@ -1,0 +1,362 @@
+# 코딩 컨벤션 상세 (Frontend react)
+
+> **대상**: AI 에이전트 및 팀 개발자  
+> **목적**: React 18+ 프론트엔드 코드 생성 시 일관성을 강제하는 단일 참조 문서  
+> **백엔드 규칙**: `docs/dev-guide/conventions.md` 참조  
+> **Endpoint 설계**: `docs/superpowers/ygKim/02. endPointRole.md` 참조
+
+---
+
+## 1. 기술 스택
+
+| 항목 | 기술 |
+|------|------|
+| Framework | React 18+ (SPA) |
+| Language | TypeScript |
+| UI Library | shadcn/ui (Tailwind CSS 기반) |
+| Component Engine | Radix UI (Headless) |
+| 전역 상태 | Zustand |
+| 서버 상태 | React Query (TanStack Query v5) |
+| 유효성 검사 | Zod |
+| 아이콘 | Lucide React |
+| 토스트 알림 | Sonner |
+| 날짜 유틸 | date-fns |
+| CSS 유틸 | clsx, tailwind-merge |
+| 빌드 결과물 | `npm run build` → Spring Boot `src/main/resources/static/` |
+
+---
+
+## 2. 디렉터리 구조
+
+```
+frontend/src/
+├── app/                          # 라우터 설정, 전역 Provider 구성
+│   ├── router.jsx                # React Router 라우트 정의
+│   └── providers.jsx             # QueryClient, 전역 Provider 래핑
+├── core/                         # 앱 전역 싱글톤 (한 번만 초기화)
+│   ├── api/
+│   │   ├── axiosInstance.js      # axios 기본 설정, 인터셉터
+│   │   └── apiResponse.types.js  # ApiResponse<T>, PageResponse<T> 타입
+│   └── auth/
+│       └── authUtils.js          # 토큰 저장/파싱 유틸
+├── shared/                       # 여러 feature에서 재사용하는 코드
+│   ├── components/               # 공통 UI 컴포넌트
+│   │   ├── SearchForm/
+│   │   ├── DataGrid/
+│   │   ├── FileUpload/
+│   │   ├── DetailPanel/
+│   │   └── EditDrawer/
+│   ├── hooks/                    # 공통 커스텀 Hook
+│   └── utils/                    # 순수 유틸 함수
+├── store/                        # Zustand 전역 상태 스토어
+│   └── useAuthStore.js
+├── features/                     # 도메인 기능 모듈
+│   ├── auth/
+│   ├── domain/
+│   ├── word/
+│   ├── term/
+│   ├── forbidden/
+│   ├── import/
+│   └── inspection/
+└── styles/                       # 전역 CSS, Tailwind base 설정
+```
+
+---
+
+## 3. 파일 명명 규칙
+
+| 유형 | 패턴 | 예시 |
+|------|------|------|
+| React 컴포넌트 | PascalCase `.jsx` | `WordList.jsx` |
+| 페이지 컴포넌트 | PascalCase + `Page` `.jsx` | `WordPage.jsx` |
+| 커스텀 Hook | `use` + PascalCase `.js` | `useWordList.js` |
+| Zustand Store | `use` + PascalCase + `Store` `.js` | `useAuthStore.js` |
+| API 함수 파일 | camelCase + `Api` `.js` | `wordApi.js` |
+| 타입/인터페이스 | camelCase `.types.js` | `word.types.js` |
+| Zod 스키마 | camelCase `.schema.js` | `wordSave.schema.js` |
+| 유틸 함수 | camelCase + `Utils` `.js` | `dateUtils.js` |
+| 상수 | camelCase `.constants.js` | `queryKeys.constants.js` |
+
+---
+
+## 4. features 모듈 내부 구조
+
+### 4.1 컴포넌트 수 임계치
+
+- **2개 이하**: 평면 구조 (모듈 폴더 바로 아래에 파일 배치)
+- **3개 이상**: 분리 구조 (`components/`, `hooks/` 폴더 분리)
+
+### 4.2 평면 구조 예시 (import — 컴포넌트 2개 이하)
+
+```
+features/import/
+├── ImportPage.jsx
+├── useImportUpload.js
+├── importApi.js
+└── import.types.js
+```
+
+### 4.3 분리 구조 예시 (word — 컴포넌트 3개 이상)
+
+```
+features/word/
+├── components/
+│   ├── WordList.jsx
+│   ├── WordDetail.jsx
+│   └── WordEditDrawer.jsx
+├── hooks/
+│   ├── useWordList.js
+│   └── useWordDetail.js
+├── wordApi.js
+└── word.types.js
+```
+
+---
+
+## 5. 컴포넌트 작성 규칙
+
+### 5.1 기본 구조
+
+```jsx
+// WordList.jsx
+interface WordListProps {
+    searchParams: WordSearchDto;
+}
+
+export function WordList({ searchParams }: WordListProps) {
+    const { data, isLoading } = useWordList(searchParams);
+
+    if (isLoading) return <div>로딩 중...</div>;
+
+    return (
+        <div className="...">
+            {data?.items.map((word) => (
+                <WordListItem key={word.id} word={word} />
+            ))}
+        </div>
+    );
+}
+```
+
+**규칙**:
+
+- `export default` 금지 → named export 사용 (`export function`, `export const`)
+- Props 타입은 파일 내부에 `interface {ComponentName}Props` 로 선언
+- 컴포넌트 파일 1개에 컴포넌트 1개 원칙 (단, 같은 파일에서만 쓰이는 작은 서브 컴포넌트는 예외)
+
+### 5.2 shadcn/ui + Tailwind 사용 규칙
+
+```jsx
+import { cn } from '@/shared/utils/cn';
+import { Button } from '@/shared/components/ui/button';
+
+// cn() 으로 조건부 클래스 병합
+<div className={cn('base-class', isActive && 'active-class', className)} />
+
+// shadcn 컴포넌트는 shared/components/ui/ 경로에서 import
+import { Input } from '@/shared/components/ui/input';
+import { Table } from '@/shared/components/ui/table';
+```
+
+**cn 유틸**:
+
+```typescript
+// shared/utils/cn.js
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
+}
+```
+
+---
+
+## 6. 커스텀 Hook 작성 규칙
+
+```typescript
+// hooks/useWordList.js
+
+export function useWordList(params: WordSearchDto) {
+    return useQuery({
+        queryKey: wordQueryKeys.list(params),   // 쿼리 키는 상수 파일에서 관리
+        queryFn: () => wordApi.getList(params),
+        select: (res) => res.data,              // ApiResponse<T> 언래핑
+    });
+}
+
+export function useWordDetail(id: number) {
+    return useQuery({
+        queryKey: wordQueryKeys.detail(id),
+        queryFn: () => wordApi.getDetail(id),
+        enabled: !!id,                          // id가 없으면 실행 안 함
+        select: (res) => res.data,
+    });
+}
+
+export function useWordSave() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: WordSaveDto) => wordApi.save(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: wordQueryKeys.all });
+            toast.success('저장되었습니다.');
+        },
+        onError: () => {
+            toast.error('저장에 실패했습니다.');
+        },
+    });
+}
+```
+
+**규칙**:
+
+- `use` 접두사 필수
+- 서버 상태 조회 → `useQuery`, 서버 상태 변경 → `useMutation`
+- `select` 옵션으로 `ApiResponse<T>` 언래핑 처리
+- 에러/성공 핸들링은 Hook 내부에서 처리 (컴포넌트에서 중복 처리 금지)
+
+---
+
+## 7. API 함수 작성 규칙
+
+```typescript
+// wordApi.js
+import { axiosInstance } from '@/core/api/axiosInstance';
+import type { ApiResponse, PageResponse } from '@/core/api/apiResponse.types';
+import type { WordSearchDto, WordSaveDto, WordMstVo, WordDtlVo } from './word.types';
+
+export const wordApi = {
+    getList: (params: WordSearchDto) =>
+        axiosInstance.post<ApiResponse<PageResponse<WordMstVo>>>('/api/v1/words/search', params),
+
+    getDetail: (id: number) =>
+        axiosInstance.get<ApiResponse<WordDtlVo>>(`/api/v1/words/${id}`),
+
+    save: (data: WordSaveDto) =>
+        axiosInstance.post<ApiResponse<void>>('/api/v1/words', data),
+
+    update: (id: number, data: WordSaveDto) =>
+        axiosInstance.put<ApiResponse<void>>(`/api/v1/words/${id}`, data),
+
+    remove: (id: number) =>
+        axiosInstance.delete<ApiResponse<void>>(`/api/v1/words/${id}`),
+};
+```
+
+**Query Key 상수 패턴**:
+
+```typescript
+// word.constants.js
+export const wordQueryKeys = {
+    all: ['words'] as const,
+    list: (params: WordSearchDto) => ['words', 'list', params] as const,
+    detail: (id: number) => ['words', 'detail', id] as const,
+};
+```
+
+---
+
+## 8. Zustand Store 작성 규칙
+
+```typescript
+// store/useAuthStore.js
+import { create } from 'zustand';
+
+interface AuthUser {
+    id: number;
+    username: string;
+    role: 'ADMIN' | 'USER';
+}
+
+interface AuthState {
+    user: AuthUser | null;
+    isAuthenticated: boolean;
+    setUser: (user: AuthUser | null) => void;
+    logout: () => void;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+    user: null,
+    isAuthenticated: false,
+    setUser: (user) => set({ user, isAuthenticated: !!user }),
+    logout: () => set({ user: null, isAuthenticated: false }),
+}));
+```
+
+**규칙**:
+
+- 서버에서 받아오는 데이터(목록, 상세)는 Zustand에 저장 금지 → React Query 사용
+- Zustand는 UI 전역 상태 (사용자 정보, 사이드바 열림 여부, 테마 등)에만 사용
+- 스토어당 하나의 도메인 책임만 가진다
+
+---
+
+## 9. Zod + React Hook Form 유효성 검사 규칙
+
+```typescript
+// wordSave.schema.js
+import { z } from 'zod';
+
+export const wordSaveSchema = z.object({
+    wordNm: z.string().min(1, '단어명은 필수입니다.').max(100),
+    wordEngNm: z.string().max(200).optional(),
+    useYn: z.enum(['Y', 'N']).default('Y'),
+});
+
+export type WordSaveDto = z.infer<typeof wordSaveSchema>;
+```
+
+```jsx
+// WordEditDrawer.jsx
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+const form = useForm<WordSaveDto>({
+    resolver: zodResolver(wordSaveSchema),
+    defaultValues: { useYn: 'Y' },
+});
+```
+
+**규칙**:
+
+- 폼 유효성은 Zod 스키마로 정의, `zodResolver`로 React Hook Form에 연결
+- `type`은 `z.infer<typeof schema>`로 도출 (중복 타입 선언 금지)
+
+---
+
+## 10. TypeScript 규칙
+
+| 규칙 | 내용 |
+|------|------|
+| `any` 금지 | `unknown` 또는 명시적 타입 사용 |
+| `as` 캐스팅 최소화 | 불가피할 때만 사용, 이유 주석 필수 |
+| `!` non-null assertion 금지 | 옵셔널 체이닝(`?.`) 또는 조건 분기 사용 |
+| 인터페이스 vs 타입 | 확장 가능한 객체 → `interface`, 유니온/튜플 → `type` |
+| Props 타입 | 파일 내 `interface {Name}Props` 선언 |
+| API 응답 타입 | `ApiResponse<T>` 제네릭 통일 |
+
+---
+
+## 11. 금지 사항 및 필수 규칙 요약
+
+### 금지
+
+| 항목 | 내용 |
+|------|------|
+| `export default` | named export만 사용 |
+| 서버 상태를 Zustand에 저장 | React Query 사용 |
+| API 직접 호출 (컴포넌트 내부 fetch/axios) | 반드시 `{module}Api.js` → `use{Action}` Hook 경유 |
+| 인라인 스타일 (`style={{}}`) | Tailwind 클래스 사용 |
+| Tailwind 클래스 임의 중첩 | `cn()` 유틸로 병합 |
+
+### 필수
+
+| 항목 | 내용 |
+|------|------|
+| 컴포넌트 파일명 | PascalCase |
+| Hook 이름 | `use` 접두사 |
+| API 호출 경유 | `useQuery` / `useMutation` |
+| 폼 유효성 | Zod 스키마 + `zodResolver` |
+| 공통 클래스 병합 | `cn()` 사용 |
+| Query Key | 모듈별 상수 파일(`*.constants.js`)에서 관리 |

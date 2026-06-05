@@ -1,0 +1,32 @@
+package com.devwogns.trmdict.module.word.vo;
+
+import com.devwogns.trmdict.module.word.entity.WordEntity;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class WordListVo {
+
+    private Long id;
+    private String stdWordNm;
+    private String stdWordEngAbbrNm;
+    private String stdWordEngNm;
+    private String stdDmnClsfNm;
+    private String enctCycl;
+    private String useYn;
+
+    public static WordListVo fromEntity(WordEntity entity) {
+        WordListVo vo = new WordListVo();
+        vo.setId(entity.getId());
+        vo.setStdWordNm(entity.getStdWordNm());
+        vo.setStdWordEngAbbrNm(entity.getStdWordEngAbbrNm());
+        vo.setStdWordEngNm(entity.getStdWordEngNm());
+        vo.setStdDmnClsfNm(entity.getStdDmnClsfNm());
+        vo.setEnctCycl(entity.getEnctCycl());
+        vo.setUseYn(entity.getUseYn());
+        return vo;
+    }
+}

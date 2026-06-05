@@ -1,0 +1,158 @@
+package egov.sia.fileSyncMng.vo;
+
+public class FileSyncMngVO {
+
+    private int cNo;                // 고유번호
+    private String cDate;           // 등록일자
+    private String cEndDate;        // 완료일자
+    private String bakDate;         // 백업일자
+    private String rcvDate;         // 복원일자
+    private String cId;             // 등록자ID
+    private Integer cRelation;      // 유입경로 구분
+    private String cRelationNm;     // 유입경로 구분명
+    private String cFileName;       // 파일명
+    private String sttemntNo;       // 신고번호
+    private String cATitle;         // 제목
+    private int queueStt;           //  큐 상태
+    private String queueSttNm;      //  큐 상태
+    private int fileQCNo;           // 파일 큐 고유번호
+    private int fileCnt;            // 파일 수
+    private int imageCnt;           // 사진 수
+    private int videoCnt;           // 영상 수
+
+    public int getcNo() {
+        return cNo;
+    }
+
+    public void setcNo(int cNo) {
+        this.cNo = cNo;
+    }
+
+    public String getcDate() {
+        return cDate;
+    }
+
+    public void setcDate(String cDate) {
+        this.cDate = cDate;
+    }
+
+    public String getcEndDate() {
+        return cEndDate;
+    }
+
+    public void setcEndDate(String cEndDate) {
+        this.cEndDate = cEndDate;
+    }
+
+    public String getBakDate() {
+        return bakDate;
+    }
+
+    public void setBakDate(String bakDate) {
+        this.bakDate = bakDate;
+    }
+
+    public String getRcvDate() {
+        return rcvDate;
+    }
+
+    public void setRcvDate(String rcvDate) {
+        this.rcvDate = rcvDate;
+    }
+
+    public String getcId() {
+        return cId;
+    }
+
+    public void setcId(String cId) {
+        this.cId = cId;
+    }
+
+    public Integer getcRelation() {
+        return cRelation;
+    }
+
+    public void setcRelation(Integer cRelation) {
+        this.cRelation = cRelation;
+    }
+
+    public String getcRelationNm() {
+        return cRelationNm;
+    }
+
+    public void setcRelationNm(String cRelationNm) {
+        this.cRelationNm = cRelationNm;
+    }
+
+    public String getcFileName() {
+        return cFileName;
+    }
+
+    public void setcFileName(String cFileName) {
+        this.cFileName = cFileName;
+    }
+
+    public String getSttemntNo() {
+        return sttemntNo;
+    }
+
+    public void setSttemntNo(String sttemntNo) {
+        this.sttemntNo = sttemntNo;
+    }
+
+    public String getcATitle() {
+        return cATitle;
+    }
+
+    public void setcATitle(String cATitle) {
+        this.cATitle = cATitle;
+    }
+
+    public int getQueueStt() {
+        return queueStt;
+    }
+
+    public void setQueueStt(int queueStt) {
+        this.queueStt = queueStt;
+    }
+
+    public String getQueueSttNm() {
+        return queueSttNm;
+    }
+
+    public void setQueueSttNm(String queueSttNm) {
+        this.queueSttNm = queueSttNm;
+    }
+
+    public int getFileQCNo() {
+        return fileQCNo;
+    }
+
+    public void setFileQCNo(int fileQCNo) {
+        this.fileQCNo = fileQCNo;
+    }
+
+    public int getFileCnt() {
+        return fileCnt;
+    }
+
+    public void setFileCnt(int fileCnt) {
+        this.fileCnt = fileCnt;
+    }
+
+    public int getImageCnt() {
+        return imageCnt;
+    }
+
+    public void setImageCnt(int imageCnt) {
+        this.imageCnt = imageCnt;
+    }
+
+    public int getVideoCnt() {
+        return videoCnt;
+    }
+
+    public void setVideoCnt(int videoCnt) {
+        this.videoCnt = videoCnt;
+    }
+}

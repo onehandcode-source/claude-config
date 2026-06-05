@@ -1,0 +1,226 @@
+{
+  "version": 2,
+  "plugins": {
+    "double-shot-latte@superpowers-marketplace": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\superpowers-marketplace\\double-shot-latte\\1.2.0",
+        "version": "1.2.0",
+        "installedAt": "2026-02-26T00:47:02.350Z",
+        "lastUpdated": "2026-02-26T00:47:02.350Z",
+        "gitCommitSha": "dfe756798327554783e77758d9d50d44b4308bbf"
+      }
+    ],
+    "superpowers@superpowers-marketplace": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\superpowers-marketplace\\superpowers\\4.3.1",
+        "version": "4.3.1",
+        "installedAt": "2026-02-26T00:47:11.947Z",
+        "lastUpdated": "2026-02-26T00:47:11.947Z",
+        "gitCommitSha": "e4a2375cb705ca5800f0833528ce36a3faf9017a"
+      }
+    ],
+    "claude-hud@claude-hud": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\claude-hud\\claude-hud\\0.0.10",
+        "version": "0.0.10",
+        "installedAt": "2026-03-20T01:03:06.555Z",
+        "lastUpdated": "2026-03-20T01:03:06.555Z",
+        "gitCommitSha": "26e38decd762f1a2d31e6d83bf33193b3b293084"
+      }
+    ],
+    "claude-session-driver@superpowers-marketplace": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\superpowers-marketplace\\claude-session-driver\\1.0.1",
+        "version": "1.0.1",
+        "installedAt": "2026-03-20T02:02:34.569Z",
+        "lastUpdated": "2026-03-20T02:02:34.569Z",
+        "gitCommitSha": "c60d2bda21ff0786e3044506b13d2d307676c1ef"
+      }
+    ],
+    "episodic-memory@superpowers-marketplace": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\superpowers-marketplace\\episodic-memory\\1.0.15",
+        "version": "1.0.15",
+        "installedAt": "2026-03-20T02:02:45.824Z",
+        "lastUpdated": "2026-03-20T02:02:45.824Z",
+        "gitCommitSha": "6feaa5bd8752ae104c88d251e68ce19c30a1bd2f"
+      }
+    ],
+    "superpowers@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\claude-plugins-official\\superpowers\\5.0.6",
+        "version": "5.0.6",
+        "installedAt": "2026-03-29T23:27:00.851Z",
+        "lastUpdated": "2026-03-29T23:27:00.851Z",
+        "gitCommitSha": "eafe962b18f6c5dc70fb7c8cc7e83e61f4cdde06"
+      }
+    ],
+    "context7@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\claude-plugins-official\\context7\\unknown",
+        "version": "unknown",
+        "installedAt": "2026-03-29T23:27:13.081Z",
+        "lastUpdated": "2026-03-29T23:27:13.081Z"
+      }
+    ],
+    "github@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\claude-plugins-official\\github\\unknown",
+        "version": "unknown",
+        "installedAt": "2026-03-29T23:27:28.795Z",
+        "lastUpdated": "2026-03-29T23:27:28.795Z"
+      }
+    ],
+    "ralph-loop@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\claude-plugins-official\\ralph-loop\\1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-03-29T23:27:40.308Z",
+        "lastUpdated": "2026-03-29T23:27:40.308Z"
+      }
+    ],
+    "claude-md-management@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\claude-plugins-official\\claude-md-management\\1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-03-29T23:28:29.985Z",
+        "lastUpdated": "2026-03-29T23:28:29.985Z"
+      }
+    ],
+    "serena@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\claude-plugins-official\\serena\\unknown",
+        "version": "unknown",
+        "installedAt": "2026-03-29T23:31:07.612Z",
+        "lastUpdated": "2026-03-29T23:31:07.612Z"
+      }
+    ],
+    "frontend-design@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\claude-plugins-official\\frontend-design\\unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-16T12:11:15.493Z",
+        "lastUpdated": "2026-04-16T12:11:15.493Z"
+      }
+    ],
+    "code-simplifier@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\claude-plugins-official\\code-simplifier\\1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-04-22T04:07:58.182Z",
+        "lastUpdated": "2026-04-22T04:07:58.182Z"
+      }
+    ],
+    "claude-dashboard@claude-dashboard": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\claude-dashboard\\claude-dashboard\\1.26.0",
+        "version": "1.26.0",
+        "installedAt": "2026-04-22T04:20:52.615Z",
+        "lastUpdated": "2026-04-22T04:20:52.615Z",
+        "gitCommitSha": "03c0296da6d435a4026d0a3fa31c0f8d6879abfd"
+      }
+    ],
+    "codex@openai-codex": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\openai-codex\\codex\\1.0.4",
+        "version": "1.0.4",
+        "installedAt": "2026-04-30T01:36:33.539Z",
+        "lastUpdated": "2026-04-30T01:36:33.539Z",
+        "gitCommitSha": "807e03ac9d5aa23bc395fdec8c3767500a86b3cf"
+      }
+    ],
+    "everything-claude-code@everything-claude-code": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\everything-claude-code\\everything-claude-code\\2.0.0-rc.1",
+        "version": "2.0.0-rc.1",
+        "installedAt": "2026-04-30T02:08:26.775Z",
+        "lastUpdated": "2026-04-30T02:08:26.775Z",
+        "gitCommitSha": "0dcde13384eb556a238d6b01a7d715a2ca8cff80"
+      }
+    ],
+    "playwright@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\claude-plugins-official\\playwright\\unknown",
+        "version": "unknown",
+        "installedAt": "2026-05-13T04:18:38.208Z",
+        "lastUpdated": "2026-05-13T04:18:38.208Z"
+      }
+    ],
+    "fe-review-agents@fe-review-agents": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\fe-review-agents\\fe-review-agents\\0.6.0",
+        "version": "0.6.0",
+        "installedAt": "2026-05-15T00:35:05.649Z",
+        "lastUpdated": "2026-05-15T00:35:05.649Z",
+        "gitCommitSha": "ce33ed82530409bd159bb65cca47f1cff6eecda7"
+      }
+    ],
+    "oh-my-claudecode@omc": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\omc\\oh-my-claudecode\\4.13.7",
+        "version": "4.13.7",
+        "installedAt": "2026-05-15T02:12:31.980Z",
+        "lastUpdated": "2026-05-15T02:12:31.980Z",
+        "gitCommitSha": "679b418f32409e6d0edecf5038fd2de460cfce04"
+      }
+    ],
+    "code-review@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\claude-plugins-official\\code-review\\unknown",
+        "version": "unknown",
+        "installedAt": "2026-05-18T06:29:10.521Z",
+        "lastUpdated": "2026-05-18T06:29:10.521Z"
+      }
+    ],
+    "understand-anything@understand-anything": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\understand-anything\\understand-anything\\2.7.5",
+        "version": "2.7.5",
+        "installedAt": "2026-05-28T08:40:41.991Z",
+        "lastUpdated": "2026-05-28T08:40:41.991Z",
+        "gitCommitSha": "26edf61856fa476e466bda1814819a266a293c47"
+      }
+    ],
+    "andrej-karpathy-skills@karpathy-skills": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\karpathy-skills\\andrej-karpathy-skills\\1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-06-04T07:11:36.517Z",
+        "lastUpdated": "2026-06-04T07:11:36.517Z",
+        "gitCommitSha": "2c606141936f1eeef17fa3043a72095b4765b9c2"
+      }
+    ],
+    "last30days@last30days-skill": [
+      {
+        "scope": "user",
+        "installPath": "C:\\Users\\ygkim\\.claude\\plugins\\cache\\last30days-skill\\last30days\\3.3.1",
+        "version": "3.3.1",
+        "installedAt": "2026-06-05T06:42:20.953Z",
+        "lastUpdated": "2026-06-05T06:42:20.953Z",
+        "gitCommitSha": "26da1e157cc83aba5b782fd3662627535e81bbc7"
+      }
+    ]
+  }
+}

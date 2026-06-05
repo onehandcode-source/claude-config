@@ -1,0 +1,29 @@
+import { http, unwrapResponse } from '@/core/api/http';
+
+export async function uploadCsv(type, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await http.post('/v1/imports', formData, {
+        params: { type },
+    });
+
+    return unwrapResponse(response);
+}
+
+export async function getSummary(historyId) {
+    const response = await http.get(`/v1/imports/${historyId}`);
+    return unwrapResponse(response);
+}
+
+export async function getErrorPage(historyId, page, size, sort) {
+    const response = await http.get(`/v1/imports/${historyId}/errors`, {
+        params: {
+            page,
+            size,
+            sort,
+        },
+    });
+
+    return unwrapResponse(response);
+}

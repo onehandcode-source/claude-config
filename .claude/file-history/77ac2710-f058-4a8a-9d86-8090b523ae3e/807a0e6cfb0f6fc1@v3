@@ -1,0 +1,41 @@
+import axios from 'axios';
+import { getToken, removeToken } from '../auth/authUtils';
+import { useAuthStore } from '../../store/useAuthStore';
+
+export const axiosInstance = axios.create({
+    baseURL: '/api/v1',
+    timeout: 30000,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+axiosInstance.interceptors.request.use((config) => {
+    const token = getToken();
+    if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+});
+
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const status = error.response?.status;
+        const code = error.response?.data?.code;
+
+        if (status === 401 || code === 'AUTH_1002') {
+            useAuthStore.getState().logout();
+            removeToken();
+        }
+
+        return Promise.reject(error);
+    }
+);
+
+export const unwrapResponse = (response) => {
+    if (!response.data?.success || response.data?.data === null || response.data?.data === undefined) {
+        throw new Error(response.data?.message ?? '요청 처리에 실패했습니다.');
+    }
+    return response.data.data;
+};

@@ -1,0 +1,86 @@
+package com.devwogns.trmdict.module.word.entity;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.SequenceGenerator;
+import javax.persistence.Table;
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "TB_TRM_WORD")
+public class WordEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tbTrmWordSeq")
+    @SequenceGenerator(name = "tbTrmWordSeq", sequenceName = "TB_TRM_WORD_SEQ", allocationSize = 1)
+    @Column(name = "WORD_SN")
+    private Long id;
+
+    @Column(name = "STD_WORD_NM")
+    private String stdWordNm;
+
+    @Column(name = "STD_WORD_ENG_ABBR_NM")
+    private String stdWordEngAbbrNm;
+
+    @Column(name = "STD_WORD_ENG_NM")
+    private String stdWordEngNm;
+
+    @Column(name = "STD_WORD_EXPLN")
+    private String stdWordExpln;
+
+    @Column(name = "FRM_WORD_YN")
+    private String frmWordYn;
+
+    @Column(name = "STD_DMN_CLSF_NM")
+    private String stdDmnClsfNm;
+
+    @Column(name = "SYNM_LIST_CN")
+    private String synmListCn;
+
+    @Column(name = "PHWRD_LIST_CN")
+    private String phwrdListCn;
+
+    @Column(name = "ENCT_CYCL")
+    private String enctCycl;
+
+    @Column(name = "RVSN_SE_NM")
+    private String rvsnSeNm;
+
+    @Column(name = "RVSN_ARTCL_NM")
+    private String rvsnArtclNm;
+
+    @Column(name = "RVSN_RSN")
+    private String rvsnRsn;
+
+    @Column(name = "USE_YN")
+    private String useYn;
+
+    @Column(name = "RMRK_CN")
+    private String rmrkCn;
+
+    @Column(name = "RGTR_ID")
+    private String rgtrId;
+
+    @Column(name = "REG_IP_ADDR")
+    private String regIpAddr;
+
+    @Column(name = "REG_DT")
+    private LocalDateTime regDt;
+
+    @Column(name = "MDFR_ID")
+    private String mdfrId;
+
+    @Column(name = "MDFCN_IP_ADDR")
+    private String mdfcnIpAddr;
+
+    @Column(name = "MDFCN_DT")
+    private LocalDateTime mdfcnDt;
+}

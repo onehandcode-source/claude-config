@@ -1,0 +1,264 @@
+<%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
+<!DOCTYPE html>
+<html lang="ko"  class="blue gnb_2">
+<head>
+    <jsp:include page="/WEB-INF/jsp/inc/head.jsp" />
+</head>
+
+<body class="fullScreen loaded">
+<div id="wrapper">
+    <jsp:include page="/WEB-INF/jsp/inc/header.jsp" />
+
+    <div id="container">
+        <div id="contentsWrap">
+            <div id="contents">
+                <form action="#" method="post" name="searchForm" id="search_frm">
+					<div class="notice_area mb10" style="padding: 8px 12px; background-color: #fff8e1; border-left: 4px solid #ffc107; color: #555;">
+						※ 파일 복원은 오늘일자 기준, 3일 이상 지난 신고에 대해서 복원이 가능합니다.
+					</div>
+                    <div class="bd_search_box bd_search mb30">
+						<div class="inner">
+                            <table class="bd_search v3">
+                                <caption>파일 복원 관리 조회</caption>
+                                <colgroup>
+                                    <col style="width:100px">
+                                    <col style="width:300px">
+                                    <col style="width:100px">
+                                    <col style="width:300px">
+                                    <col style="width:auto">
+                                </colgroup>
+                                <tbody>
+                                    <tr>
+                                        <th><label for="cFrmDate">신고일</label></th>
+                                        <td>
+                                            <span class="dateRange">
+                                                <input type="date" class="startDate" id="cFrmDate" name="cFrmDate" title="시작날짜" value="${prePram.cFrmDate}" /> ~
+                                                <input type="date" class="endDate"   id="cToDate"   name="cToDate"   title="마지막날짜" value="${prePram.cToDate}" />
+                                            </span>
+                                        </td>
+                                        <th><label for="sttemntNoSrchBody">신고번호</label></th>
+                                        <td>
+                                            <select id="sttemntNoSrchHead" name="sttemntNoSrchHead">
+                                                <option value="SPP">SPP</option>
+                                                <option value="EPP">EPP</option>
+                                            </select>
+                                            <input type="text" class="w_50p" id="sttemntNoSrchBody" name="sttemntNoSrchBody" title="신고번호" maxlength="12" oninput="sethyphen(this)"/>
+                                        </td>
+                                        <td>
+                                            <div class="btn_right">
+                                                <custag:authorize prefix="R">
+                                                    <button type="button" id="searchBtn" class="btn b_srch">조회</button>
+                                                </custag:authorize>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="btn_area mb10">
+                    <div class="btn_left">
+                        <button type="button" id="bulkRestoreBtn" class="btn b_blue">선택 일괄 복원</button>
+                        <button type="button" id="allRestoreBtn" class="btn b_red">검색 결과 전체 복원</button>
+                    </div>
+                </div>
+
+                <div class="kw-json-paging">
+                    <div class="tb_bg">
+                        <div class="sbgrid">
+                            <div id="sbGridArea"></div>
+                        </div>
+                    </div>
+                    <div id="shim" class="pagenate"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <jsp:include page="/WEB-INF/jsp/inc/footer.jsp" />
+</div>
+
+<div id="js_import">
+    <script type="text/javascript" src="<c:url value='/common/js/common.js'/>"></script>
+</div>
+
+<script type="text/javascript">
+    SBGrid.DEF.DOMAIN = "/sia/common/images/";
+</script>
+
+<script type="text/javascript">
+    let datagrid;
+    let grid_data = [];
+    let maxPage, nowPage, pageSize;
+
+    $(document).ready(function() {
+        // from/to 날짜 최대값: 오늘 기준 3일 전 (그 이후 날짜는 선택 불가)
+        const maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() - 3);
+        const maxDateStr = maxDate.toISOString().split('T')[0];
+        $("#cFrmDate").attr("max", maxDateStr);
+        $("#cToDate").attr("max", maxDateStr);
+
+        // 초기 데이터 로드
+        ajaxData(1);
+
+        // 조회 버튼 이벤트
+        $("#searchBtn").click(function() { ajaxData(1); });
+
+        // 엔터키 조회
+        $("#sttemntNoSrchBody").keydown(function(e) { if(e.keyCode == 13) ajaxData(1); });
+
+        // 일괄 복원 버튼 이벤트
+        $("#bulkRestoreBtn").click(function() {
+            bulkRestore();
+        });
+
+        // 전체 복원 버튼 이벤트
+        $("#allRestoreBtn").click(function() {
+            allRestore();
+        });
+    });
+
+    const __createElements = () => {
+        let size = "width:100%; height:651px;";
+        let heightSize = "height:" + ((30 * grid_data.length) + 51) + "px;";
+        if(grid_data.length < 20) size = "width:100%;" + heightSize;
+
+        if (SBGrid.getGrid('datagrid')) datagrid.destroy();
+
+        let GridInitInfo = {
+            "strParentId"           : "sbGridArea"
+            , "strId"               : "datagrid"
+            , "strCaption"          : "선택^신고번호^제목^신고일^전체 파일^사진^영상"
+            , "strColWidth"         : "5%,12%,43%,16%,8%,8%,8%"
+            , "strJsonRef"          : "grid_data"
+            , "strStyle"            : size
+            , "strDataHeight"       : "30"
+            , "strToolTip"          : "true"
+            , "bAllowUserResize"    : true
+            , "strSelectMode"       : "free"
+            , "strEmptyRecords"     : "검색결과가 없습니다."
+            , "strOverflow"         : "hidden"
+            , "strExplorerbar"      : "vertical"
+            , "bIsFitWidth"         : true
+        };
+        let SBGridColumnInitInfo = [
+            { "id" : "col0" , "type" : "checkbox" , "ref" : "check"       , "style" : "text-align:center" }
+            , { "id" : "col1" , "type" : "output"   , "ref" : "sttemntNo"   , "style" : "text-align:center" }
+            , { "id" : "col2" , "type" : "output"   , "ref" : "cATitle"     , "style" : "text-align:left" }
+            , { "id" : "col3" , "type" : "output"   , "ref" : "cDate"       , "style" : "text-align:center" }
+            , { "id" : "col4" , "type" : "output"   , "ref" : "fileCnt"     , "style" : "text-align:center" }
+            , { "id" : "col5" , "type" : "output"   , "ref" : "imageCnt"    , "style" : "text-align:center" }
+            , { "id" : "col6" , "type" : "output"   , "ref" : "videoCnt"    , "style" : "text-align:center" }
+            , { "id" : "col7" , "type" : "output"   , "ref" : "cNo"         , "bIsColHidden" : true }
+        ];
+        datagrid = createSBDataGrid(GridInitInfo);
+        datagrid.createColumns(SBGridColumnInitInfo);
+        datagrid.addEventListener("onclick", "fnRowClick", "", "");
+    }
+
+    const ajaxData = (newPage) => {
+        let data = {
+            "newPage": newPage,
+            "cFrmDate": $("#cFrmDate").val(),
+            "cToDate": $("#cToDate").val(),
+            "sttemntNo": $("#sttemntNoSrchHead").val() + "-" + $("#sttemntNoSrchBody").val()
+        };
+        $.ajax({
+            url : "<c:url value='/fileRestore/selectRestoreSingoList.json'/>",
+            type : 'post', data : data, dataType : 'json',
+            success : function(json) {
+                grid_data = json.resultList;
+                // 체크박스용 필드 추가
+                for(let i=0; i<grid_data.length; i++) {
+                    grid_data[i].check = false;
+                }
+                __createElements();
+                maxPage = json.maxPage; nowPage = json.newPage; pageSize = json.pageSize;
+                $('#shim').smartpaginator({ totalrecords: maxPage, recordsperpage: pageSize, initval: nowPage, onchange: ajaxData });
+            }
+        });
+    }
+
+    function bulkRestore() {
+        let selectedSingoNos = [];
+        for(let i=1; i<=grid_data.length; i++) {
+            if(datagrid.getTextMatrix(i, 0) == "true" || datagrid.getTextMatrix(i, 0) == "1") {
+                selectedSingoNos.push(datagrid.getTextMatrix(i, 7));
+            }
+        }
+
+        if(selectedSingoNos.length === 0) {
+            alert("복원할 신고 건을 선택해 주세요.");
+            return;
+        }
+
+        if(confirm("선택한 " + selectedSingoNos.length + "건에 대해 일괄 복원을 요청하시겠습니까?")) {
+            $.ajax({
+                url: "<c:url value='/fileRestore/updateBulkFileRestore.do'/>",
+                type: 'post',
+                data: { singoNos: selectedSingoNos },
+                dataType: 'json',
+                success: function(res) {
+                    alert(res.message);
+                    ajaxData(nowPage);
+                },
+                error: function() {
+                    alert("서버 통신 중 오류가 발생했습니다.");
+                }
+            });
+        }
+    }
+
+    function allRestore() {
+        if(grid_data.length === 0) {
+            alert("조회된 결과가 없습니다.");
+            return;
+        }
+
+        if(confirm("현재 검색 결과 전체(" + maxPage + "건)에 대해 복원을 요청하시겠습니까?\n(데이터 양에 따라 시간이 오래 걸릴 수 있습니다.)")) {
+            let data = {
+                "cFrmDate": $("#cFrmDate").val(),
+                "cToDate": $("#cToDate").val(),
+                "sttemntNo": $("#sttemntNoSrchHead").val() + "-" + $("#sttemntNoSrchBody").val()
+            };
+            $.ajax({
+                url: "<c:url value='/fileRestore/updateAllFileRestore.do'/>",
+                type: 'post',
+                data: data,
+                dataType: 'json',
+                success: function(res) {
+                    alert(res.message);
+                    ajaxData(nowPage);
+                },
+                error: function() {
+                    alert("서버 통신 중 오류가 발생했습니다.");
+                }
+            });
+        }
+    }
+
+    function sethyphen(obj) {
+        let rawVal = obj.value.replace(/-/g, '');
+        if (rawVal.length > 4) obj.value = rawVal.slice(0, 4) + '-' + rawVal.slice(4);
+        else obj.value = rawVal;
+    }
+
+    function fnRowClick() {
+        if (datagrid.getMouseRow() === 0 || datagrid.getCol() === 0) {
+            return false;
+        }
+        const cNo = datagrid.getTextMatrix(datagrid.getMouseRow(), datagrid.getColRef("cNo"));
+        const sttemntNo = datagrid.getTextMatrix(datagrid.getMouseRow(), datagrid.getColRef("sttemntNo"));
+        const param = {
+            "C_NO" : cNo,
+            "STTEMNT_NO" : sttemntNo,
+            "TITLE": "신고현황"
+        };
+        const url = "/sia/vhclTrfcVltnInq/safeSingoMngInqPup.do?menuId="+"<c:out value='${param.menuId}'/>";
+        fn_postUrlPopupSingle(url, "1500", "800", param);
+    }
+</script>
+</body>
+</html>

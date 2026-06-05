@@ -1,0 +1,240 @@
+import { useState } from 'react';
+import { Card } from '@/shared/components/ui/card';
+import { Button } from '@/shared/components/ui/button';
+import { Badge } from '@/shared/components/ui/badge';
+
+const MOCK_SYNC_HISTORY = [
+    { dt: '2026-05-26 08:30', status: 'ok', count: '+12', duration: '4.2s' },
+    { dt: '2026-05-25 08:30', status: 'ok', count: '+3', duration: '3.8s' },
+    { dt: '2026-05-24 08:30', status: 'warn', count: '+0', duration: 'timeout' },
+    { dt: '2026-05-23 08:30', status: 'ok', count: '+7', duration: '5.1s' },
+];
+
+const MOCK_HISTORY = [
+    { ts: '2026-05-26 09:14', action: '동기화', detail: '행안부 API 동기화 (+12)', user: 'system' },
+    { ts: '2026-05-25 14:30', action: '가져오기', detail: 'CSV 파일을 통해 8개 용어 추가', user: 'admin' },
+    { ts: '2026-05-25 08:30', action: '동기화', detail: '행안부 API 동기화 (+3)', user: 'system' },
+    { ts: '2026-05-24 16:00', action: '반려', detail: '"데이터 주체" 반려 처리', user: 'admin' },
+];
+
+const INITIAL_PENDING = [
+    { id: 'p-1', name: '데이터 주체', nameEn: 'Data Subject', category: '개인정보 보호', submittedBy: 'user01', submittedAt: '2026-05-26' },
+    { id: 'p-2', name: '처리자', nameEn: 'Processor', category: '개인정보 보호', submittedBy: 'user02', submittedAt: '2026-05-26' },
+];
+
+const TABS = ['행안부 연동', '가져오기', '변경 이력', '검수 대기'];
+
+const THead = ({ cols }) => (
+    <thead>
+        <tr className='border-b border-border-lt'>
+            {cols.map((h) => (
+                <th key={h} className='px-4 py-2.5 text-left text-[11px] font-bold tracking-[0.08em] uppercase text-muted-foreground'>{h}</th>
+            ))}
+        </tr>
+    </thead>
+);
+
+export const DataManagePage = () => {
+    const [activeTab, setActiveTab] = useState(0);
+    const [syncing, setSyncing] = useState(false);
+    const [syncMsg, setSyncMsg] = useState('');
+    const [dragOver, setDragOver] = useState(false);
+    const [previewRows, setPreviewRows] = useState(null);
+    const [pending, setPending] = useState(INITIAL_PENDING);
+
+    const doSync = () => {
+        setSyncing(true);
+        setSyncMsg('행안부 API 호출 중…');
+        setTimeout(() => {
+            setSyncing(false);
+            setSyncMsg('완료: +0개 변경');
+            setTimeout(() => setSyncMsg(''), 3000);
+        }, 2000);
+    };
+
+    const MOCK_PREVIEW = [
+        { name: '데이터 주체', nameEn: 'Data Subject', category: '개인정보 보호', definition: '개인정보의 처리로부터 보호받아야 할 식별 가능한 개인' },
+        { name: '처리자', nameEn: 'Processor', category: '개인정보 보호', definition: '개인정보처리자를 위하여 개인정보를 처리하는 자연인·법인 등' },
+        { name: '개인정보파일', nameEn: 'Personal Information File', category: '개인정보 보호', definition: '개인정보를 쉽게 검색할 수 있도록 일정한 규칙에 따라 체계적으로 배열한 집합물' },
+    ];
+
+    const handleFileDrop = (e) => {
+        e.preventDefault();
+        setDragOver(false);
+        setPreviewRows(MOCK_PREVIEW);
+    };
+
+    return (
+        <div className='space-y-4'>
+            <header className='pb-5 border-b border-border-lt mb-5'>
+                <h1 className='font-display italic font-bold text-[26px] m-0 mb-1' style={{ letterSpacing: '-0.02em' }}>
+                    데이터 관리
+                </h1>
+                <p className='text-[13px] text-muted-foreground m-0'>행안부 연동·가져오기·변경 이력·검수를 관리합니다</p>
+            </header>
+
+            <div className='flex border-b border-border-lt mb-4'>
+                {TABS.map((t, i) => (
+                    <button
+                        key={t}
+                        onClick={() => setActiveTab(i)}
+                        className={`px-4 py-2 text-[13px] font-medium border-b-2 transition-colors ${
+                            activeTab === i ? 'border-fg text-fg' : 'border-transparent text-muted-foreground hover:text-fg'
+                        }`}
+                    >
+                        {t}
+                        {i === 3 && pending.length > 0 && (
+                            <span className='ml-1.5 bg-accent text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full'>
+                                {pending.length}
+                            </span>
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            {activeTab === 0 && (
+                <div className='space-y-4'>
+                    <Card className='p-5 border-[1.5px] border-border-lt rounded-sm bg-bg'>
+                        <div className='flex items-center justify-between mb-3'>
+                            <div>
+                                <p className='font-bold text-[14px] m-0 mb-0.5'>공공데이터포털 API 연동</p>
+                                <p className='text-[13px] text-muted-foreground m-0'>행정안전부 표준 용어사전 (data.go.kr)</p>
+                            </div>
+                            <Badge variant='success'>● 정상 연결</Badge>
+                        </div>
+                        <div className='flex gap-6 flex-wrap mb-4'>
+                            {[['마지막 동기화', '2026-05-26 08:30'], ['동기화 주기', '매일 08:30 KST'], ['마지막 변경', '+12개 용어']].map(([k, v]) => (
+                                <div key={k} className='flex flex-col gap-0.5'>
+                                    <span className='text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground'>{k}</span>
+                                    <span className='text-[13px] font-mono'>{v}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className='flex items-center gap-3'>
+                            <Button onClick={doSync} disabled={syncing} className='rounded-sm'>{syncing ? '동기화 중…' : '지금 동기화'}</Button>
+                            {syncMsg && <span className='text-[13px] text-muted-foreground'>{syncMsg}</span>}
+                        </div>
+                    </Card>
+                    <Card className='p-0 overflow-hidden border-[1.5px] border-border-lt rounded-sm'>
+                        <table className='w-full text-[13px]'>
+                            <THead cols={['날짜', '상태', '변경 용어 수', '소요 시간']} />
+                            <tbody>
+                                {MOCK_SYNC_HISTORY.map((r, i) => (
+                                    <tr key={i} className='border-b border-border-lt last:border-0'>
+                                        <td className='px-4 py-2.5 font-mono'>{r.dt}</td>
+                                        <td className='px-4 py-2.5'>
+                                            <Badge variant={r.status === 'ok' ? 'success' : 'secondary'}>
+                                                {r.status === 'ok' ? '성공' : '부분 실패'}
+                                            </Badge>
+                                        </td>
+                                        <td className='px-4 py-2.5 font-mono'>{r.count}</td>
+                                        <td className='px-4 py-2.5 font-mono'>{r.duration}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </Card>
+                </div>
+            )}
+
+            {activeTab === 1 && (
+                <div className='space-y-4'>
+                    {!previewRows ? (
+                        <div
+                            className={`border-2 border-dashed rounded p-10 text-center cursor-pointer transition-colors ${
+                                dragOver ? 'border-accent bg-accent/5' : 'border-border-lt hover:border-accent'
+                            }`}
+                            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                            onDragLeave={() => setDragOver(false)}
+                            onDrop={handleFileDrop}
+                            onClick={() => document.getElementById('csvFileInput').click()}
+                        >
+                            <input
+                                id='csvFileInput'
+                                type='file'
+                                accept='.csv,.json'
+                                className='hidden'
+                                onChange={() => setPreviewRows(MOCK_PREVIEW)}
+                            />
+                            <p className='text-[28px] mb-2'>↑</p>
+                            <p className='font-semibold mb-1'>CSV 또는 JSON 파일을 드롭하거나 클릭하세요</p>
+                            <p className='text-[12px] text-muted-foreground m-0'>필드: id, name, nameEn, category, definition, tags</p>
+                        </div>
+                    ) : (
+                        <div>
+                            <div className='flex items-center justify-between mb-3'>
+                                <p className='text-[13px] font-semibold m-0'>{previewRows.length}개 행 미리보기</p>
+                                <div className='flex gap-2'>
+                                    <Button variant='outline' className='rounded-sm' onClick={() => setPreviewRows(null)}>취소</Button>
+                                    <Button className='rounded-sm' onClick={() => { alert('가져오기 완료 (목업)'); setPreviewRows(null); }}>가져오기 확인</Button>
+                                </div>
+                            </div>
+                            <Card className='p-0 overflow-auto border-[1.5px] border-border-lt rounded-sm'>
+                                <table className='w-full text-[13px]'>
+                                    <THead cols={['name', 'nameEn', 'category', 'definition (앞 50자)']} />
+                                    <tbody>
+                                        {previewRows.map((r, i) => (
+                                            <tr key={i} className='border-b border-border-lt last:border-0'>
+                                                <td className='px-4 py-2.5'>{r.name}</td>
+                                                <td className='px-4 py-2.5 font-mono'>{r.nameEn}</td>
+                                                <td className='px-4 py-2.5'>{r.category}</td>
+                                                <td className='px-4 py-2.5 truncate max-w-[300px]'>{r.definition.slice(0, 50)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </Card>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 2 && (
+                <Card className='p-0 overflow-hidden border-[1.5px] border-border-lt rounded-sm'>
+                    <table className='w-full text-[13px]'>
+                        <THead cols={['시각', '유형', '내용', '작업자']} />
+                        <tbody>
+                            {MOCK_HISTORY.map((r, i) => (
+                                <tr key={i} className='border-b border-border-lt last:border-0'>
+                                    <td className='px-4 py-2.5 font-mono'>{r.ts}</td>
+                                    <td className='px-4 py-2.5'>{r.action}</td>
+                                    <td className='px-4 py-2.5'>{r.detail}</td>
+                                    <td className='px-4 py-2.5 font-mono'>{r.user}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </Card>
+            )}
+
+            {activeTab === 3 && (
+                <div className='space-y-2'>
+                    {pending.length === 0 ? (
+                        <div className='text-center py-12 text-muted-foreground'>
+                            <p className='text-[20px] mb-2'>✓</p>
+                            <p className='font-semibold m-0'>검수 대기 항목 없음</p>
+                        </div>
+                    ) : (
+                        pending.map((p) => (
+                            <Card key={p.id} className='flex items-center gap-3 p-4 border-[1.5px] border-border-lt rounded-sm bg-bg'>
+                                <div className='flex-1 min-w-0'>
+                                    <p className='font-semibold text-[14px] m-0'>
+                                        {p.name}{' '}
+                                        <span className='text-[12px] font-normal text-muted-foreground'>{p.nameEn}</span>
+                                    </p>
+                                    <p className='text-[12px] text-muted-foreground m-0'>
+                                        {p.category} · 제출자: {p.submittedBy} · {p.submittedAt}
+                                    </p>
+                                </div>
+                                <div className='flex gap-2 shrink-0'>
+                                    <Button variant='outline' className='rounded-sm text-[12px]' onClick={() => setPending((prev) => prev.filter((x) => x.id !== p.id))}>반려</Button>
+                                    <Button className='rounded-sm text-[12px]' onClick={() => setPending((prev) => prev.filter((x) => x.id !== p.id))}>승인</Button>
+                                </div>
+                            </Card>
+                        ))
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};

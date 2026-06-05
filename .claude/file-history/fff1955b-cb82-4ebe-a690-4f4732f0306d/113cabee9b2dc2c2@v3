@@ -1,0 +1,86 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Badge } from '@/shared/components/ui/badge';
+import { Card } from '@/shared/components/ui/card';
+import Ban from 'lucide-react/dist/esm/icons/ban.js';
+import Database from 'lucide-react/dist/esm/icons/database.js';
+import FolderTree from 'lucide-react/dist/esm/icons/folder-tree.js';
+import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right.js';
+import BookOpen from 'lucide-react/dist/esm/icons/book-open.js';
+
+const quickEntries = [
+    { title: '도메인 관리', description: '도메인 분류 계층을 관리하고 메타데이터를 검토합니다.', to: '/domain', icon: FolderTree, dotColor: '#8b5cf6' },
+    { title: '단어 관리', description: '표준 용어를 확인하고 메타데이터를 최신 상태로 유지합니다.', to: '/word', icon: BookOpen, dotColor: '#2563eb' },
+    { title: '금칙어 관리', description: '금칙어 목록과 최신 적용 상태를 조회합니다.', to: '/forbidden', icon: Ban, dotColor: '#ef4444' },
+    { title: '데이터 가져오기', description: 'CSV 파일로 단어·도메인·금칙어를 일괄 등록합니다.', to: '/import', icon: Database, dotColor: '#10b981' },
+];
+
+const QuickCard = ({ title, description, to, icon: Icon, dotColor }) => {
+    const [hovered, setHovered] = useState(false);
+    return (
+        <Link to={to} className='no-underline h-full'>
+            <Card
+                className='h-full flex flex-col gap-3 p-5 border-[1.5px] bg-bg rounded-sm transition-all cursor-pointer'
+                style={{
+                    borderColor: hovered ? dotColor : 'hsl(var(--border-lt))',
+                    boxShadow: hovered ? `0 4px 16px ${dotColor}20` : 'none',
+                }}
+                onMouseEnter={() => setHovered(true)}
+                onMouseLeave={() => setHovered(false)}
+            >
+                <div className='flex items-center gap-2'>
+                    <span className='w-2 h-2 rounded-full shrink-0' style={{ background: dotColor }} aria-hidden='true' />
+                    <span className='text-[11px] font-bold tracking-[0.08em] uppercase text-muted-foreground'>
+                        {title}
+                    </span>
+                </div>
+                <p className='text-[13px] text-muted-foreground m-0 leading-relaxed flex-1'>
+                    {description}
+                </p>
+                <div className='flex items-center gap-1 text-[12px] font-medium mt-auto' style={{ color: dotColor }}>
+                    바로가기
+                    <ArrowRight className='w-3 h-3' aria-hidden='true' />
+                </div>
+            </Card>
+        </Link>
+    );
+};
+
+export const HomePage = () => {
+    const user = useAuthStore((state) => state.user);
+
+    return (
+        <div className='space-y-8'>
+            <header className='pb-6 border-b border-border-lt'>
+                <p className='text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-3 m-0'>
+                    행정표준용어 사전 시스템
+                </p>
+                <h1 className='font-display italic font-bold text-[32px] m-0 mb-2' style={{ letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                    안녕하세요,{' '}
+                    <span style={{ color: 'hsl(var(--accent))' }}>{user?.name ?? '사용자'}</span>님
+                </h1>
+                <p className='text-[14px] text-muted-foreground m-0'>
+                    행정안전부 표준 용어를 기반으로 테이블, 프로그램에서 사용할 수 있는 용어와 단어를 관리합니다.
+                </p>
+                <div className='flex gap-2 mt-4'>
+                    <Badge variant='secondary' className='text-[11px] font-bold tracking-wide uppercase'>
+                        {user?.role ?? '-'}
+                    </Badge>
+                    <Badge variant='success' className='text-[11px]'>활성</Badge>
+                </div>
+            </header>
+
+            <section>
+                <p className='text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground mb-4 m-0'>
+                    빠른 접근
+                </p>
+                <div className='grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3'>
+                    {quickEntries.map((entry) => (
+                        <QuickCard key={entry.to} {...entry} />
+                    ))}
+                </div>
+            </section>
+        </div>
+    );
+};

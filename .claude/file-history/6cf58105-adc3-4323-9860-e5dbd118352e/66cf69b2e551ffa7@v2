@@ -1,0 +1,183 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { BookOpen } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
+import { useAuthStore } from '@/store/useAuthStore';
+import { login } from './authApi';
+import { loginSchema } from './login.schema';
+
+const getSafeReturnUrl = (rawReturnUrl) => {
+    if (typeof rawReturnUrl !== 'string') {
+        return '/home';
+    }
+
+    let decodedReturnUrl;
+
+    try {
+        decodedReturnUrl = decodeURIComponent(rawReturnUrl);
+    } catch {
+        return '/home';
+    }
+
+    if (
+        !decodedReturnUrl.startsWith('/') ||
+        decodedReturnUrl.startsWith('//') ||
+        decodedReturnUrl.includes('://')
+    ) {
+        return '/home';
+    }
+
+    return decodedReturnUrl;
+};
+
+export const LoginPage = () => {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const setUser = useAuthStore((state) => state.setUser);
+    const returnUrl = getSafeReturnUrl(searchParams.get('returnUrl') || '/home');
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm({
+        resolver: zodResolver(loginSchema),
+        defaultValues: {
+            username: '',
+            password: '',
+        },
+    });
+
+    const mutation = useMutation({
+        mutationFn: async (values) => {
+            const data = await login(values);
+
+            if (!data?.user) {
+                throw new Error('로그인 응답에 사용자 정보가 없습니다.');
+            }
+
+            return data;
+        },
+        onSuccess: (data) => {
+            setUser(data.user);
+            navigate(returnUrl, { replace: true });
+        },
+    });
+
+    const usernameErrorId = errors.username ? 'login-username-error' : undefined;
+    const passwordErrorId = errors.password ? 'login-password-error' : undefined;
+    const mutationErrorId = mutation.isError ? 'login-form-error' : undefined;
+    const mutationErrorMessage =
+        mutation.error instanceof Error && mutation.error.message
+            ? mutation.error.message
+            : '로그인에 실패했습니다.';
+
+    return (
+        <section
+            style={{
+                width: '100%',
+                maxWidth: '360px',
+                borderRadius: '16px',
+                border: '1px solid hsl(var(--border))',
+                background: 'hsl(var(--card))',
+                padding: '32px',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+            }}
+        >
+            <header style={{ marginBottom: '24px' }}>
+                <div
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        background: 'hsl(var(--primary))',
+                        marginBottom: '16px',
+                    }}
+                >
+                    <BookOpen aria-hidden='true' style={{ width: '20px', height: '20px', color: '#fff' }} />
+                </div>
+                <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'hsl(var(--foreground))', margin: '0 0 6px' }}>
+                    Trm<span style={{ color: 'hsl(var(--primary))' }}>WordDict</span>
+                </h1>
+                <p style={{ fontSize: '13px', color: 'hsl(var(--muted-foreground))', margin: 0 }}>
+                    행정표준용어 기반 용어 사전 시스템
+                </p>
+            </header>
+
+            <form
+                style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+                onSubmit={handleSubmit((values) => mutation.mutate(values))}
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label
+                        style={{ fontSize: '13px', fontWeight: 500, color: 'hsl(var(--foreground))' }}
+                        htmlFor='username'
+                    >
+                        아이디
+                    </label>
+                    <Input
+                        id='username'
+                        aria-describedby={usernameErrorId}
+                        aria-invalid={errors.username ? 'true' : undefined}
+                        autoComplete='username'
+                        {...register('username')}
+                    />
+                    {errors.username ? (
+                        <p
+                            id={usernameErrorId}
+                            role='alert'
+                            style={{ fontSize: '12px', color: 'hsl(var(--destructive))', margin: 0 }}
+                        >
+                            {errors.username.message}
+                        </p>
+                    ) : null}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label
+                        style={{ fontSize: '13px', fontWeight: 500, color: 'hsl(var(--foreground))' }}
+                        htmlFor='password'
+                    >
+                        비밀번호
+                    </label>
+                    <Input
+                        id='password'
+                        aria-describedby={passwordErrorId}
+                        aria-invalid={errors.password ? 'true' : undefined}
+                        autoComplete='current-password'
+                        type='password'
+                        {...register('password')}
+                    />
+                    {errors.password ? (
+                        <p
+                            id={passwordErrorId}
+                            role='alert'
+                            style={{ fontSize: '12px', color: 'hsl(var(--destructive))', margin: 0 }}
+                        >
+                            {errors.password.message}
+                        </p>
+                    ) : null}
+                </div>
+
+                {mutation.isError ? (
+                    <p
+                        id={mutationErrorId}
+                        role='alert'
+                        style={{ fontSize: '12px', color: 'hsl(var(--destructive))', margin: 0 }}
+                    >
+                        {mutationErrorMessage}
+                    </p>
+                ) : null}
+
+                <Button className='w-full' type='submit' disabled={mutation.isPending}>
+                    로그인
+                </Button>
+            </form>
+        </section>
+    );
+};

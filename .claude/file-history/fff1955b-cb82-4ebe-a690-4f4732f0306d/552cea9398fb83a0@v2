@@ -1,0 +1,157 @@
+import { useState } from 'react';
+import { Card } from '@/shared/components/ui/card';
+import { Button } from '@/shared/components/ui/button';
+import { Badge } from '@/shared/components/ui/badge';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+
+const INITIAL_KEYS = [
+    { id: 'k-1', name: 'Claude Desktop', created: '2026-05-01', lastUsed: '2026-05-27', status: 'active' },
+    { id: 'k-2', name: 'VS Code Extension', created: '2026-05-10', lastUsed: '2026-05-27', status: 'active' },
+    { id: 'k-3', name: '구 테스트 키', created: '2026-04-15', lastUsed: '2026-04-30', status: 'revoked' },
+];
+
+export const SettingsPage = () => {
+    const [keys, setKeys] = useState(INITIAL_KEYS);
+    const [newKeyName, setNewKeyName] = useState('');
+    const [newKeyValue, setNewKeyValue] = useState(null);
+    const [saveMsg, setSaveMsg] = useState('');
+    const [logLevel, setLogLevel] = useState('info');
+
+    const generateKey = () => {
+        if (!newKeyName.trim()) { alert('키 이름을 입력하세요.'); return; }
+        const token = 'tb_' + Math.random().toString(36).slice(2, 34);
+        const newKey = { id: 'k-' + Date.now(), name: newKeyName.trim(), created: new Date().toISOString().slice(0, 10), lastUsed: '—', status: 'active' };
+        setKeys((prev) => [newKey, ...prev]);
+        setNewKeyValue(token);
+        setNewKeyName('');
+    };
+
+    const revokeKey = (id) => {
+        if (!confirm('이 키를 폐기하면 연결된 클라이언트가 인증 오류를 받게 됩니다. 계속하시겠습니까?')) return;
+        setKeys((prev) => prev.map((k) => k.id === id ? { ...k, status: 'revoked' } : k));
+    };
+
+    const saveSettings = () => {
+        setSaveMsg('저장됨 (목업)');
+        setTimeout(() => setSaveMsg(''), 2000);
+    };
+
+    return (
+        <div className='space-y-8'>
+            <header className='pb-5 border-b border-border-lt mb-5'>
+                <h1 className='font-display italic font-bold text-[26px] m-0 mb-1' style={{ letterSpacing: '-0.02em' }}>
+                    설정
+                </h1>
+                <p className='text-[13px] text-muted-foreground m-0'>API 키 관리 및 MCP 서버 설정</p>
+            </header>
+
+            <section>
+                <h2 className='text-[15px] font-bold mb-1'>API 키 관리</h2>
+                <p className='text-[13px] text-muted-foreground mb-4'>MCP 클라이언트 인증에 사용하는 API 키를 발급·폐기합니다.</p>
+
+                <div className='flex gap-2 mb-4'>
+                    <Input
+                        value={newKeyName}
+                        onChange={(e) => setNewKeyName(e.target.value)}
+                        placeholder='키 이름 (예: VS Code 플러그인)'
+                        className='max-w-[280px] rounded-sm'
+                        onKeyDown={(e) => e.key === 'Enter' && generateKey()}
+                    />
+                    <Button onClick={generateKey} className='rounded-sm'>새 키 발급</Button>
+                </div>
+
+                {newKeyValue && (
+                    <div className='mb-4 p-4 bg-green-50 border border-green-200 rounded-sm text-[13px]'>
+                        <p className='font-bold m-0 mb-1'>새 API 키가 발급됐습니다. 지금 복사하세요 — 다시 표시되지 않습니다.</p>
+                        <code className='block font-mono text-[12px] bg-white border border-green-200 rounded p-2 my-2 break-all'>
+                            {newKeyValue}
+                        </code>
+                        <Button
+                            variant='outline'
+                            className='rounded-sm text-[12px]'
+                            onClick={() => { navigator.clipboard.writeText(newKeyValue); }}
+                        >
+                            복사
+                        </Button>
+                        <Button variant='ghost' className='rounded-sm text-[12px] ml-2' onClick={() => setNewKeyValue(null)}>닫기</Button>
+                    </div>
+                )}
+
+                <Card className='p-0 overflow-hidden border-[1.5px] border-border-lt rounded-sm'>
+                    <table className='w-full text-[13px]'>
+                        <thead>
+                            <tr className='border-b border-border-lt'>
+                                {['이름', '생성일', '마지막 사용', '상태', ''].map((h, i) => (
+                                    <th key={i} className='px-4 py-2.5 text-left text-[11px] font-bold tracking-[0.08em] uppercase text-muted-foreground'>{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {keys.map((k) => {
+                                const revoked = k.status === 'revoked';
+                                return (
+                                    <tr key={k.id} className='border-b border-border-lt last:border-0'>
+                                        <td className={`px-4 py-2.5 font-medium ${revoked ? 'line-through text-muted-foreground' : ''}`}>{k.name}</td>
+                                        <td className='px-4 py-2.5 font-mono'>{k.created}</td>
+                                        <td className='px-4 py-2.5 font-mono'>{k.lastUsed}</td>
+                                        <td className='px-4 py-2.5'>
+                                            <Badge variant={revoked ? 'destructive' : 'success'}>{revoked ? '폐기됨' : '활성'}</Badge>
+                                        </td>
+                                        <td className='px-4 py-2.5 text-right'>
+                                            {!revoked && (
+                                                <Button variant='outline' className='text-[11px] rounded-sm py-1 h-auto' onClick={() => revokeKey(k.id)}>폐기</Button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </Card>
+            </section>
+
+            <section>
+                <h2 className='text-[15px] font-bold mb-1'>서버 설정</h2>
+                <p className='text-[13px] text-muted-foreground mb-4'>프로토타입 단계: 설정 변경은 저장만 되고 실제 서버에 적용되지 않습니다.</p>
+                <Card className='p-5 border-[1.5px] border-border-lt rounded-sm bg-bg'>
+                    <div className='space-y-4 max-w-[400px]'>
+                        <div className='space-y-1.5'>
+                            <Label className='text-[12px] font-semibold'>포트</Label>
+                            <Input type='number' defaultValue={3001} className='font-mono rounded-sm' />
+                            <p className='text-[11px] text-muted-foreground m-0'>MCP 서버 리슨 포트 (기본: 3001)</p>
+                        </div>
+                        <div className='space-y-1.5'>
+                            <Label className='text-[12px] font-semibold'>CORS 허용 Origins</Label>
+                            <Input defaultValue='http://localhost:3000, https://claude.ai' className='font-mono rounded-sm max-w-[480px]' />
+                            <p className='text-[11px] text-muted-foreground m-0'>쉼표로 구분. MCP 클라이언트 도메인을 입력하세요.</p>
+                        </div>
+                        <div className='space-y-1.5'>
+                            <Label className='text-[12px] font-semibold'>Rate Limit (요청/분)</Label>
+                            <Input type='number' defaultValue={120} className='font-mono rounded-sm' />
+                            <p className='text-[11px] text-muted-foreground m-0'>클라이언트당 분당 최대 요청 수</p>
+                        </div>
+                        <div className='space-y-1.5'>
+                            <Label className='text-[12px] font-semibold'>로그 레벨</Label>
+                            <Select value={logLevel} onValueChange={setLogLevel}>
+                                <SelectTrigger className='font-mono rounded-sm'>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {['info', 'debug', 'warn', 'error'].map((v) => (
+                                        <SelectItem key={v} value={v} className='font-mono'>{v}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className='flex items-center gap-3'>
+                            <Button onClick={saveSettings} className='rounded-sm'>설정 저장</Button>
+                            {saveMsg && <span className='text-[13px] text-green-600'>{saveMsg}</span>}
+                        </div>
+                    </div>
+                </Card>
+            </section>
+        </div>
+    );
+};

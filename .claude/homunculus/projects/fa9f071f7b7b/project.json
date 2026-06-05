@@ -1,0 +1,8 @@
+{
+  "id": "fa9f071f7b7b",
+  "name": "04. filesync_consumer_webclient",
+  "root": "D:/01. workSpace/04. filesync_consumer_webclient",
+  "remote": "http://172.21.10.28:9099/safetyreport/filesync/filesyncconsumer.git",
+  "created_at": "2026-04-30T09:15:12.338783Z",
+  "last_seen": "2026-05-08T09:12:34.724532Z"
+}

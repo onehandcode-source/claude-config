@@ -1,0 +1,511 @@
+# Claude Code 하네스 비교: 명령어 카탈로그 & 워크플로우 매핑
+
+> 작성일: 2026-04-11 / 최종 수정: 2026-06-04  
+> 대상: SP (Superpowers) · OMC (oh-my-claudecode) · ECC (Everything Claude Code) · gs (gstack)
+
+---
+
+## Part 0. Claude Code 네이티브 명령어
+
+> 하네스와 무관하게 Claude Code CLI 자체에 내장된 명령어.
+
+| 명령어      | 역할                                                   |
+| ----------- | ------------------------------------------------------ |
+| `/goal`     | 세션 목표 설정 + Stop hook 자동 활성화 (목표 달성 감시) |
+| `/model`    | 모델 전환 — Opus / Sonnet / Haiku                      |
+| `/hud`      | 상태라인(HUD) 설정 및 표시 항목 구성                   |
+| `/init`     | 현재 디렉토리에 CLAUDE.md 초기화                       |
+| `/loop`     | 프롬프트·슬래시 명령을 지정 주기로 반복 실행           |
+| `/schedule` | 크론 기반 원격 에이전트 예약 실행 (1회 또는 반복)      |
+| `/review`   | 현재 브랜치 PR 코드리뷰 실행                           |
+| `/config`   | 테마·모델 등 Claude Code 기본 설정 변경                |
+
+---
+
+## Part 1. 명령어 카탈로그
+
+### 1. SP (Superpowers) — 14개 스킬
+
+> 역할: 설계/의사결정/승인 레이어. 실행은 OMC에 위임.
+
+| 스킬명                           | 트리거                            | 역할                                      |
+| -------------------------------- | --------------------------------- | ----------------------------------------- |
+| `using-superpowers`              | 모든 대화 시작                    | SP 워크플로우 활성화, 스킬 호출 규칙 확립 |
+| `brainstorming`                  | 기능/컴포넌트/동작 추가 전        | 아이디어→설계 변환, 요구사항 정제         |
+| `writing-plans`                  | 설계 확정 후, 코드 작성 전        | 구현 계획 작성, 태스크 분해               |
+| `executing-plans`                | 별도 세션에서 계획 실행           | 계획 로드, 순차 태스크 실행               |
+| `subagent-driven-development`    | 같은 세션, 독립 태스크            | 태스크별 서브에이전트 파견, 2단계 리뷰    |
+| `test-driven-development`        | 기능/버그 수정 구현 전            | RED-GREEN-REFACTOR 순환                   |
+| `systematic-debugging`           | 버그/테스트 실패/예상치 못한 동작 | 근본 원인 조사 (4단계)                    |
+| `requesting-code-review`         | 태스크 완료 후, 병합 전           | 코드리뷰어 서브에이전트 파견              |
+| `receiving-code-review`          | 리뷰 피드백 수신 후               | 피드백 검증, 기술적 타당성 확인           |
+| `verification-before-completion` | 완료 주장 전 (커밋/PR)            | 검증 명령 실행, 증거 확보                 |
+| `finishing-a-development-branch` | 구현 완료, 모든 테스트 통과 후    | 병합/PR/유지/폐기 옵션 제시               |
+| `dispatching-parallel-agents`    | 독립적 2개+ 태스크                | 병렬 에이전트 파견                        |
+| `using-git-worktrees`            | 기능 작업 시작 전                 | 격리된 워크스페이스 생성                  |
+| `writing-skills`                 | 새 스킬 생성/편집 시              | TDD 기반 스킬 문서 작성                   |
+
+---
+
+### 2. OMC (oh-my-claudecode)
+
+> 역할: 오케스트레이션/실행 레이어. SP 지시를 실제로 수행.
+
+#### 2-1. 실행 모드 스킬 (9개)
+
+| 스킬명           | 레벨 | 역할                                                                |
+| ---------------- | ---- | ------------------------------------------------------------------- |
+| `autopilot`      | 4    | 아이디어→동작 코드 완전 자동 실행 (요구사항→설계→계획→구현→QA→검증) |
+| `ralph`          | 4    | 작업 완료까지 자동 반복 루프 (PRD 기반, 검증 포함)                  |
+| `ultrawork`      | 4    | 고처량 병렬 실행 엔진 (스마트 모델 라우팅)                          |
+| `team`           | 4    | N개 조율된 에이전트 (공유 작업 목록, 메시징, 의존성 지원)           |
+| `ultraqa`        | 3    | QA 사이클 반복 (테스트→검증→수정→반복)                              |
+| `omc-plan`       | 4    | 전략적 계획 (Interview/Direct/Consensus/Review 4가지 모드)          |
+| `ralplan`        | 4    | 합의 계획 진입점 (Planner→Architect→Critic 루프)                    |
+| `deep-interview` | 3    | 소크라테스식 심층 인터뷰 (명확도 70%+ 까지 반복)                    |
+| `deep-dive`      | 자동 | trace(인과 조사) → deep-interview(요구사항 정련) 2단계              |
+
+#### 2-2. 에이전트 (19개)
+
+| 에이전트              | 모델   | 역할                                                |
+| --------------------- | ------ | --------------------------------------------------- |
+| `explore`             | Haiku  | 코드베이스 검색, 파일/패턴 매핑 (읽기 전용)         |
+| `analyst`             | Opus   | 요구사항 분석, 숨겨진 제약/엣지 케이스 발굴         |
+| `planner`             | Opus   | 전략적 계획, 명확하고 실행 가능한 태스크 계획       |
+| `architect`           | Opus   | 시스템 설계, 경계, 장기 트레이드오프 (읽기 전용)    |
+| `debugger`            | Sonnet | 근본 원인 분석, 버그 추적, 스택 트레이스            |
+| `executor`            | Sonnet | 정확한 코드 변경, 구현 전문                         |
+| `verifier`            | Sonnet | 완료 증거, 테스트 적절성 검증                       |
+| `tracer`              | Sonnet | 증거 기반 인과 추적, 경쟁 가설 수집                 |
+| `security-reviewer`   | Opus   | OWASP Top 10, 암호, 위험 패턴 (읽기 전용)           |
+| `code-reviewer`       | Opus   | 심각도 평가, 논리 결함, SOLID 원칙 검사 (읽기 전용) |
+| `test-engineer`       | Sonnet | 테스트 전략, TDD, 불안정한 테스트 강화              |
+| `designer`            | Sonnet | UI/UX, 시각적으로 뛰어난 인터페이스                 |
+| `document-specialist` | Sonnet | SDK/API/프레임워크 문서 조회 (읽기 전용)            |
+| `git-master`          | Sonnet | 원자적 커밋, 리베이싱, 스타일 감지                  |
+| `code-simplifier`     | Opus   | 동작 보존 단순화, 명확성·유지보수성 향상            |
+| `critic`              | Opus   | 종합적·구조적·다각도 검토 (읽기 전용)               |
+| `scientist`           | Sonnet | 데이터 분석, 통계 추론 (읽기 전용)                  |
+| `writer`              | Haiku  | README, API 문서, 주석 작성                         |
+| `qa-tester`           | Sonnet | 대화형 CLI 테스트, tmux 세션 관리                   |
+
+#### 2-3. 유틸리티 스킬 (주요)
+
+| 스킬명                    | 역할                                           |
+| ------------------------- | ---------------------------------------------- |
+| `sciomc`                  | 병렬 scientist 에이전트 조율 (연구 워크플로우) |
+| `trace`                   | 증거 기반 인과 추적 (팀 모드)                  |
+| `ccg`                     | Claude-Codex-Gemini 3모델 오케스트레이션       |
+| `deepinit`                | 계층적 AGENTS.md 문서 생성                     |
+| `self-improve`            | 자동 진화 코드 개선 (토너먼트 선택)            |
+| `ai-slop-cleaner`         | AI 생성 코드 정리 (회귀 방지)                  |
+| `visual-verdict`          | 스크린샷 vs 참고 이미지 비교                   |
+| `learner`                 | 대화에서 스킬 추출 (자동 학습)                 |
+| `wiki`                    | LLM Wiki (세션 간 지식 누적)                   |
+| `project-session-manager` | 워크트리 기반 개발 환경 관리                   |
+| `autoresearch`            | 병렬 웹/문서 연구 자동화                       |
+| `omc-teams`               | tmux 기반 다모델 팀 (claude/codex/gemini 혼합) |
+| `release`                 | 릴리즈 노트·태그·배포 워크플로우               |
+| `remember`                | 세션 간 기억 저장 (프로젝트 메모리)            |
+
+---
+
+### 3. ECC (Everything Claude Code)
+
+> 역할: 지식/에이전트 자산 레이어. 언어별·도메인별 전문화.
+
+#### 3-1. Commands (3개)
+
+| 명령어                 | 역할                                                       |
+| ---------------------- | ---------------------------------------------------------- |
+| `/add-language-rules`  | 새 언어 규칙 시스템 추가 (코딩 스타일/훅/패턴/보안/테스트) |
+| `/database-migration`  | DB 스키마 변경 및 마이그레이션 파일 관리                   |
+| `/feature-development` | 표준 기능 구현 워크플로우 (매니페스트/스키마/테스트/API)   |
+
+#### 3-2. Agents (47개) — 카테고리별
+
+**아키텍처 & 계획 (3개)**
+
+| 에이전트         | 역할                                             |
+| ---------------- | ------------------------------------------------ |
+| `architect`      | 시스템 아키텍처, 확장성, 기술 결정               |
+| `planner`        | 복잡한 기능/리팩토링 구현 계획, 의존성/위험 식별 |
+| `code-architect` | 기존 코드 패턴 분석 후 구현 청사진 생성          |
+
+**코드 리뷰 & 품질 (8개)**
+
+| 에이전트                | 역할                                            |
+| ----------------------- | ----------------------------------------------- |
+| `code-reviewer`         | 코드 품질/보안/유지보수성 리뷰                  |
+| `typescript-reviewer`   | TS/JS 타입 안정성, 비동기 정확성, 보안          |
+| `security-reviewer`     | 보안 취약점 탐지/수정                           |
+| `code-simplifier`       | 명확성·일관성·유지보수성 개선                   |
+| `refactor-cleaner`      | 죽은 코드 정리 (knip, depcheck, ts-prune)       |
+| `silent-failure-hunter` | 무시된 에러, 잘못된 폴백, 누락된 에러 전파 감지 |
+| `type-design-analyzer`  | 타입 설계 분석 (캡슐화/불변성/강제)             |
+| `comment-analyzer`      | 코드 주석 정확성·완성도·부패 위험 분석          |
+
+**테스트 & QA (3개)**
+
+| 에이전트           | 역할                                        |
+| ------------------ | ------------------------------------------- |
+| `tdd-guide`        | TDD 전문가, 80%+ 커버리지 강제              |
+| `e2e-runner`       | Playwright E2E 테스트, 플레키한 테스트 관리 |
+| `pr-test-analyzer` | PR 테스트 커버리지 품질 리뷰                |
+
+**언어별 빌드 에러 해결 (8개)**
+
+| 에이전트                 | 대상                  |
+| ------------------------ | --------------------- |
+| `build-error-resolver`   | TypeScript/JavaScript |
+| `cpp-build-resolver`     | C++ CMake             |
+| `rust-build-resolver`    | Rust cargo            |
+| `go-build-resolver`      | Go 모듈               |
+| `java-build-resolver`    | Java/Maven/Gradle     |
+| `kotlin-build-resolver`  | Kotlin/Gradle         |
+| `dart-build-resolver`    | Dart/Flutter          |
+| `pytorch-build-resolver` | PyTorch/CUDA          |
+
+**언어별 코드 리뷰어 (8개)**
+
+| 에이전트           | 대상                      |
+| ------------------ | ------------------------- |
+| `cpp-reviewer`     | C++ 메모리 안정성, 동시성 |
+| `rust-reviewer`    | Rust 소유권, 수명, unsafe |
+| `python-reviewer`  | Python PEP 8, 타입 힌트   |
+| `java-reviewer`    | Java/Spring Boot          |
+| `kotlin-reviewer`  | Kotlin                    |
+| `go-reviewer`      | Go 에러 처리, 성능        |
+| `flutter-reviewer` | Flutter 위젯, 상태 관리   |
+| `csharp-reviewer`  | C# .NET, nullable         |
+
+**도메인 전문가 (6개)**
+
+| 에이전트                | 역할                                         |
+| ----------------------- | -------------------------------------------- |
+| `database-reviewer`     | PostgreSQL/Supabase 쿼리 최적화, 스키마 설계 |
+| `healthcare-reviewer`   | 의료 코드 규정 준수 (HIPAA)                  |
+| `performance-optimizer` | 병목/번들 크기/메모리 누수/렌더링 최적화     |
+| `gan-planner`           | GAN 하네스 계획자                            |
+| `gan-generator`         | GAN 하네스 생성자                            |
+| `gan-evaluator`         | GAN 하네스 평가자 (Playwright 채점)          |
+
+**오픈소스 & 유틸 (11개)**
+
+| 에이전트                | 역할                                            |
+| ----------------------- | ----------------------------------------------- |
+| `opensource-forker`     | 프로젝트 포크, 시크릿/자격증명 제거             |
+| `opensource-sanitizer`  | 포크 검증, 시크릿/PII/내부 참조 스캔            |
+| `opensource-packager`   | 오픈소스 패키징 (CLAUDE.md/README/LICENSE 생성) |
+| `seo-specialist`        | 기술 SEO 감사, Core Web Vitals                  |
+| `conversation-analyzer` | 대화 기록 분석, 훅 작성 가능 동작 발견          |
+| `chief-of-staff`        | 멀티채널 커뮤니케이션 관리                      |
+| `docs-lookup`           | Context7 MCP 문서 조회                          |
+| `doc-updater`           | 문서/코드맵 업데이트                            |
+| `code-explorer`         | 기존 코드베이스 실행 경로/아키텍처 분석         |
+| `harness-optimizer`     | 하네스 설정 조정 (신뢰성/비용/처리량)           |
+| `loop-operator`         | 자동 루프 실행 및 안정성 모니터링               |
+
+#### 3-3. Skills (34개) — 카테고리별
+
+**아키텍처 & 설계 (7개)**
+
+| 스킬                  | 역할                                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| `api-design`          | REST API 설계 — 리소스 이름 지정, 상태 코드, 페이징, 필터링, 에러 응답, 버전 관리, 레이트 제한 |
+| `backend-patterns`    | 백엔드 아키텍처 패턴 — API 설계, DB 최적화, 미들웨어, 캐싱, 비동기 처리                        |
+| `frontend-patterns`   | 프론트엔드 패턴 — React, Next.js, 상태 관리, 성능 최적화                                       |
+| `frontend-design`     | 생산 수준의 프론트엔드 UI 설계 — 타이포그래피, 구성, 모션                                      |
+| `coding-standards`    | 크로스 프로젝트 코딩 규칙 — 네이밍, 가독성, 불변성, 코드 품질 리뷰                             |
+| `mcp-server-patterns` | MCP 서버 빌드 — Node/TypeScript SDK, 도구, 리소스, 프롬프트, Zod 검증                          |
+| `product-capability`  | PRD → SRS 변환 — 제약, 불변성, 인터페이스, 미해결 결정 노출                                    |
+| `blueprint`           | 멀티세션·멀티에이전트 구현 로드맵 — 단계별 컨텍스트 브리프, 의존성 그래프, 병렬 감지            |
+
+**테스트 & 검증 (5개)**
+
+| 스킬                | 역할                                                                        |
+| ------------------- | --------------------------------------------------------------------------- |
+| `tdd-workflow`      | TDD 워크플로우 — 테스트 우선 작성, 80%+ 커버리지                            |
+| `e2e-testing`       | Playwright E2E 테스트 패턴 — Page Object Model, CI/CD, 플레키한 테스트 전략 |
+| `verification-loop` | 포괄적 검증 시스템 — Claude Code 세션 검증                                  |
+| `security-review`   | 보안 체크리스트 & 패턴 — 인증, 입력 검증, API 보안                          |
+| `eval-harness`      | 형식 평가 프레임워크 — EDD 원칙                                             |
+| `browser-qa`        | 브라우저 자동화 시각 테스트 — 기능 배포 후 UI 상호작용 검증                  |
+| `canary-watch`      | 배포·머지·의존성 업그레이드 후 회귀 모니터링                                |
+
+**콘텐츠 & 커뮤니케이션 (6개)**
+
+| 스킬                 | 역할                                                                      |
+| -------------------- | ------------------------------------------------------------------------- |
+| `article-writing`    | 장문 콘텐츠 작성 — 블로그, 튜토리얼, 뉴스레터, 브랜드 보이스 일관성       |
+| `brand-voice`        | 작성 스타일 프로필 구축 — 소스 기반 프로필 재사용 (X, LinkedIn, 뉴스레터) |
+| `content-engine`     | 플랫폼 네이티브 콘텐츠 시스템 — X, LinkedIn, TikTok, YouTube, 뉴스레터    |
+| `crosspost`          | 멀티 플랫폼 배포 — X, LinkedIn, Threads, Bluesky, 플랫폼별 콘텐츠 적응    |
+| `investor-materials` | 투자자 자료 생성 — 피치덱, 원페이저, 재무 모델, 펀딩 자료                 |
+| `investor-outreach`  | 투자자 아웃리치 — 콜드 이메일, 웜 인트로, 팔로우업, 업데이트 이메일       |
+
+**연구 & 조회 (4개)**
+
+| 스킬                   | 역할                                                                 |
+| ---------------------- | -------------------------------------------------------------------- |
+| `deep-research`        | 멀티 소스 심층 연구 — Firecrawl, Exa MCP 사용, 출처 인용 리포트      |
+| `documentation-lookup` | Context7 MCP로 라이브러리/프레임워크 문서 조회 — API 참조, 코드 예제 |
+| `exa-search`           | 뉴럴 검색 — 웹, 코드, 회사 연구, 사람 조회                           |
+| `market-research`      | 시장 조사 & 경쟁 분석 — 투자자 실사, 업계 인텔리전스                 |
+
+**런타임 & 프레임워크 (5개)**
+
+| 스킬                     | 역할                                                                             |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| `bun-runtime`            | Bun 런타임, 패키지 관리자, 번들러, 테스트 러너 — Node vs Bun 선택 기준           |
+| `claude-api`             | Claude API 패턴 — Messages API, 스트리밍, 도구 사용, 비전, 배치, 캐싱, Agent SDK |
+| `nextjs-turbopack`       | Next.js 16+ & Turbopack — 증분 번들링, 파일 캐싱, Turbopack vs webpack 비교      |
+| `everything-claude-code` | ECC 개발 규칙 — JavaScript 프로젝트, Conventional Commits                        |
+| `frontend-slides`        | HTML 프레젠테이션 생성 — 애니메이션, PPT 변환 가이드                             |
+
+**미디어 & 크리에이티브 (4개)**
+
+| 스킬                | 역할                                                            |
+| ------------------- | --------------------------------------------------------------- |
+| `fal-ai-media`      | 미디어 생성 (fal.ai MCP) — 이미지, 비디오, 오디오 생성          |
+| `video-editing`     | 비디오 편집 워크플로우 — FFmpeg, Remotion, ElevenLabs, Descript |
+| `x-api`             | X/Twitter API 통합 — 트윗 포스팅, 타임라인 읽기, 검색, 분석     |
+| `strategic-compact` | 컨텍스트 압축 제안 — 논리적 구간에서 수동 압축 안내             |
+
+**에이전트 & 워크플로우 (3개)**
+
+| 스킬                            | 역할                                                                    |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| `agent-introspection-debugging` | 에이전트 자체 디버깅 워크플로우 — 실패 캡처, 진단, 복구                        |
+| `agent-sort`                    | ECC 설치 계획 생성 — DAILY vs LIBRARY 스킬 분류 및 정렬                        |
+| `dmux-workflows`                | 멀티 에이전트 오케스트레이션 — tmux pane 관리, 병렬 에이전트 워크플로우          |
+| `santa-loop`                    | 적대적 이중 리뷰 수렴 루프 — 두 독립 모델이 모두 승인해야 코드 병합 허용         |
+| `autonomous-agent-harness`      | 완전 자율 에이전트 시스템 — 영속 메모리, 예약 실행, 태스크 큐, 컴퓨터 사용       |
+
+**PRP 워크플로우 (5개)**
+
+| 스킬             | 역할                                                   |
+| ---------------- | ------------------------------------------------------ |
+| `prp-prd`        | 인터랙티브 PRD 생성 — 문제 중심, 가설 기반 제품 스펙   |
+| `prp-plan`       | 코드베이스 분석 후 기능 구현 계획 작성                 |
+| `prp-implement`  | 구현 계획 실행 + 검증 루프                             |
+| `prp-commit`     | 자연어로 커밋 대상 지정 후 커밋                        |
+| `prp-pr`         | 현재 브랜치 미푸시 커밋으로 GitHub PR 자동 생성        |
+
+#### 3-4. Hooks (3가지 프로필)
+
+| 프로필     | 내용                          |
+| ---------- | ----------------------------- |
+| `minimal`  | 필수 라이프사이클 & 보안 훅만 |
+| `standard` | 기본값. 품질 + 안전 검사 균형 |
+| `strict`   | 추가 가드레일 강화            |
+
+주요 훅: block-no-verify, commit-quality, auto-tmux-dev, continuous-learning, prettier-format, typescript-check, session-summary, pattern-extraction, cost-tracker
+
+---
+
+### 4. gs (gstack) — 35개+ 스킬
+
+> 역할: 스타트업 팀 역할 시뮬레이션. CEO/디자이너/엔지니어/QA/보안/릴리즈 엔지니어.
+
+#### 4-1. 계획 & 설계 스킬
+
+| 스킬                   | 역할                                                             |
+| ---------------------- | ---------------------------------------------------------------- |
+| `/office-hours`        | YC Office Hours — 6가지 질문으로 아이디어 재검토, 설계 문서 생성  |
+| `/plan-ceo-review`     | CEO 관점 — 범위 확대/축소, 10점짜리 제품 찾기 (4가지 모드)        |
+| `/plan-eng-review`     | 엔지니어 매니저 — 아키텍처/데이터 흐름/엣지 케이스/테스트 고정    |
+| `/plan-design-review`  | 디자이너 눈 — 각 설계 차원 0-10점 평가                            |
+| `/plan-devex-review`   | DX 리드 — 개발자 페르소나/경쟁사 벤치마크/TTHW 분석               |
+| `/autoplan`            | CEO→디자인→엔지니어 검토 순차 자동 실행                           |
+| `/design-consultation` | 완전한 디자인 시스템 구축 (심미성/타이포/색상/레이아웃/모션)      |
+| `/spec`                | 모호한 의도 → 정밀 실행 가능 스펙 (5단계 인터뷰 방식)             |
+
+#### 4-2. 구현 & 검토 스킬
+
+| 스킬              | 역할                                                       |
+| ----------------- | ---------------------------------------------------------- |
+| `/review`         | 사전 랜딩 PR 검토 (SQL 안전성, LLM 신뢰 경계, 구조적 문제) |
+| `/investigate`    | 체계적 디버깅 — 조사→분석→가설→구현 (조사 없는 수정 금지)  |
+| `/design-review`  | 디자이너 눈으로 QA — 시각적 불일치/간격/AI 슬롭 패턴 감지  |
+| `/devex-review`   | DX 실시간 감시 — 문서 네비게이션/TTHW 측정/에러 메시지     |
+| `/design-shotgun` | 다수 AI 디자인 변형 생성 → 비교 보드 → 피드백 → 반복       |
+| `/design-html`    | 승인된 목업 → 생산 품질 HTML/CSS 변환 (제로 의존성)        |
+| `/codex`          | OpenAI Codex 래퍼 — 코드 검토/챌린지/상담                  |
+
+#### 4-3. QA & 보안 스킬
+
+| 스킬         | 역할                                                         |
+| ------------ | ------------------------------------------------------------ |
+| `/qa`               | 웹앱 QA 테스트 + 버그 수정 (Quick/Standard/Exhaustive 3모드)  |
+| `/qa-only`          | QA 보고서만 (코드 수정 없음)                                  |
+| `/cso`              | 최고 보안 담당자 — OWASP Top 10, STRIDE, 공급망 보안          |
+| `/benchmark`        | 성능 회귀 감지 (Core Web Vitals, 리소스 크기 기준선)          |
+| `/health`           | 코드 품질 대시보드 (타입체커/린터/테스트/데드코드 종합 점수)  |
+| `/ios-qa`           | 실기기 iOS QA — SwiftUI 앱 라이브 디바이스 테스트             |
+| `/ios-fix`          | 자율 iOS 버그 픽서                                            |
+| `/ios-design-review`| iOS 앱 시각 디자인 감사 (실기기)                              |
+
+#### 4-4. 배포 & 운영 스킬
+
+| 스킬                | 역할                                                     |
+| ------------------- | -------------------------------------------------------- |
+| `/ship`             | 배포 워크플로우 (병합→테스트→VERSION/CHANGELOG→커밋→PR)  |
+| `/land-and-deploy`  | PR 병합→CI→배포→카나리 검증                              |
+| `/canary`           | 배포 후 모니터링 (콘솔 에러, 성능 회귀, 페이지 실패)     |
+| `/document-release` | README/ARCHITECTURE 등 배포 후 문서 자동 동기화          |
+| `/retro`            | 주간 엔지니어링 회고 (커밋 히스토리/코드 품질/팀 기여도) |
+| `/setup-deploy`     | 배포 설정 (Fly.io/Render/Vercel/Netlify/Heroku 감지)     |
+
+#### 4-5. 유틸리티 스킬
+
+| 스킬                   | 역할                                                       |
+| ---------------------- | ---------------------------------------------------------- |
+| `/browse`              | 헤드리스 브라우저 (Chromium, ~100ms/명령)                  |
+| `/open-gstack-browser` | 안티봇 스텔스 브라우저 + 사이드바 확장                     |
+| `/careful`             | rm -rf, DROP TABLE 등 파괴적 명령어 전 경고                |
+| `/freeze`              | 지정 디렉토리 외 파일 수정 차단                            |
+| `/unfreeze`            | freeze 해제                                                |
+| `/guard`               | careful + freeze 결합 (prod 작업 시)                       |
+| `/checkpoint`          | 작업 상태 저장/복구                                        |
+| `/pair-agent`          | 교차 에이전트 조정 (OpenClaw/Hermes/Codex와 브라우저 공유) |
+| `/learn`               | gstack 학습 내용 검토/정리/내보내기                        |
+| `/gstack-upgrade`      | gstack 최신 버전 업그레이드                                |
+| `/scrape`              | 웹 페이지 데이터 추출                                      |
+| `/context-save`        | 현재 작업 컨텍스트 저장                                    |
+| `/context-restore`     | 저장된 작업 컨텍스트 복원                                  |
+| `/setup-gbrain`        | gbrain CLI 설치·PGLite/Supabase 연동·MCP 등록              |
+| `/sync-gbrain`         | gbrain을 현재 코드와 동기화, CLAUDE.md 검색 가이드 갱신    |
+
+---
+
+## Part 2. 워크플로우 매핑 — 단계별 명령어 대조표
+
+### THINK (아이디어 → 방향 설정)
+
+| 단계                | SP              | OMC                    | ECC               | gs                 |
+| ------------------- | --------------- | ---------------------- | ----------------- | ------------------ |
+| 아이디어 구체화     | `brainstorming` | `deep-interview`       | —                 | `/office-hours`    |
+| 제품/기능 방향 검토 | `brainstorming` | `omc-plan --interview` | —                 | `/plan-ceo-review` |
+| 요구사항 분석       | `brainstorming` | `analyst`              | `planner`         | —                  |
+| 심층 연구           | —               | `sciomc` / `deep-dive` | `deep-research`   | —                  |
+| 시장/경쟁 분석      | —               | —                      | `market-research` | —                  |
+
+---
+
+### PLAN (계획 수립 → 승인)
+
+| 단계               | SP                    | OMC                       | ECC                            | gs                    |
+| ------------------ | --------------------- | ------------------------- | ------------------------------ | --------------------- |
+| 아키텍처 설계      | `writing-plans`       | `architect`               | `architect` / `code-architect` | `/plan-eng-review`    |
+| 구현 계획 작성     | `writing-plans`       | `planner` / `omc-plan`    | `planner`                      | —                     |
+| CEO/제품 관점 검토 | —                     | —                         | —                              | `/plan-ceo-review`    |
+| 엔지니어 관점 검토 | —                     | `critic`                  | —                              | `/plan-eng-review`    |
+| 디자인 관점 검토   | —                     | —                         | —                              | `/plan-design-review` |
+| DX 관점 검토       | —                     | —                         | —                              | `/plan-devex-review`  |
+| 전체 자동 검토     | —                     | `ralplan`                 | —                              | `/autoplan`           |
+| 합의 계획          | —                     | `ralplan` (P→A→C 루프)    | —                              | —                     |
+| 워크스페이스 준비  | `using-git-worktrees` | `project-session-manager` | —                              | —                     |
+
+---
+
+### BUILD (구현)
+
+| 단계             | SP                            | OMC                  | ECC                                     | gs                     |
+| ---------------- | ----------------------------- | -------------------- | --------------------------------------- | ---------------------- |
+| 단일 태스크 실행 | `executing-plans`             | `executor`           | —                                       | —                      |
+| 멀티파일 구현    | `subagent-driven-development` | `ralph`              | —                                       | —                      |
+| 병렬 태스크 실행 | `dispatching-parallel-agents` | `ultrawork` / `team` | `dmux-workflows`                        | —                      |
+| 전체 자동 실행   | —                             | `autopilot`          | —                                       | —                      |
+| TDD 구현         | `test-driven-development`     | `test-engineer`      | `tdd-guide` / `tdd-workflow`            | —                      |
+| API 설계         | —                             | —                    | `api-design`                            | —                      |
+| 프론트엔드 구현  | —                             | `designer`           | `frontend-patterns` / `frontend-design` | `/design-html`         |
+| 디자인 시스템    | —                             | —                    | —                                       | `/design-consultation` |
+| 백엔드 구현      | —                             | —                    | `backend-patterns`                      | —                      |
+| DB 마이그레이션  | —                             | —                    | `/database-migration`                   | —                      |
+| 안전 가드레일    | —                             | —                    | —                                       | `/careful` / `/guard`  |
+| 작업 체크포인트  | —                             | —                    | —                                       | `/checkpoint`          |
+
+---
+
+### REVIEW (코드 검토)
+
+| 단계              | SP                       | OMC                 | ECC                                                                | gs               |
+| ----------------- | ------------------------ | ------------------- | ------------------------------------------------------------------ | ---------------- |
+| 범용 코드 리뷰    | `requesting-code-review` | `code-reviewer`     | `code-reviewer`                                                    | `/review`        |
+| 리뷰 피드백 처리  | `receiving-code-review`  | —                   | —                                                                  | —                |
+| 보안 검토         | —                        | `security-reviewer` | `security-reviewer`                                                | `/cso`           |
+| 언어별 코드 리뷰  | —                        | —                   | `typescript-reviewer` / `python-reviewer` / `rust-reviewer` 등 8개 | —                |
+| DB 스키마 리뷰    | —                        | —                   | `database-reviewer`                                                | —                |
+| 성능 최적화 리뷰  | —                        | —                   | `performance-optimizer`                                            | —                |
+| 타입 설계 분석    | —                        | —                   | `type-design-analyzer`                                             | —                |
+| 무음 실패 감지    | —                        | —                   | `silent-failure-hunter`                                            | —                |
+| 코드 단순화       | —                        | `code-simplifier`   | `code-simplifier` / `refactor-cleaner`                             | —                |
+| 시각적 QA         | —                        | `visual-verdict`    | —                                                                  | `/design-review` |
+| DX 실시간 감시    | —                        | —                   | —                                                                  | `/devex-review`  |
+| 멀티 AI 교차 검토 | —                        | `ccg`               | —                                                                  | `/codex`         |
+| AI 슬롭 정리      | —                        | `ai-slop-cleaner`   | —                                                                  | —                |
+
+---
+
+### TEST (검증)
+
+| 단계               | SP                               | OMC                   | ECC                                 | gs                |
+| ------------------ | -------------------------------- | --------------------- | ----------------------------------- | ----------------- |
+| 완료 전 검증       | `verification-before-completion` | `verifier`            | `verification-loop`                 | —                 |
+| QA 사이클 반복     | —                                | `ultraqa`             | —                                   | `/qa`             |
+| QA 보고서만        | —                                | —                     | —                                   | `/qa-only`        |
+| 대화형 테스트      | —                                | `qa-tester`           | —                                   | —                 |
+| E2E 테스트         | —                                | —                     | `e2e-runner` / `e2e-testing`        | —                 |
+| 성능 기준선 측정   | —                                | —                     | —                                   | `/benchmark`      |
+| 코드 품질 대시보드 | —                                | —                     | —                                   | `/health`         |
+| 디버깅 (원인 불명) | `systematic-debugging`           | `tracer` → `debugger` | —                                   | `/investigate`    |
+| 디버깅 (원인 명확) | `systematic-debugging`           | `debugger`            | —                                   | `/investigate`    |
+| 빌드 에러 해결     | —                                | —                     | `build-error-resolver` + 언어별 7개 | —                 |
+| 브라우저 테스트    | —                                | —                     | —                                   | `/browse` / `/qa` |
+
+---
+
+### SHIP (배포 & 완료)
+
+| 단계             | SP                               | OMC          | ECC           | gs                  |
+| ---------------- | -------------------------------- | ------------ | ------------- | ------------------- |
+| 브랜치 통합 결정 | `finishing-a-development-branch` | —            | —             | —                   |
+| PR 생성/병합     | `finishing-a-development-branch` | `git-master` | —             | `/ship`             |
+| 배포 실행        | —                                | —            | —             | `/land-and-deploy`  |
+| 배포 후 모니터링 | —                                | —            | —             | `/canary`           |
+| 문서 동기화      | —                                | `writer`     | `doc-updater` | `/document-release` |
+| 회고             | —                                | —            | —             | `/retro`            |
+| 배포 설정        | —                                | —            | —             | `/setup-deploy`     |
+
+---
+
+## 프레임워크별 강점 비교
+
+| 강점                    | SP  | OMC      | ECC | gs  |
+| ----------------------- | --- | -------- | --- | --- |
+| **설계/의사결정**       | ★★★ | ★★       | ★   | ★★  |
+| **실행 오케스트레이션** | ★   | ★★★      | ★   | ★★  |
+| **언어별 전문화**       | ✗   | ✗        | ★★★ | ✗   |
+| **도메인 지식(스킬)**   | ✗   | ★        | ★★★ | ★★  |
+| **브라우저/QA 자동화**  | ✗   | ★        | ★   | ★★★ |
+| **보안 감사**           | ✗   | ★★       | ★★  | ★★★ |
+| **배포 파이프라인**     | ★   | ★        | ✗   | ★★★ |
+| **TDD 강제**            | ★★★ | ★★       | ★★  | ✗   |
+| **병렬 실행**           | ★★  | ★★★      | ★★  | ★★★ |
+| **멀티 AI 통합**        | ✗   | ★★ (ccg) | ✗   | ★★★ |
+
+---
+
+## 겹치는 영역 & 충돌 주의
+
+| 기능            | 겹치는 프레임워크   | 우선순위                                             |
+| --------------- | ------------------- | ---------------------------------------------------- |
+| 코드 리뷰       | SP + OMC + ECC + gs | SP 프로세스 → OMC code-reviewer                      |
+| TDD             | SP + OMC + ECC      | SP test-driven-development → OMC test-engineer       |
+| 디버깅          | SP + OMC + gs       | SP systematic-debugging → OMC tracer/debugger        |
+| 아키텍처 설계   | SP + OMC + ECC      | SP brainstorming/writing-plans → OMC architect       |
+| 보안 검토       | OMC + ECC + gs      | OMC security-reviewer (범용) + ECC security-reviewer |
+| 병렬 실행       | SP + OMC + ECC + gs | OMC ultrawork/team 우선                              |
+| 브라우저 테스트 | OMC + gs            | gs /qa (웹앱), OMC qa-tester (CLI)                   |
+| 배포            | SP + gs             | gs /ship + /land-and-deploy                          |

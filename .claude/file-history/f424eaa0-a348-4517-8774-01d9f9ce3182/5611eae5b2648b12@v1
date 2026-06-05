@@ -1,0 +1,219 @@
+'use client';
+
+import { useState } from 'react';
+import { ComparisonResult } from '@/lib/types';
+
+interface ComparisonViewProps {
+  result: ComparisonResult;
+}
+
+export default function ComparisonView({ result }: ComparisonViewProps) {
+  const [showReport, setShowReport] = useState(true);
+  const [expandedDiff, setExpandedDiff] = useState<number | null>(null);
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'identical':
+        return '✅';
+      case 'different':
+        return '⚠️';
+      case 'error':
+        return '❌';
+      default:
+        return '❓';
+    }
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'critical':
+        return 'border-l-4 border-red-600 bg-red-50';
+      case 'warning':
+        return 'border-l-4 border-yellow-600 bg-yellow-50';
+      case 'info':
+        return 'border-l-4 border-blue-600 bg-blue-50';
+      default:
+        return 'border-l-4 border-gray-600 bg-gray-50';
+    }
+  };
+
+  const handleExportReport = () => {
+    const element = document.createElement('a');
+    const file = new Blob([result.comparisonReport], { type: 'text/markdown' });
+    element.href = URL.createObjectURL(file);
+    element.download = `comparison_${result.scenarioId}.md`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto">
+      {/* 헤더 */}
+      <div className="card mb-6 bg-gradient-to-r from-blue-50 to-purple-50">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-bold">
+            {getStatusIcon(result.status)} Comparison Results
+          </h1>
+          <div className={`px-4 py-2 rounded-lg font-bold text-lg badge ${
+            result.status === 'identical'
+              ? 'bg-green-100 text-green-800'
+              : 'bg-yellow-100 text-yellow-800'
+          }`}>
+            {result.status.toUpperCase()}
+          </div>
+        </div>
+        <p className="text-gray-700 mb-4">{result.scenarioName}</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <span className="text-sm text-gray-600">Total Differences</span>
+            <p className="text-3xl font-bold text-gray-900">{result.differences.length}</p>
+          </div>
+          <div>
+            <span className="text-sm text-gray-600">Critical Issues</span>
+            <p className="text-3xl font-bold text-red-600">
+              {result.differences.filter((d) => d.severity === 'critical').length}
+            </p>
+          </div>
+          <div>
+            <span className="text-sm text-gray-600">Warnings</span>
+            <p className="text-3xl font-bold text-yellow-600">
+              {result.differences.filter((d) => d.severity === 'warning').length}
+            </p>
+          </div>
+          <div>
+            <span className="text-sm text-gray-600">Compared At</span>
+            <p className="text-sm text-gray-900 font-mono">
+              {new Date(result.comparedAt).toLocaleString()}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 탭 */}
+      <div className="flex gap-4 mb-6 border-b border-gray-200">
+        <button
+          onClick={() => setShowReport(true)}
+          className={`px-4 py-3 font-semibold border-b-2 transition-colors ${
+            showReport
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          📋 Report
+        </button>
+        <button
+          onClick={() => setShowReport(false)}
+          className={`px-4 py-3 font-semibold border-b-2 transition-colors ${
+            !showReport
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          🔍 Details ({result.differences.length})
+        </button>
+      </div>
+
+      {/* 리포트 뷰 */}
+      {showReport && (
+        <div className="card">
+          <div className="flex justify-between items-start mb-4">
+            <h2 className="text-xl font-bold">Comparison Report</h2>
+            <button onClick={handleExportReport} className="btn-secondary">
+              📥 Export as MD
+            </button>
+          </div>
+
+          <div className="prose max-w-none">
+            <pre className="code-block whitespace-pre-wrap text-xs overflow-auto max-h-96">
+              {result.comparisonReport}
+            </pre>
+          </div>
+        </div>
+      )}
+
+      {/* 상세 뷰 */}
+      {!showReport && (
+        <div className="space-y-4">
+          {result.differences.length === 0 ? (
+            <div className="card bg-green-50 border-2 border-green-200">
+              <p className="text-green-800 text-lg font-bold">
+                ✅ No differences found! Both versions are identical.
+              </p>
+            </div>
+          ) : (
+            result.differences.map((diff, index) => (
+              <div key={index} className={`p-4 rounded-lg ${getSeverityColor(diff.severity)}`}>
+                <button
+                  onClick={() => setExpandedDiff(expandedDiff === index ? null : index)}
+                  className="w-full text-left font-semibold flex justify-between items-center"
+                >
+                  <div className="flex-1">
+                    <span className="inline-block px-3 py-1 rounded text-sm font-bold mr-3 bg-white bg-opacity-70">
+                      {diff.severity.toUpperCase()}
+                    </span>
+                    {diff.actionDescription && (
+                      <span className="text-gray-900">{diff.actionDescription}</span>
+                    )}
+                  </div>
+                  <span className="text-gray-600">{expandedDiff === index ? '▼' : '▶'}</span>
+                </button>
+
+                {expandedDiff === index && (
+                  <div className="mt-4 space-y-3 border-t border-white border-opacity-30 pt-4">
+                    <p className="text-gray-900 font-semibold">{diff.message}</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700 mb-2">AS-IS Output:</p>
+                        <div className="code-block text-xs overflow-auto bg-opacity-90">
+                          {typeof diff.asIsOutput === 'string'
+                            ? diff.asIsOutput
+                            : JSON.stringify(diff.asIsOutput, null, 2)}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700 mb-2">TO-BE Output:</p>
+                        <div className="code-block text-xs overflow-auto bg-opacity-90">
+                          {typeof diff.toBeOutput === 'string'
+                            ? diff.toBeOutput
+                            : JSON.stringify(diff.toBeOutput, null, 2)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* 성능 비교 */}
+      <div className="card mt-6">
+        <h3 className="text-lg font-bold mb-4">⚡ Performance Comparison</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <p className="text-sm text-gray-600">AS-IS Duration</p>
+            <p className="text-2xl font-bold text-blue-600">{result.asIsResult.executionTime}ms</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">TO-BE Duration</p>
+            <p className="text-2xl font-bold text-green-600">{result.toBeResult.executionTime}ms</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">Difference</p>
+            <p className={`text-2xl font-bold ${
+              result.toBeResult.executionTime > result.asIsResult.executionTime
+                ? 'text-red-600'
+                : 'text-green-600'
+            }`}>
+              {Math.abs(result.toBeResult.executionTime - result.asIsResult.executionTime)}ms
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

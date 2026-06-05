@@ -1,0 +1,48 @@
+import '@testing-library/jest-dom/vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { HomePage } from './HomePage';
+import { useAuthStore } from '@/store/useAuthStore';
+
+describe('HomePage', () => {
+    test('shows quick entry cards for the main areas', () => {
+        useAuthStore.getState().setUser({
+            id: 1,
+            username: 'admin',
+            name: 'Admin User',
+            email: null,
+            role: 'ADMIN',
+        });
+
+        render(
+            <MemoryRouter>
+                <HomePage />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByRole('link', { name: /import workspace/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /domain management/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /word management/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /forbidden terms/i })).toBeInTheDocument();
+    });
+
+    test('greets the current user and shows the activity panel', () => {
+        useAuthStore.getState().setUser({
+            id: 1,
+            username: 'admin',
+            name: 'Admin User',
+            email: null,
+            role: 'ADMIN',
+        });
+
+        render(
+            <MemoryRouter>
+                <HomePage />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
+        expect(screen.getByText('Admin User')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /recent activity/i })).toBeInTheDocument();
+    });
+});

@@ -1,0 +1,244 @@
+# 사용설명서 실화면 스크린샷 캡쳐 Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** Playwright로 실제 화면을 캡쳐하여 두 사용설명서(`bword-management.md`, `file-bulk-restore.md`)에 스크린샷을 삽입한다.
+
+**Architecture:** Playwright MCP(`mcp__plugin_playwright_*`)로 브라우저를 자동 조작하고, 캡쳐한 이미지를 `docs/manuals/screenshots/`에 저장한 후, 기존 마크다운 문서의 `![...](screenshots/...)` placeholder를 실제 캡쳐된 경로로 교체한다.
+
+**Tech Stack:** Playwright MCP, Markdown 직접 편집
+
+---
+
+## 전제 조건
+
+- 서버: `http://localhost:8180`에서 실행 중
+- 계정: `kweb` / `safeowner1!`
+- 스크린샷 저장 경로: `C:\Dev\dev_safetyreport\workspace\sia\docs\manuals\screenshots\`
+
+---
+
+### Task 1: 스크린샷 저장 디렉토리 생성
+
+**Step 1: 디렉토리 생성**
+
+```powershell
+New-Item -ItemType Directory -Force "C:\Dev\dev_safetyreport\workspace\sia\docs\manuals\screenshots"
+```
+
+Expected: 디렉토리 생성 또는 이미 존재 확인
+
+---
+
+### Task 2: 로그인
+
+**Step 1: 로그인 페이지 이동**
+
+Tool: `mcp__plugin_playwright__browser_navigate`
+URL: `http://localhost:8180/sia/nigol/nigolnimda.do`
+
+**Step 2: 계정 입력 후 로그인**
+
+Tool: `mcp__plugin_playwright__browser_snapshot` → 입력 필드 selector 확인
+Tool: `mcp__plugin_playwright__browser_fill_form` → ID: `kweb`, PW: `safeowner1!`
+Tool: `mcp__plugin_playwright__browser_click` → 로그인 버튼
+
+**Step 3: 로그인 성공 확인**
+
+Tool: `mcp__plugin_playwright__browser_snapshot`
+Expected: 메인 대시보드 또는 메뉴 표시 확인
+
+---
+
+### Task 3: 비속어 키워드 관리 — 메인 화면 캡쳐
+
+**Files:**
+- 저장: `docs/manuals/screenshots/bword-main.png`
+
+**Step 1: 비속어 관리 페이지 이동**
+
+Tool: `mcp__plugin_playwright__browser_navigate`
+> 메뉴 클릭 또는 snapshot으로 URL 확인 후 이동 (관리분석시스템 관리 > 경찰청 비속어 키워드 관리)
+
+**Step 2: 페이지 로딩 대기**
+
+Tool: `mcp__plugin_playwright__browser_wait_for` (그리드 표시까지)
+
+**Step 3: 메인 화면 스크린샷 저장**
+
+Tool: `mcp__plugin_playwright__browser_take_screenshot`
+Save path: `C:\Dev\dev_safetyreport\workspace\sia\docs\manuals\screenshots\bword-main.png`
+
+---
+
+### Task 4: 비속어 키워드 관리 — 등록 팝업 캡쳐
+
+**Files:**
+- 저장: `docs/manuals/screenshots/bword-popup-add.png`
+
+**Step 1: [등록] 버튼 클릭**
+
+Tool: `mcp__plugin_playwright__browser_snapshot` → 버튼 selector 확인
+Tool: `mcp__plugin_playwright__browser_click` → 등록 버튼 클릭
+
+**Step 2: 팝업 열림 대기 후 스크린샷**
+
+Tool: `mcp__plugin_playwright__browser_wait_for` (팝업 레이어 노출)
+Tool: `mcp__plugin_playwright__browser_take_screenshot`
+Save path: `C:\Dev\dev_safetyreport\workspace\sia\docs\manuals\screenshots\bword-popup-add.png`
+
+**Step 3: 팝업 닫기**
+
+Tool: `mcp__plugin_playwright__browser_click` → 취소/닫기 버튼
+
+---
+
+### Task 5: 비속어 키워드 관리 — 수정 팝업 캡쳐
+
+**Files:**
+- 저장: `docs/manuals/screenshots/bword-popup-edit.png`
+
+**Step 1: 목록 첫 번째 행의 수정 버튼 클릭**
+
+Tool: `mcp__plugin_playwright__browser_snapshot` → 수정 버튼 selector 확인
+Tool: `mcp__plugin_playwright__browser_click` → 수정 버튼 클릭
+
+**Step 2: 수정 팝업 스크린샷**
+
+Tool: `mcp__plugin_playwright__browser_wait_for`
+Tool: `mcp__plugin_playwright__browser_take_screenshot`
+Save path: `C:\Dev\dev_safetyreport\workspace\sia\docs\manuals\screenshots\bword-popup-edit.png`
+
+**Step 3: 팝업 닫기**
+
+---
+
+### Task 6: 신고 현황 상세 — 비속어 필터링 체크박스 캡쳐
+
+**Files:**
+- 저장: `docs/manuals/screenshots/bword-singo-detail-checkbox.png`
+
+**Step 1: 신고 현황 목록 페이지 이동**
+
+Tool: `mcp__plugin_playwright__browser_navigate`
+URL: `http://localhost:8180/sia/safeSingo/safeSingoMng.do?menuId=850516`
+
+**Step 2: 목록 로딩 대기**
+
+Tool: `mcp__plugin_playwright__browser_wait_for` (그리드 데이터 표시)
+Tool: `mcp__plugin_playwright__browser_snapshot` → 데이터 존재 확인
+
+**Step 3: 그리드 첫 번째 데이터 행 클릭 (상세 팝업 열기)**
+
+Tool: `mcp__plugin_playwright__browser_click` → 첫 번째 행의 제목/신고번호 셀 클릭
+Tool: `mcp__plugin_playwright__browser_wait_for` (팝업 로딩)
+
+**Step 4: 비속어 필터링 체크박스 영역 확인 및 스크린샷**
+
+Tool: `mcp__plugin_playwright__browser_snapshot` → 비속어 관련 필드 위치 파악
+Tool: `mcp__plugin_playwright__browser_take_screenshot`
+Save path: `C:\Dev\dev_safetyreport\workspace\sia\docs\manuals\screenshots\bword-singo-detail-checkbox.png`
+
+---
+
+### Task 7: 파일 일괄 복원 — 메인 화면 캡쳐
+
+**Files:**
+- 저장: `docs/manuals/screenshots/file-restore-main.png`
+
+**Step 1: 파일 복원 메뉴 이동**
+
+Tool: `mcp__plugin_playwright__browser_navigate`
+URL: `http://localhost:8180/sia/fileRestore/fileRestoreMng.do?menuId=673700`
+
+**Step 2: 화면 로딩 대기 후 스크린샷**
+
+Tool: `mcp__plugin_playwright__browser_wait_for`
+Tool: `mcp__plugin_playwright__browser_take_screenshot`
+Save path: `C:\Dev\dev_safetyreport\workspace\sia\docs\manuals\screenshots\file-restore-main.png`
+
+---
+
+### Task 8: 파일 일괄 복원 — 그리드 행 클릭 후 상세 팝업 캡쳐
+
+**Files:**
+- 저장: `docs/manuals/screenshots/file-restore-detail.png`
+
+**Step 1: 조회 버튼으로 목록 로딩**
+
+Tool: `mcp__plugin_playwright__browser_snapshot` → 그리드 데이터 유무 확인
+데이터가 없으면 조회 버튼 클릭
+
+**Step 2: 그리드 행 클릭 (상세 팝업)**
+
+Tool: `mcp__plugin_playwright__browser_click` → 데이터 행(신고번호/제목 셀) 클릭
+Tool: `mcp__plugin_playwright__browser_wait_for` (팝업 로딩)
+
+**Step 3: 상세 팝업 전체 스크린샷**
+
+Tool: `mcp__plugin_playwright__browser_take_screenshot`
+Save path: `C:\Dev\dev_safetyreport\workspace\sia\docs\manuals\screenshots\file-restore-detail.png`
+
+---
+
+### Task 9: 파일 일괄 복원 — 파일 다운로드 버튼 및 파일 유무 확인 캡쳐
+
+**Files:**
+- 저장: `docs/manuals/screenshots/file-restore-download.png`
+
+**Step 1: 상세 팝업 내 파일 목록 영역 snapshot**
+
+Tool: `mcp__plugin_playwright__browser_snapshot`
+→ 파일 다운로드 버튼 위치 및 파일 존재 여부 확인
+
+**Step 2: 파일 다운로드 버튼이 보이는 상태로 스크린샷**
+
+Tool: `mcp__plugin_playwright__browser_take_screenshot`
+Save path: `C:\Dev\dev_safetyreport\workspace\sia\docs\manuals\screenshots\file-restore-download.png`
+
+**Step 3: 팝업 닫기**
+
+---
+
+### Task 10: bword-management.md 문서 업데이트
+
+**Files:**
+- Modify: `docs/manuals/2026-06-05-bword-management.md`
+
+**Step 1: 신고 상세 비속어 체크박스 섹션 추가**
+
+"4. 주의사항" 앞에 다음 섹션을 삽입 (Edit 도구 사용):
+
+```markdown
+## 4. 신고 상세 화면에서 비속어 필터링 확인
+
+신고 현황 목록에서 특정 신고를 클릭하면 상세 팝업이 열립니다.  
+상세 팝업 내 **비속어 필터링** 항목에서 해당 신고 내용이 비속어 필터에 감지되었는지 확인할 수 있습니다.
+
+![신고 상세 - 비속어 필터링 체크박스](screenshots/bword-singo-detail-checkbox.png)
+
+---
+
+```
+
+**Step 2: 기존 "4. 주의사항"을 "5. 주의사항"으로 헤더 변경**
+
+---
+
+### Task 11: file-bulk-restore.md 문서 업데이트
+
+**Files:**
+- Modify: `docs/manuals/2026-06-05-file-bulk-restore.md`
+
+**Step 1: "3.4 신고 상세 확인" 섹션 아래에 이미지 삽입**
+
+현재 마지막 줄(`팝업에서 신고 내용 및 첨부 파일 상태를 확인할 수 있습니다.`) 뒤에 추가:
+
+```markdown
+
+![신고 상세 팝업](screenshots/file-restore-detail.png)
+
+파일 다운로드 버튼을 통해 개별 파일의 실제 존재 여부를 확인할 수 있습니다.
+
+![파일 다운로드 버튼 영역](screenshots/file-restore-download.png)
+```

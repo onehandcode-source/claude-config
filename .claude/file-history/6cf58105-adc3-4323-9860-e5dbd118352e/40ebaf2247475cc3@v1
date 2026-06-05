@@ -1,0 +1,159 @@
+import { useState } from 'react';
+import { DataGrid } from '@/shared/components/DataGrid/DataGrid';
+import { SearchForm } from '@/shared/components/SearchForm/SearchForm';
+import { Input } from '@/shared/components/ui/input';
+import { emptyToNull, toSnakeCase } from '@/shared/query/queryHelpers';
+import { useListPage } from '@/shared/hooks/useListPage';
+import { DomainDetailDialog } from './DomainDetailDialog';
+
+const dataTypeOptions = Object.freeze(['', 'VARCHAR', 'CHAR', 'NUMERIC', 'DATETIME']);
+
+const columns = Object.freeze([
+    { key: 'stdDmnNm', header: '도메인명', sortable: true, width: 220 },
+    { key: 'stdDmnGroupNm', header: '그룹명', sortable: true, width: 140 },
+    { key: 'stdDmnClsfNm', header: '분류명', sortable: true, width: 140 },
+    { key: 'dataTypeNm', header: '데이터타입', sortable: true, width: 110 },
+    { key: 'dataLen', header: '길이', sortable: false, width: 80, align: 'end' },
+    { key: 'unitNm', header: '단위', sortable: false, width: 80 },
+    { key: 'enctCycl', header: '제정차수', sortable: false, width: 140 },
+    { key: 'useYn', header: '사용', sortable: false, width: 70, align: 'center' },
+]);
+
+const initialFilters = Object.freeze({
+    stdDmnNm: '',
+    stdDmnGroupNm: '',
+    stdDmnClsfNm: '',
+    dataTypeNm: '',
+    useYn: '',
+});
+
+export const DomainListPage = () => {
+    const [filters, setFilters] = useState(initialFilters);
+    const { request, setRequest, setSelectedId, isDetailOpen, pageQuery, detailQuery } = useListPage({
+        listQueryKey: 'domain-list',
+        listUrl: '/domains/search',
+        detailQueryKey: 'domain-detail',
+        detailUrl: '/domains',
+        initialRequest: { page: 1, size: 20 },
+    });
+
+    return (
+        <div className='space-y-6'>
+            <h1 className='sr-only'>도메인 목록</h1>
+            <SearchForm
+                onSubmit={() => {
+                    setRequest({
+                        page: 1,
+                        size: request.size,
+                        stdDmnNm: emptyToNull(filters.stdDmnNm),
+                        stdDmnGroupNm: emptyToNull(filters.stdDmnGroupNm),
+                        stdDmnClsfNm: emptyToNull(filters.stdDmnClsfNm),
+                        dataTypeNm: emptyToNull(filters.dataTypeNm),
+                        useYn: emptyToNull(filters.useYn),
+                    });
+                }}
+                onReset={() => {
+                    setFilters(initialFilters);
+                    setRequest({ page: 1, size: request.size });
+                }}
+            >
+                <div className='grid w-full gap-3 md:grid-cols-2 xl:grid-cols-5'>
+                    <div className='space-y-2'>
+                        <label className='text-sm font-medium text-foreground' htmlFor='stdDmnNm'>
+                            도메인명
+                        </label>
+                        <Input
+                            id='stdDmnNm'
+                            value={filters.stdDmnNm}
+                            onChange={(event) => setFilters((current) => ({ ...current, stdDmnNm: event.target.value }))}
+                        />
+                    </div>
+                    <div className='space-y-2'>
+                        <label className='text-sm font-medium text-foreground' htmlFor='stdDmnGroupNm'>
+                            그룹명
+                        </label>
+                        <Input
+                            id='stdDmnGroupNm'
+                            value={filters.stdDmnGroupNm}
+                            onChange={(event) =>
+                                setFilters((current) => ({ ...current, stdDmnGroupNm: event.target.value }))
+                            }
+                        />
+                    </div>
+                    <div className='space-y-2'>
+                        <label className='text-sm font-medium text-foreground' htmlFor='stdDmnClsfNm'>
+                            분류명
+                        </label>
+                        <Input
+                            id='stdDmnClsfNm'
+                            value={filters.stdDmnClsfNm}
+                            onChange={(event) =>
+                                setFilters((current) => ({ ...current, stdDmnClsfNm: event.target.value }))
+                            }
+                        />
+                    </div>
+                    <div className='space-y-2'>
+                        <label className='text-sm font-medium text-foreground' htmlFor='dataTypeNm'>
+                            데이터타입
+                        </label>
+                        <select
+                            id='dataTypeNm'
+                            className='flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground'
+                            value={filters.dataTypeNm}
+                            onChange={(event) => setFilters((current) => ({ ...current, dataTypeNm: event.target.value }))}
+                        >
+                            {dataTypeOptions.map((option) => (
+                                <option key={option || 'all'} value={option}>
+                                    {option || '전체'}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className='space-y-2'>
+                        <label className='text-sm font-medium text-foreground' htmlFor='useYn'>
+                            사용여부
+                        </label>
+                        <select
+                            id='useYn'
+                            className='flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground'
+                            value={filters.useYn}
+                            onChange={(event) => setFilters((current) => ({ ...current, useYn: event.target.value }))}
+                        >
+                            <option value=''>전체</option>
+                            <option value='Y'>사용</option>
+                            <option value='N'>미사용</option>
+                        </select>
+                    </div>
+                </div>
+            </SearchForm>
+
+            <DataGrid
+                columns={columns}
+                pageData={pageQuery.data ?? null}
+                pageSizeOptions={[10, 20, 50, 100]}
+                onPageChange={({ page, size }) => setRequest((current) => ({ ...current, page, size }))}
+                onSortChange={({ active, direction }) =>
+                    setRequest((current) => ({
+                        ...current,
+                        page: 1,
+                        sortBy: direction ? toSnakeCase(active) : null,
+                        sortDir: direction || null,
+                    }))
+                }
+                onRowClick={(row) => {
+                    setSelectedId(row.id);
+                }}
+            />
+
+            <DomainDetailDialog
+                domain={detailQuery.data ?? null}
+                open={isDetailOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedId(null);
+                    }
+                }}
+            />
+        </div>
+    );
+};

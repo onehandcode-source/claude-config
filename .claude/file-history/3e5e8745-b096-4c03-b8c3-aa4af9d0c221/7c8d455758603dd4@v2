@@ -1,0 +1,642 @@
+# TrmWordDict MCP Server 설계 (Next.js + Vercel)
+
+| 항목 | 값 |
+|---|---|
+| 작성일 | 2026-06-04 |
+| 작성자 | Claude (brainstorming 결과) |
+| 적용 범위 | `yg_v0.2` 브랜치 — Next.js 15 + Prisma + Supabase Cloud 스택 |
+| 대체 대상 | `docs/plans/2026-05-20-mcp-server-design.md` (Spring Boot 기반 설계) — 폐기 |
+
+---
+
+## 0. 배경
+
+2026-05-29에 시스템 스택이 Spring Boot 2.7.18 → Next.js 15 + Prisma + Supabase로 전환됐다. 2026-05-20 작성된 SpringBoot 기반 MCP 설계는 미구현 상태에서 스택 불일치로 폐기 대상이 됐다.
+
+사용자 요구:
+1. 특정 사이트/프로젝트에 제한되지 않고 **공용**으로 사용 가능해야 한다.
+2. **MCP 서버**로서의 역할을 제공하여 사용자가 쉽게 사용할 수 있어야 한다.
+3. 현 시스템에서 부족한 점을 **평가하고 업데이트**해야 한다.
+
+본 설계는 위 요구에 맞춰 신규 스택에 통합된 MCP 서버를 정의한다.
+
+---
+
+## 1. 목적
+
+TrmWordDict가 보유한 행안부 공통표준 단어/도메인/금칙어 데이터를 Claude Code · Cursor · 사내 Agent 등 MCP 클라이언트에 노출한다. 개발자는 자연어로 표준 준수 여부를 즉시 검증·제안받고, 비표준 용어 등록과 검수 큐 제안까지 자연스러운 워크플로우로 수행한다.
+
+---
+
+## 2. 설계 결정 요약
+
+| # | 축 | 결정 |
+|:---:|---|---|
+| 1 | 공용 범위 | 사내 공용 (단일 DB, 테넌트 분리 없음) |
+| 2 | 구현 스택 | Next.js 15 App Router + `@modelcontextprotocol/sdk` + Streamable HTTP |
+| 3 | Tool 범위 | 전면 재평가 + 9개 (검색 4 / 검증 2 / 제안 1 / 쓰기 2) |
+| 4 | 인증 | Personal Access Token (PAT) + SHA-256 해시 저장 |
+| 5 | 배포 | Vercel + Supabase Cloud (HTTPS) |
+| 6 | Rate Limit | Supabase Postgres 내부 (`TbTrmMcpRateLimit` + atomic upsert) |
+| 7 | 출시 방식 | 설계는 전체 + 구현은 MVP부터 단계적 (Phase 1 → 2 → 3) |
+
+---
+
+## 3. 아키텍처 개요
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  MCP Client (Claude Code / Cursor / 사내 Agent)            │
+│  ~/.claude/settings.json:                                  │
+│  {                                                         │
+│    "trmdict": {                                            │
+│      "url": "https://trmdict.vercel.app/api/mcp",          │
+│      "type": "http",                                       │
+│      "headers": { "Authorization": "Bearer <PAT>" }        │
+│    }                                                       │
+│  }                                                         │
+└────────────────────────┬───────────────────────────────────┘
+                         │ Streamable HTTP (MCP 2025-03-26 spec)
+                         │ JSON-RPC 2.0 over POST
+                         ▼
+┌────────────────────────────────────────────────────────────┐
+│  Vercel — Next.js 15 App Router                            │
+│  app/api/mcp/route.ts    ← @modelcontextprotocol/sdk      │
+│      │                                                     │
+│      ├─ Auth Middleware (PAT 검증)                         │
+│      ├─ Rate Limiter (Postgres atomic upsert)              │
+│      ├─ MCP Server (tool registry)                         │
+│      ├─ Tool Handlers (features/mcp/tools/*)               │
+│      └─ Audit Log (fire-and-forget)                        │
+└────────────────────────┬───────────────────────────────────┘
+                         │ Prisma 6
+                         ▼
+┌────────────────────────────────────────────────────────────┐
+│  Supabase Cloud — PostgreSQL                               │
+│  TbStdWord / TbStdDomain / TbTrmWord / TbTrmDomain /       │
+│  TbTrmTerm / TbTrmForbiddenWord / TbTrmInspection /        │
+│  TbTrmCustomWord / TbTrmMcpToken / TbTrmMcpRateLimit /     │
+│  TbTrmMcpAuditLog                                          │
+└────────────────────────────────────────────────────────────┘
+```
+
+### 3.1 핵심 결정
+
+| 항목 | 결정 |
+|---|---|
+| MCP SDK | `@modelcontextprotocol/sdk` (공식 TypeScript SDK) |
+| Transport | Streamable HTTP (2025-03-26 spec) — Vercel Serverless 친화 |
+| 엔드포인트 | `POST /api/mcp` (단일) — JSON-RPC 2.0 |
+| 인증 | `Authorization: Bearer <PAT>` 헤더 |
+| 세션 모델 | Stateless (요청 독립, 세션 캐시 불필요) |
+| 패키지 위치 | `features/mcp/` (기존 패턴 따름) + `app/api/mcp/route.ts` |
+
+### 3.2 기존 설계(2026-05-20)와의 차이
+
+| 측면 | 기존 (폐기) | 본 설계 |
+|---|---|---|
+| 백엔드 | Spring Boot 2.7.18 + Tibero | Next.js 15 + Supabase |
+| SDK | (없음) 수동 구현 | `@modelcontextprotocol/sdk` 공식 |
+| Transport | SSE 2024-11-05 | Streamable HTTP 2025-03-26 |
+| 세션 | Stateful (`ConcurrentHashMap<SseEmitter>`) | Stateless |
+| 인증 | `permitAll` 내부망 | PAT (`Authorization: Bearer`) |
+| Tool 수 | 6개 | 9개 (도메인 확장) |
+| 배포 | 내부망 단일 인스턴스 | Vercel Edge/Serverless |
+
+---
+
+## 4. 공용성(여러 도메인/프로젝트 동시 사용) 설계
+
+### 4.1 공용 사용 시나리오
+
+```
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│  프로젝트 A     │  │  프로젝트 B     │  │  사내 신규Agent │
+│ (Claude Code)   │  │  (Cursor)       │  │  (custom MCP)   │
+│ PAT: pat_a...   │  │  PAT: pat_b...  │  │  PAT: pat_c...  │
+└────────┬────────┘  └────────┬────────┘  └────────┬────────┘
+         └────────────────────┴────────────────────┘
+                              │ 같은 URL
+                              ▼
+                  https://trmdict.vercel.app/api/mcp
+```
+
+### 4.2 공용성 보장 5가지 메커니즘
+
+| # | 메커니즘 | 효과 |
+|:---:|---|---|
+| 1 | **단일 공용 URL** | `POST /api/mcp` 하나. 어떤 프로젝트든 동일 엔드포인트. 신규 프로젝트 합류 시 서버 변경 없음 |
+| 2 | **Stateless HTTP** | 세션 저장 없음 → 동시 다중 사용자 무제한 확장. connection limit 없음 |
+| 3 | **사용자별 PAT** | 각 개발자가 자기 PAT 발급. PAT 이름으로 식별 ("회사 PC", "노트북") |
+| 4 | **데이터 공유 + 사용자 식별 분리** | 표준 데이터는 read-only 공용. 등록/제안에는 `user_id`/`rgtrId` 기록 |
+| 5 | **표준 MCP Spec 준수** | Claude Code/Cursor/사내 Agent 모두 동일 spec → 추가 어댑터 불필요 |
+
+### 4.3 합류 절차 (신규 사용자)
+
+1. Supabase Auth 가입 (초대 또는 직접 가입)
+2. `/admin/settings` 또는 `/app/settings`에서 "MCP PAT 발급" 클릭
+3. 발급된 토큰을 IDE/Agent `settings.json`에 등록
+4. 끝 — 서버 변경 / 화이트리스트 / 별도 등록 절차 없음
+
+### 4.4 명시적으로 *공용 아닌* 부분
+
+- 테넌트 분리 (회사 A vs 회사 B 데이터 격리) — SaaS 모델로 향후 Phase 3 결정 시
+- 프로젝트별 권한 격리 — 사내라 모두 동일 데이터 풀
+- 다국어 표준 — 행안부 한국어 표준만 (영문 약어 매칭은 지원)
+
+---
+
+## 5. MCP Tool 카탈로그 (9개)
+
+### 5.1 검색/조회 Tools (USER 권한)
+
+#### 5.1.1 `search_term` — 통합 검색
+
+| 항목 | 값 |
+|---|---|
+| 권한 | USER |
+| 입력 | `{ query: string, type: "all"\|"word"\|"domain"\|"term"\|"forbidden", limit?: number }` |
+| 출력 | `{ results: Array<{ type, id, name, abbr?, ... }> }` |
+
+#### 5.1.2 `get_word_detail` — 표준 단어 상세
+
+| 항목 | 값 |
+|---|---|
+| 권한 | USER |
+| 입력 | `{ abbr: string }` 또는 `{ id: number }` |
+| 출력 | `{ stdWordNm, engAbbrNm, engNm, domain, ... }` |
+
+#### 5.1.3 `get_domain_detail` — 표준 도메인 상세
+
+| 항목 | 값 |
+|---|---|
+| 권한 | USER |
+| 입력 | `{ name: string }` |
+| 출력 | `{ name, dataType, description, logicalType }` |
+
+#### 5.1.4 `list_forbidden_words` — 금칙어 목록
+
+| 항목 | 값 |
+|---|---|
+| 권한 | USER |
+| 입력 | `{ category?: "all"\|"naming"\|"content", limit?: number }` |
+| 출력 | `{ items: Array<{ word, reason }> }` |
+
+### 5.2 검증 Tools (USER 권한)
+
+#### 5.2.1 `validate_identifier` — DB/Java 식별자 통합 검증
+
+| 항목 | 값 |
+|---|---|
+| 권한 | USER |
+| 입력 | `{ name: string, kind: "db_column"\|"db_table"\|"java_class"\|"java_field"\|"java_method" }` |
+| 출력 | `{ valid, tokens, invalidTokens, suggestionMessage? }` |
+
+검증 로직:
+1. `kind`에 따라 토큰 분리 (DB는 `_`, Java는 camelCase)
+2. 각 토큰을 `TbStdWord.engAbbrNm` 우선 조회 → 매칭 시 `source: "standard"`
+3. 미매칭 토큰은 `TbTrmCustomWord.wordEngAbbrNm` 2차 조회 → `source: "custom"`
+4. 전부 매칭이면 `valid: true`, 일부 누락이면 `suggestionMessage`로 등록 안내
+
+#### 5.2.2 `check_forbidden_in_text` — 텍스트 일괄 금칙어 스캔
+
+| 항목 | 값 |
+|---|---|
+| 권한 | USER |
+| 입력 | `{ text: string }` |
+| 출력 | `{ hasForbidden, matches: Array<{ word, position, reason }> }` |
+
+### 5.3 제안 Tools (USER 권한)
+
+#### 5.3.1 `suggest_naming` — 한글 → 식별자 제안
+
+| 항목 | 값 |
+|---|---|
+| 권한 | USER |
+| 입력 | `{ koreanDescription: string, target: "db_column"\|"java_field"\|"both" }` |
+| 출력 | `{ dbColumn?, javaField?, confidence: "high"\|"medium"\|"low", basedOn }` |
+
+### 5.4 쓰기 Tools
+
+#### 5.4.1 `register_custom_word` — 비표준 용어 등록
+
+| 항목 | 값 |
+|---|---|
+| 권한 | **ADMIN** |
+| 입력 | `{ koreanName, englishName?, englishAbbr?, reason? }` |
+| 출력 | `{ id, status: "created" }` |
+
+#### 5.4.2 `propose_term` — 신규 용어 제안 (검수 큐 등록)
+
+| 항목 | 값 |
+|---|---|
+| 권한 | USER (등록은 검수 큐), ADMIN (즉시 승인 옵션) |
+| 입력 | `{ type: "word"\|"domain"\|"term", payload: object, reason: string }` |
+| 출력 | `{ inspectionId, status: "pending_review" }` |
+
+기존 Inspection 모듈(`TbTrmInspection`)에 PENDING 상태로 INSERT.
+
+### 5.5 기존 6개 vs 신규 9개 매핑
+
+| 기존 (2026-05-20 설계) | 신규 | 변화 |
+|---|---|---|
+| search_standard_word | search_term | 통합 검색으로 확장 |
+| validate_db_name | validate_identifier | java_identifier와 통합 |
+| validate_java_identifier | (위와 통합) | |
+| suggest_db_column_name | suggest_naming | java_field 동시 제안 |
+| create_custom_word | register_custom_word | 이름 정리 |
+| search_custom_word | search_term의 custom 옵션 | 통합 검색에 흡수 |
+| (없음) | get_word_detail / get_domain_detail / list_forbidden_words | 신규 조회 |
+| (없음) | check_forbidden_in_text | 신규 검증 |
+| (없음) | propose_term | 검수 큐 연동 |
+
+---
+
+## 6. 인증 / 권한
+
+### 6.1 Personal Access Token (PAT) 모델
+
+Supabase JWT는 만료가 짧아(1시간) MCP 클라이언트에 부적합. 별도 PAT 발급 시스템 운영.
+
+```
+1. 사용자 웹 로그인 (Supabase Auth)
+        ↓
+2. /admin/settings (또는 /app/settings) → "MCP Personal Access Token" 발급
+        ↓
+3. PAT 생성: trmdict_pat_{32바이트 랜덤}
+   DB: TbTrmMcpToken (token_hash SHA-256, user_id, name, expires_at, last_used_at, revoked_at)
+        ↓
+4. 일회성 표시 (다시 못 봄) → 사용자가 복사
+        ↓
+5. ~/.claude/settings.json에 Bearer로 등록
+```
+
+### 6.2 서버 측 검증 흐름
+
+```
+POST /api/mcp
+        ↓
+1. Authorization 헤더 추출 → "trmdict_pat_..." 검증
+2. SHA-256 해시 → TbTrmMcpToken.token_hash 조회
+3. revoked_at IS NULL && (expires_at IS NULL OR expires_at > now())
+4. AuthUser 조회 → role (USER/ADMIN) 확인
+5. Tool 권한 체크 → 실행 또는 -32004 권한 거부
+6. TbTrmMcpToken.last_used_at = now() (비동기)
+```
+
+### 6.3 권한 매트릭스
+
+| # | Tool | USER | ADMIN |
+|:---:|---|:---:|:---:|
+| 1 | search_term | ✓ | ✓ |
+| 2 | get_word_detail | ✓ | ✓ |
+| 3 | get_domain_detail | ✓ | ✓ |
+| 4 | list_forbidden_words | ✓ | ✓ |
+| 5 | validate_identifier | ✓ | ✓ |
+| 6 | check_forbidden_in_text | ✓ | ✓ |
+| 7 | suggest_naming | ✓ | ✓ |
+| 8 | register_custom_word | ✗ | ✓ |
+| 9 | propose_term | ✓ (검수 큐) | ✓ (즉시 승인 가능) |
+
+### 6.4 Rate Limit
+
+| 권한 | 분당 한도 | 일일 한도 |
+|---|---:|---:|
+| USER | 60 req/min | 5,000 req/day |
+| ADMIN | 200 req/min | 20,000 req/day |
+| 미인증 | 거부 (-32001) | — |
+
+키 구조: `(token_id, window_key)` — `window_key`는 분 단위 `YYYY-MM-DDTHH:MI` 또는 일 단위 `YYYY-MM-DD`.
+
+### 6.5 보안 추가 결정
+
+| 항목 | 결정 |
+|---|---|
+| HTTPS | Vercel 자동 (필수) |
+| CORS | 명시적 origin만 (와일드카드 금지) |
+| PAT 회전 | UI에서 명시적 revoke 또는 `expires_at` 설정 |
+| 감사 로그 | `TbTrmMcpAuditLog` — 모든 Tool 호출 기록 |
+| 토큰 평문 저장 | 절대 금지 — SHA-256 해시만 |
+
+---
+
+## 7. 데이터 모델
+
+### 7.1 신규 테이블 4개 (Prisma schema)
+
+```prisma
+model TbTrmMcpToken {
+  id          BigInt    @id @default(autoincrement())
+  tokenHash   String    @unique @map("token_hash")
+  name        String
+  userId      String    @map("user_id")
+  scopes      String[]  @default(["read", "write"])
+  expiresAt   DateTime? @map("expires_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user        AuthUser  @relation(fields: [userId], references: [id])
+  rateLimits  TbTrmMcpRateLimit[]
+  auditLogs   TbTrmMcpAuditLog[]
+
+  @@index([userId])
+  @@map("tb_trm_mcp_token")
+}
+
+model TbTrmMcpRateLimit {
+  tokenId    BigInt   @map("token_id")
+  windowKey  String   @map("window_key")
+  count      Int      @default(0)
+
+  token      TbTrmMcpToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  @@id([tokenId, windowKey])
+  @@map("tb_trm_mcp_rate_limit")
+}
+
+model TbTrmMcpAuditLog {
+  id          BigInt   @id @default(autoincrement())
+  tokenId     BigInt?  @map("token_id")
+  userId      String?  @map("user_id")
+  toolName    String   @map("tool_name")
+  paramsHash  String?  @map("params_hash")
+  status      String
+  errorCode   Int?     @map("error_code")
+  latencyMs   Int?     @map("latency_ms")
+  ts          DateTime @default(now())
+
+  token       TbTrmMcpToken? @relation(fields: [tokenId], references: [id], onDelete: SetNull)
+
+  @@index([userId, ts])
+  @@index([toolName, ts])
+  @@map("tb_trm_mcp_audit_log")
+}
+
+model TbTrmCustomWord {
+  id            BigInt    @id @default(autoincrement())
+  wordKrNm      String    @map("word_kr_nm")
+  wordEngNm     String?   @map("word_eng_nm")
+  wordEngAbbrNm String?   @map("word_eng_abbr_nm")
+  reasonCn      String?   @map("reason_cn")
+  useYn         String    @default("Y") @map("use_yn")
+  rgtrId        String?   @map("rgtr_id")
+  regDt         DateTime  @default(now()) @map("reg_dt")
+  mdfrId        String?   @map("mdfr_id")
+  mdfcnDt       DateTime? @updatedAt @map("mdfcn_dt")
+
+  @@index([wordEngAbbrNm])
+  @@index([wordKrNm])
+  @@map("tb_trm_custom_word")
+}
+```
+
+### 7.2 기존 테이블 영향
+
+| 테이블 | 영향 | 비고 |
+|---|---|---|
+| `TbStdWord` (행안부 표준 단어) | 읽기 only | 변경 없음 |
+| `TbStdDomain` | 읽기 only | 변경 없음 |
+| `TbTrmWord/Domain/Term` | 읽기 only | 변경 없음 |
+| `TbTrmForbiddenWord` | 읽기 only | 변경 없음 |
+| `TbTrmInspection` (yg_v0.2 기존) | **쓰기** | propose_term이 PENDING 상태로 INSERT |
+| `AuthUser` (Supabase auth.users) | 읽기 only | PAT가 FK로 참조 |
+
+### 7.3 데이터 시드 평가 (현 시스템 평가)
+
+| 항목 | 현재 상태 | 필요 조치 |
+|---|---|---|
+| TbStdWord (행안부 표준 단어 약 30K행) | ❓ 미확인 — Tibero → Supabase 마이그레이션 여부 불명 | MVP 시작 전 검증 필수 |
+| TbStdDomain | ❓ 동일 | 동일 |
+| TbTrmCustomWord | 신규 | 빈 상태로 시작 |
+| TbTrmForbiddenWord | ❓ Inspection UI 작동 가정 | DB 데이터 존재 확인 |
+
+### 7.4 Migration / Cleanup
+
+```bash
+# 스키마 변경 → migration 파일 생성
+pnpm prisma migrate dev --name add_mcp_tables
+
+# 운영(Vercel + Supabase Cloud) 적용
+pnpm prisma migrate deploy
+```
+
+```sql
+-- pg_cron 일일 cleanup (Supabase Dashboard 등록)
+SELECT cron.schedule('mcp-ratelimit-cleanup', '0 0 * * *',
+  $$DELETE FROM tb_trm_mcp_rate_limit
+    WHERE window_key < to_char(now() - interval '2 days', 'YYYY-MM-DD"T"HH24:MI')$$);
+
+SELECT cron.schedule('mcp-auditlog-cleanup', '0 1 * * *',
+  $$DELETE FROM tb_trm_mcp_audit_log WHERE ts < now() - interval '90 days'$$);
+```
+
+---
+
+## 8. 에러 처리 / JSON-RPC 응답 규격
+
+### 8.1 에러 코드
+
+| Code | 의미 | 발생 시점 | HTTP |
+|---:|---|---|:---:|
+| -32700 | Parse error | JSON 파싱 실패 | 400 |
+| -32600 | Invalid Request | jsonrpc/method 누락 | 400 |
+| -32601 | Method not found | 존재하지 않는 method | 200 |
+| -32602 | Invalid params | Tool 입력 스키마 검증 실패 | 200 |
+| -32603 | Internal error | DB 오류, 예외 | 200 |
+| **-32001** | Authentication required | Authorization 헤더 없음 | **401** |
+| **-32002** | Invalid token | PAT 해시 미매칭/만료/revoked | **401** |
+| **-32003** | Rate limit exceeded | 한도 초과 | **429** |
+| **-32004** | Permission denied | USER가 ADMIN Tool 호출 | **403** |
+| **-32005** | Tool not found | 존재하지 않는 tool name | 200 |
+
+> **-32001 ~ -32005**: MCP 표준 외 본 서버 확장 코드
+
+### 8.2 응답 규격
+
+성공:
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 7,
+  "result": {
+    "content": [{ "type": "text", "text": "{...}" }]
+  }
+}
+```
+
+Tool 내부 에러 (`isError`):
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 7,
+  "result": {
+    "content": [{ "type": "text", "text": "검색어가 비어있습니다." }],
+    "isError": true
+  }
+}
+```
+
+프로토콜 에러:
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 7,
+  "error": {
+    "code": -32003,
+    "message": "Rate limit exceeded",
+    "data": { "limit": 60, "windowSeconds": 60, "retryAfter": 23 }
+  }
+}
+```
+
+### 8.3 감사 로그 기록 정책
+
+| 시점 | 기록 | 비고 |
+|---|:---:|---|
+| 모든 Tool 호출 | ✓ | success/error/denied 모두 |
+| 인증 실패 (-32001/-32002) | ✓ | token_id/user_id NULL, status="denied" |
+| 권한 거부 (-32004) | ✓ | status="denied" |
+| Rate Limit (-32003) | ✗ | 카운트만, 별도 로그 X |
+| 파싱 에러 (-32700) | ✗ | 무효 요청 부담 회피 |
+
+- 비동기 (fire-and-forget)
+- `params_hash`: SHA-256 of arguments JSON (민감 정보 미저장)
+- 보존: 90일
+
+---
+
+## 9. 테스트 전략
+
+### 9.1 테스트 피라미드
+
+| 레이어 | 도구 | 수량 |
+|---|---|---:|
+| ① Tool Handler 단위 (Mock Prisma) | Vitest | ~30건 |
+| ② Service/Repository 단위 | Vitest + vitest-mock-extended | ~20건 |
+| ③ 통합 (Route + DB) | Vitest + next-test-api-route-handler | 12건 |
+| ④ 수동 E2E (Claude Code 연결) | 수동 | 3건 |
+
+### 9.2 통합 테스트 12건 (필수 시나리오)
+
+| # | 시나리오 | 기대 |
+|:---:|---|---|
+| 1 | Auth 헤더 없음 | -32001 + HTTP 401 |
+| 2 | 무효 PAT | -32002 + HTTP 401 |
+| 3 | revoked PAT | -32002 + HTTP 401 |
+| 4 | 만료 PAT | -32002 + HTTP 401 |
+| 5 | `initialize` | capabilities |
+| 6 | `tools/list` | tools 9개 |
+| 7 | `tools/call: search_term` (USER) | results 배열 |
+| 8 | `register_custom_word` (USER) | -32004 |
+| 9 | `register_custom_word` (ADMIN) | created |
+| 10 | Rate limit 초과 (61회) | -32003 + 429 + Retry-After |
+| 11 | 잘못된 method | -32601 |
+| 12 | 입력 스키마 위반 | -32602 + data.errors |
+
+### 9.3 커버리지 목표
+
+| 항목 | 목표 |
+|---|---|
+| Tool handler 분기 커버리지 | ≥ 90% |
+| Auth/RateLimit 분기 커버리지 | **100%** |
+| 통합 테스트 통과율 | 12/12 |
+| CI 테스트 시간 | ≤ 60초 |
+
+---
+
+## 10. 출시 단계 (MVP → Phase 2 → Phase 3)
+
+### 10.1 Phase 1 (MVP) — 약 2주 · Task 10개
+
+**목표:** Claude Code에서 자연어 *"이 컬럼명 표준이야?"* 질의로 자동 검증 워크플로우 작동
+
+| # | 구성 요소 |
+|:---:|---|
+| 1 | DB 마이그레이션 — 신규 4 테이블 |
+| 2 | 데이터 시드 검증 — TbStdWord/Domain 존재 확인 |
+| 3 | PAT 발급 UI — `/admin/settings`에 섹션 추가 |
+| 4 | 인증 미들웨어 — `verifyPat()` |
+| 5 | Rate Limit 카운터 — atomic upsert |
+| 6 | 감사 로그 — fire-and-forget 기록 |
+| 7 | MCP Server 인프라 — SDK + tool registry + route.ts |
+| 8 | 핵심 Tool 5개 — search_term / validate_identifier / suggest_naming / get_word_detail / check_forbidden_in_text |
+| 9 | 통합 테스트 12건 |
+| 10 | Vercel 배포 + Claude Code E2E |
+
+### 10.2 Phase 2 — 약 1주 · Task 6개
+
+| # | 구성 요소 |
+|:---:|---|
+| 1 | Tool 4개 추가 — get_domain_detail / list_forbidden_words / register_custom_word / propose_term |
+| 2 | Inspection 모듈 연동 — propose_term → TbTrmInspection |
+| 3 | PAT 관리 화면 강화 — 사용 통계, 마지막 사용 시각 |
+| 4 | MCP 호출 통계 대시보드 — `/admin/stats` |
+| 5 | 에러율 알람 — Vercel Integration → 슬랙 |
+| 6 | pg_cron cleanup 정착 |
+
+### 10.3 Phase 3 (선택적)
+
+| 후보 | 트리거 |
+|---|---|
+| 다른 MCP 클라이언트 호환 검증 | 사내 도입 요청 |
+| 추가 Tool (schema diff, fuzzy search) | 사용 패턴 분석 |
+| 다국어/타 기관 표준 지원 | 비즈니스 요구 |
+| Tenant 분리 (다회사 SaaS) | "사내 공용" 정책 변경 |
+
+### 10.4 Definition of Done
+
+**Phase 1 DoD:**
+- [ ] Vercel production 배포 완료, HTTPS URL 유효
+- [ ] Claude Code에서 `/mcp` → trmdict 5 tool 노출
+- [ ] "USER_NM 이 표준이야?" 자연어 → validate_identifier 자동 호출, valid:true
+- [ ] "BLKCHAIN_ID 검증" → invalid + 제안 응답
+- [ ] 통합 테스트 12/12 PASS, 단위 테스트 ≥ 90% 커버리지
+- [ ] 다른 팀원 1명이 자기 PAT 발급 후 동일 검증 (공용 동작 확인)
+
+**Phase 2 DoD:**
+- [ ] 9개 Tool 전체 동작
+- [ ] Inspection 검수 큐에 MCP 경유 propose_term 적재
+- [ ] `/admin/stats`에 MCP 통계 시각화
+
+### 10.5 리스크 관리
+
+| 리스크 | Phase 1 대응 |
+|---|---|
+| Supabase에 표준 데이터 없음 | 시작 전 검증. 없으면 Tibero → Supabase 마이그레이션 또는 import job 선행 |
+| `@modelcontextprotocol/sdk` Streamable HTTP 미성숙 | 출시 확인. 미흡 시 SSE fallback |
+| PAT 평문 유출 | UI 일회성 표시 + 즉시 revoke + 감사 로그 추적 |
+| 사내 다른 시스템과 충돌 | 별도 도메인(`trmdict.vercel.app`) 사용 |
+
+---
+
+## 11. Claude Code 연결 설정 예시
+
+```json
+{
+  "mcpServers": {
+    "trmdict": {
+      "url": "https://trmdict.vercel.app/api/mcp",
+      "type": "http",
+      "headers": {
+        "Authorization": "Bearer trmdict_pat_a1b2c3..."
+      }
+    }
+  }
+}
+```
+
+확인: Claude Code에서 `/mcp` 명령으로 trmdict 서버가 연결되는지 + 9개 tool 메타데이터 확인.
+
+---
+
+## 12. 후속 작업
+
+본 설계 승인 후 `superpowers:writing-plans` 스킬로 Phase 1 (MVP) Task 10개의 상세 구현 계획서를 작성한다. 산출물 위치: `docs/plans/2026-06-04-mcp-server-plan.md`.
+
+각 Task는 TDD 5단계를 강제:
+1. 실패 테스트 작성
+2. 실패 확인
+3. 구현
+4. 통과 확인
+5. 커밋

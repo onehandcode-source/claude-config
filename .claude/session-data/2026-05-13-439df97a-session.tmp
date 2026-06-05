@@ -1,0 +1,41 @@
+# Session: 2026-05-13
+**Date:** 2026-05-13
+**Started:** 10:08
+**Last Updated:** 13:21
+**Project:** safeAutoTest
+**Branch:** unknown
+**Worktree:** D:\16. 자동화 도구\safeAutoTest
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- 요구사항  @data\snapshots\5aa613f2-6a39-4af7-9fb4-348452cc2cb9\ json기반으로 하여 테스트 케이스 작성중.  지금 playwright 입력 폼에 맞추어서 신고 json을 작성하려고 함.  신고 순서.md 참고로 하여 신고 테스트 확인.  curl로 http://localhost:8080/#safereport/sa
+- [Request interrupted by user for tool use]
+- 잠깐  PlaywrighteMCP 브릿지사용하면 좀더 쉽게 가능해?
+- 설치 완료함 다시 확인해줘
+- 다시 시작작
+- 다시 시작
+- 최초 메인 화면은 http://localhost:8080/#main이다. 여기로 다시 시작
+- 다시 시작
+- 다시 시작
+- PLAYWRIGHT_MCP_EXTENSION_TOKEN=1R6mVostENlZIl-_vJo4xJ53Kiv4E44LGG2Q9p9V6n0 크롬에서 이렇게 키값을 주고있어
+
+### Files Modified
+- D:\16. 자동화 도구\safeAutoTest\.mcp.json
+
+### Tools Used
+Bash, PowerShell, AskUserQuestion, Read, Skill, Glob, Agent, ToolSearch, mcp__plugin_everything-claude-code_playwright__browser_navigate, mcp__plugin_everything-claude-code_playwright__browser_snapshot, mcp__plugin_everything-claude-code_playwright__browser_fill_form, Write
+
+### Stats
+- Total user messages: 19
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

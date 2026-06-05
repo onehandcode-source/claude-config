@@ -1,0 +1,48 @@
+package com.devwogns.trmdict.module.word.vo;
+
+import com.devwogns.trmdict.module.word.entity.WordEntity;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Builder;
+import lombok.Getter;
+
+@Getter
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class WordDtlVo {
+
+    private Long id;
+    private String stdWordNm;
+    private String stdWordEngAbbrNm;
+    private String stdWordEngNm;
+    private String stdWordExpln;
+    private String frmWordYn;
+    private String stdDmnClsfNm;
+    private String synmListCn;
+    private String phwrdListCn;
+    private String enctCycl;
+    private String rvsnSeNm;
+    private String rvsnArtclNm;
+    private String rvsnRsn;
+    private String useYn;
+    private String rmrkCn;
+
+    public static WordDtlVo fromEntity(WordEntity entity) {
+        return WordDtlVo.builder()
+                .id(entity.getId())
+                .stdWordNm(entity.getStdWordNm())
+                .stdWordEngAbbrNm(entity.getStdWordEngAbbrNm())
+                .stdWordEngNm(entity.getStdWordEngNm())
+                .stdWordExpln(entity.getStdWordExpln())
+                .frmWordYn(entity.getFrmWordYn())
+                .stdDmnClsfNm(entity.getStdDmnClsfNm())
+                .synmListCn(entity.getSynmListCn())
+                .phwrdListCn(entity.getPhwrdListCn())
+                .enctCycl(entity.getEnctCycl())
+                .rvsnSeNm(entity.getRvsnSeNm())
+                .rvsnArtclNm(entity.getRvsnArtclNm())
+                .rvsnRsn(entity.getRvsnRsn())
+                .useYn(entity.getUseYn())
+                .rmrkCn(entity.getRmrkCn())
+                .build();
+    }
+}

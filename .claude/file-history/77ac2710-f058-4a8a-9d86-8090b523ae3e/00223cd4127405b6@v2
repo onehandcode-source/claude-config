@@ -1,0 +1,1206 @@
+# MCP Server Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** TrmWordDict SpringBoot 2.7.18 백엔드에 MCP HTTP+SSE 서버를 수동 구현하여 DB 명명 검증·표준 단어 검색·비표준 용어 등록 tool 6개를 Claude Code 등 MCP 클라이언트에 노출한다.
+
+**Architecture:** 기존 Spring Boot 2.7.18(Java 8) 위에 `SseEmitter` + `ConcurrentHashMap` 세션 관리로 MCP HTTP+SSE Transport를 직접 구현한다. Spring AI MCP는 Spring Boot 3.x 전용이므로 사용 불가. 기존 `WordService` / `DomainService`를 재사용하고, 신규 `TB_TRM_CUSTOM_WORD` 테이블을 추가해 비표준 용어를 저장한다.
+
+**Tech Stack:** Spring Boot 2.7.18, Java 8, Spring Web (SseEmitter), Jackson ObjectMapper, Spring Data JPA, Tibero7 Sequence, JUnit 5, Mockito
+
+---
+
+## Task 1: TB_TRM_CUSTOM_WORD DDL + Entity/Repository/Service/Vo
+
+**Files:**
+- Create: `backend/src/main/resources/db-ddl/06_custom_word.sql`
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/entity/CustomWord.java`
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/repository/CustomWordRepository.java`
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/service/CustomWordService.java`
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/vo/CustomWordVo.java`
+- Test: `backend/src/test/java/com/devwogns/trmdict/module/mcp/service/CustomWordServiceTest.java`
+
+**Step 1: DDL 파일 작성**
+
+```sql
+-- db-ddl/06_custom_word.sql
+CREATE TABLE TB_TRM_CUSTOM_WORD (
+    CUSTOM_WORD_SN   NUMBER          NOT NULL,
+    WORD_KR_NM       VARCHAR2(200)   NOT NULL,
+    WORD_ENG_NM      VARCHAR2(200),
+    WORD_ENG_ABBR_NM VARCHAR2(50),
+    REASON_CN        VARCHAR2(500),
+    USE_YN           CHAR(1)         DEFAULT 'Y' NOT NULL,
+    RGTR_ID          VARCHAR2(20),
+    REG_DT           TIMESTAMP,
+    MDFR_ID          VARCHAR2(20),
+    MDFCN_DT         TIMESTAMP,
+    CONSTRAINT PK_TB_TRM_CUSTOM_WORD PRIMARY KEY (CUSTOM_WORD_SN)
+);
+CREATE SEQUENCE TB_TRM_CUSTOM_WORD_SEQ START WITH 1 INCREMENT BY 1;
+
+INSERT INTO TB_TRM_SCHEMA_HISTORY (FILE_NM) VALUES ('06_custom_word.sql');
+COMMIT;
+```
+
+> DB 담당자가 수동 실행. 로컬 Tibero에 실행 후 다음 단계 진행.
+
+**Step 2: 실패 테스트 작성**
+
+```java
+@ExtendWith(MockitoExtension.class)
+class CustomWordServiceTest {
+    @Mock CustomWordRepository repo;
+    @InjectMocks CustomWordService svc;
+
+    @Test
+    void search_returnsMatchingWords() {
+        CustomWord word = CustomWord.builder()
+            .wordKrNm("블록체인").wordEngNm("Blockchain").wordEngAbbrNm("BLOCKCHAIN").build();
+        when(repo.findByWordKrNmContainingAndUseYn("블록체인", "Y")).thenReturn(Arrays.asList(word));
+
+        List<CustomWordVo> result = svc.search("블록체인");
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getKoreanName()).isEqualTo("블록체인");
+    }
+
+    @Test
+    void create_savesAndReturnsVo() {
+        CustomWord saved = CustomWord.builder()
+            .customWordSn(1L).wordKrNm("블록체인").wordEngAbbrNm("BLOCKCHAIN").useYn("Y").build();
+        when(repo.save(any())).thenReturn(saved);
+
+        CustomWordVo vo = svc.create("블록체인", "Blockchain", "BLOCKCHAIN", "신기술");
+        assertThat(vo.getId()).isEqualTo(1L);
+        assertThat(vo.getEnglishAbbr()).isEqualTo("BLOCKCHAIN");
+    }
+}
+```
+
+**Step 3: 테스트 실패 확인**
+
+```
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 gradlew.bat test --tests "*.CustomWordServiceTest" -i
+```
+예상: FAIL (클래스 미존재)
+
+**Step 4: Entity 구현**
+
+```java
+// module/mcp/entity/CustomWord.java
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder
+@AllArgsConstructor
+@Entity
+@Table(name = "TB_TRM_CUSTOM_WORD")
+@SequenceGenerator(name = "custom_word_seq", sequenceName = "TB_TRM_CUSTOM_WORD_SEQ", allocationSize = 1)
+public class CustomWord {
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "custom_word_seq")
+    @Column(name = "CUSTOM_WORD_SN")
+    private Long customWordSn;
+
+    @Column(name = "WORD_KR_NM", nullable = false)
+    private String wordKrNm;
+
+    @Column(name = "WORD_ENG_NM")
+    private String wordEngNm;
+
+    @Column(name = "WORD_ENG_ABBR_NM")
+    private String wordEngAbbrNm;
+
+    @Column(name = "REASON_CN")
+    private String reasonCn;
+
+    @Column(name = "USE_YN", nullable = false)
+    private String useYn = "Y";
+
+    @Column(name = "RGTR_ID")
+    private String rgtrId;
+
+    @Column(name = "REG_DT")
+    private LocalDateTime regDt;
+}
+```
+
+**Step 5: Repository 구현**
+
+```java
+// module/mcp/repository/CustomWordRepository.java
+public interface CustomWordRepository extends JpaRepository<CustomWord, Long> {
+    List<CustomWord> findByWordKrNmContainingAndUseYn(String keyword, String useYn);
+    List<CustomWord> findByWordEngAbbrNmIgnoreCaseAndUseYn(String abbr, String useYn);
+}
+```
+
+**Step 6: Vo 구현**
+
+```java
+// module/mcp/vo/CustomWordVo.java
+@Getter
+@Builder
+@AllArgsConstructor
+public class CustomWordVo {
+    private Long id;
+    private String koreanName;
+    private String englishName;
+    private String englishAbbr;
+    private String reason;
+}
+```
+
+**Step 7: Service 구현**
+
+```java
+// module/mcp/service/CustomWordService.java
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class CustomWordService {
+    private final CustomWordRepository customWordRepository;
+
+    @Transactional(readOnly = true)
+    public List<CustomWordVo> search(String query) {
+        return customWordRepository.findByWordKrNmContainingAndUseYn(query, "Y")
+            .stream()
+            .map(w -> CustomWordVo.builder()
+                .id(w.getCustomWordSn())
+                .koreanName(w.getWordKrNm())
+                .englishName(w.getWordEngNm())
+                .englishAbbr(w.getWordEngAbbrNm())
+                .reason(w.getReasonCn())
+                .build())
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public CustomWordVo create(String koreanName, String englishName, String englishAbbr, String reason) {
+        CustomWord word = CustomWord.builder()
+            .wordKrNm(koreanName)
+            .wordEngNm(englishName)
+            .wordEngAbbrNm(englishAbbr)
+            .reasonCn(reason)
+            .useYn("Y")
+            .regDt(LocalDateTime.now())
+            .build();
+        CustomWord saved = customWordRepository.save(word);
+        return CustomWordVo.builder()
+            .id(saved.getCustomWordSn())
+            .koreanName(saved.getWordKrNm())
+            .englishName(saved.getWordEngNm())
+            .englishAbbr(saved.getWordEngAbbrNm())
+            .reason(saved.getReasonCn())
+            .build();
+    }
+}
+```
+
+**Step 8: 테스트 통과 확인**
+
+```
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 gradlew.bat test --tests "*.CustomWordServiceTest" -i
+```
+예상: PASS
+
+**Step 9: Commit**
+
+```
+git add backend/src/main/resources/db-ddl/06_custom_word.sql \
+        backend/src/main/java/com/devwogns/trmdict/module/mcp/ \
+        backend/src/test/java/com/devwogns/trmdict/module/mcp/service/CustomWordServiceTest.java
+git commit -m "feat(mcp): TB_TRM_CUSTOM_WORD DDL + Entity/Repository/Service/Vo"
+```
+
+---
+
+## Task 2: WordRepository 확장 + McpTool 인터페이스
+
+**Files:**
+- Modify: `backend/src/main/java/com/devwogns/trmdict/module/word/repository/WordRepository.java`
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/McpTool.java`
+
+**Step 1: WordRepository에 3개 메서드 추가**
+
+기존 파일 끝에 추가:
+```java
+// 영문약어로 정확 조회 (대소문자 무시)
+Optional<WordEntity> findByStdWordEngAbbrNmIgnoreCase(String abbr);
+
+// 한글명 포함 검색
+List<WordEntity> findByStdWordNmContaining(String keyword);
+
+// 영문명 포함 검색 (대소문자 무시)
+List<WordEntity> findByStdWordEngNmContainingIgnoreCase(String keyword);
+```
+
+**Step 2: McpTool 인터페이스 작성**
+
+```java
+// module/mcp/tool/McpTool.java
+public interface McpTool {
+    String getName();
+    String getDescription();
+    Map<String, Object> getInputSchema();
+    Object execute(Map<String, Object> arguments);
+}
+```
+
+**Step 3: Commit**
+
+```
+git add backend/src/main/java/com/devwogns/trmdict/module/word/repository/WordRepository.java \
+        backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/McpTool.java
+git commit -m "feat(mcp): WordRepository 확장 + McpTool 인터페이스 정의"
+```
+
+---
+
+## Task 3: MCP 인프라 — SessionManager + Dispatcher + SSE/Message 컨트롤러
+
+**Files:**
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/service/McpSessionManager.java`
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/service/McpDispatcher.java`
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/controller/McpSseController.java`
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/controller/McpMessageController.java`
+- Test: `backend/src/test/java/com/devwogns/trmdict/module/mcp/service/McpDispatcherTest.java`
+
+**Step 1: 실패 테스트 작성**
+
+```java
+@ExtendWith(MockitoExtension.class)
+class McpDispatcherTest {
+    @Mock McpTool toolA;
+    McpDispatcher dispatcher;
+
+    @BeforeEach
+    void setUp() {
+        when(toolA.getName()).thenReturn("test_tool");
+        dispatcher = new McpDispatcher(Arrays.asList(toolA));
+    }
+
+    @Test
+    void dispatch_tools_list_returnsAllTools() {
+        Map<String, Object> schema = new HashMap<>();
+        schema.put("type", "object");
+        when(toolA.getDescription()).thenReturn("A test tool");
+        when(toolA.getInputSchema()).thenReturn(schema);
+
+        Object result = dispatcher.dispatch("tools/list", null);
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    void dispatch_tools_call_routesToTool() {
+        Map<String, Object> args = new HashMap<>();
+        when(toolA.execute(args)).thenReturn("ok");
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("name", "test_tool");
+        params.put("arguments", args);
+
+        Object result = dispatcher.dispatch("tools/call", params);
+        assertThat(result).isNotNull();
+        verify(toolA).execute(args);
+    }
+
+    @Test
+    void dispatch_unknownMethod_throwsException() {
+        assertThatThrownBy(() -> dispatcher.dispatch("unknown/method", null))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+}
+```
+
+**Step 2: McpSessionManager 구현**
+
+```java
+// module/mcp/service/McpSessionManager.java
+@Slf4j
+@Service
+public class McpSessionManager {
+    private final Map<String, SseEmitter> sessions = new ConcurrentHashMap<>();
+
+    public SseEmitter createSession(String sessionId) {
+        SseEmitter emitter = new SseEmitter(30 * 60 * 1000L); // 30분
+        emitter.onCompletion(() -> sessions.remove(sessionId));
+        emitter.onTimeout(() -> sessions.remove(sessionId));
+        emitter.onError(e -> sessions.remove(sessionId));
+        sessions.put(sessionId, emitter);
+        return emitter;
+    }
+
+    public Optional<SseEmitter> getSession(String sessionId) {
+        return Optional.ofNullable(sessions.get(sessionId));
+    }
+
+    public void removeSession(String sessionId) {
+        sessions.remove(sessionId);
+    }
+}
+```
+
+**Step 3: McpDispatcher 구현**
+
+```java
+// module/mcp/service/McpDispatcher.java
+@Slf4j
+@Service
+public class McpDispatcher {
+    private final Map<String, McpTool> toolMap;
+
+    public McpDispatcher(List<McpTool> tools) {
+        this.toolMap = new HashMap<>();
+        for (McpTool tool : tools) {
+            toolMap.put(tool.getName(), tool);
+        }
+    }
+
+    public Object dispatch(String method, Map<String, Object> params) {
+        switch (method) {
+            case "initialize":
+                return buildInitializeResult();
+            case "notifications/initialized":
+                return null; // notification — no response needed
+            case "tools/list":
+                return buildToolsList();
+            case "tools/call":
+                return callTool(params);
+            default:
+                throw new IllegalArgumentException("Method not found: " + method);
+        }
+    }
+
+    private Map<String, Object> buildInitializeResult() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("protocolVersion", "2024-11-05");
+        Map<String, Object> capabilities = new HashMap<>();
+        capabilities.put("tools", new HashMap<>());
+        result.put("capabilities", capabilities);
+        Map<String, Object> serverInfo = new HashMap<>();
+        serverInfo.put("name", "trmdict");
+        serverInfo.put("version", "1.0.0");
+        result.put("serverInfo", serverInfo);
+        return result;
+    }
+
+    private Map<String, Object> buildToolsList() {
+        List<Map<String, Object>> tools = new ArrayList<>();
+        for (McpTool tool : toolMap.values()) {
+            Map<String, Object> t = new HashMap<>();
+            t.put("name", tool.getName());
+            t.put("description", tool.getDescription());
+            t.put("inputSchema", tool.getInputSchema());
+            tools.add(t);
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("tools", tools);
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> callTool(Map<String, Object> params) {
+        String name = (String) params.get("name");
+        Map<String, Object> arguments = params.containsKey("arguments")
+            ? (Map<String, Object>) params.get("arguments")
+            : new HashMap<>();
+
+        McpTool tool = toolMap.get(name);
+        if (tool == null) {
+            throw new IllegalArgumentException("Tool not found: " + name);
+        }
+
+        Object toolResult = tool.execute(arguments);
+        Map<String, Object> content = new HashMap<>();
+        content.put("type", "text");
+        content.put("text", toolResult instanceof String ? toolResult : toJson(toolResult));
+
+        List<Map<String, Object>> contentList = new ArrayList<>();
+        contentList.add(content);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("content", contentList);
+        return result;
+    }
+
+    private String toJson(Object obj) {
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(obj);
+        } catch (Exception e) {
+            return obj.toString();
+        }
+    }
+}
+```
+
+**Step 4: McpSseController 구현**
+
+```java
+// module/mcp/controller/McpSseController.java
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/mcp")
+public class McpSseController {
+    private final McpSessionManager sessionManager;
+
+    @GetMapping(value = "/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter connect(HttpServletRequest request) {
+        String sessionId = UUID.randomUUID().toString();
+        SseEmitter emitter = sessionManager.createSession(sessionId);
+
+        String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
+        String postUrl = baseUrl + "/api/v1/mcp/messages?sessionId=" + sessionId;
+
+        try {
+            emitter.send(SseEmitter.event().name("endpoint").data(postUrl));
+        } catch (IOException e) {
+            log.error("SSE endpoint event 전송 실패: {}", e.getMessage());
+            emitter.completeWithError(e);
+        }
+
+        return emitter;
+    }
+}
+```
+
+**Step 5: McpMessageController 구현**
+
+```java
+// module/mcp/controller/McpMessageController.java
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/mcp")
+public class McpMessageController {
+    private final McpDispatcher dispatcher;
+    private final ObjectMapper objectMapper;
+
+    @PostMapping("/messages")
+    public ResponseEntity<Map<String, Object>> handleMessage(
+            @RequestParam String sessionId,
+            @RequestBody Map<String, Object> body) {
+
+        Object id = body.get("id");
+        String method = (String) body.get("method");
+
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> params = body.containsKey("params")
+                ? (Map<String, Object>) body.get("params")
+                : new HashMap<>();
+
+            Object result = dispatcher.dispatch(method, params);
+
+            if (result == null) {
+                // notification — 204
+                return ResponseEntity.noContent().build();
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("jsonrpc", "2.0");
+            response.put("id", id);
+            response.put("result", result);
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            return errorResponse(id, -32601, e.getMessage());
+        } catch (Exception e) {
+            log.error("MCP dispatch 오류: method={}", method, e);
+            return errorResponse(id, -32603, "Internal error");
+        }
+    }
+
+    private ResponseEntity<Map<String, Object>> errorResponse(Object id, int code, String message) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("code", code);
+        error.put("message", message);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("jsonrpc", "2.0");
+        response.put("id", id);
+        response.put("error", error);
+        return ResponseEntity.ok(response);
+    }
+}
+```
+
+**Step 6: 테스트 통과 확인**
+
+```
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 gradlew.bat test --tests "*.McpDispatcherTest" -i
+```
+예상: PASS
+
+**Step 7: Commit**
+
+```
+git add backend/src/main/java/com/devwogns/trmdict/module/mcp/service/ \
+        backend/src/main/java/com/devwogns/trmdict/module/mcp/controller/ \
+        backend/src/test/java/com/devwogns/trmdict/module/mcp/service/McpDispatcherTest.java
+git commit -m "feat(mcp): MCP 인프라 — SessionManager, Dispatcher, SSE/Message 컨트롤러"
+```
+
+---
+
+## Task 4: WordSearchTool (`search_standard_word`)
+
+**Files:**
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/WordSearchTool.java`
+- Test: `backend/src/test/java/com/devwogns/trmdict/module/mcp/tool/WordSearchToolTest.java`
+
+**Step 1: 실패 테스트 작성**
+
+```java
+@ExtendWith(MockitoExtension.class)
+class WordSearchToolTest {
+    @Mock WordRepository wordRepository;
+    @InjectMocks WordSearchTool tool;
+
+    @Test
+    void getName_returnsCorrectName() {
+        assertThat(tool.getName()).isEqualTo("search_standard_word");
+    }
+
+    @Test
+    void execute_koreanSearch_returnsMatchingWords() {
+        WordEntity word = buildWord("사용자", "USER", "User");
+        when(wordRepository.findByStdWordNmContaining("사용자")).thenReturn(Arrays.asList(word));
+
+        Map<String, Object> args = new HashMap<>();
+        args.put("query", "사용자");
+        args.put("search_type", "korean");
+
+        Object result = tool.execute(args);
+        assertThat(result).isInstanceOf(List.class);
+        List<?> list = (List<?>) result;
+        assertThat(list).hasSize(1);
+    }
+
+    private WordEntity buildWord(String kr, String abbr, String eng) {
+        // WordEntity builder 사용
+        return WordEntity.builder()
+            .stdWordNm(kr).stdWordEngAbbrNm(abbr).stdWordEngNm(eng).build();
+    }
+}
+```
+
+**Step 2: WordSearchTool 구현**
+
+```java
+// module/mcp/tool/WordSearchTool.java
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class WordSearchTool implements McpTool {
+    private final WordRepository wordRepository;
+
+    @Override
+    public String getName() { return "search_standard_word"; }
+
+    @Override
+    public String getDescription() {
+        return "행안부 표준 단어 DB에서 단어를 검색합니다. search_type: korean | english_abbr | english";
+    }
+
+    @Override
+    public Map<String, Object> getInputSchema() {
+        Map<String, Object> schema = new HashMap<>();
+        schema.put("type", "object");
+        Map<String, Object> props = new HashMap<>();
+        props.put("query", singleProp("string", "검색어"));
+        props.put("search_type", singleProp("string", "korean | english_abbr | english"));
+        schema.put("properties", props);
+        schema.put("required", Arrays.asList("query", "search_type"));
+        return schema;
+    }
+
+    @Override
+    public Object execute(Map<String, Object> arguments) {
+        String query = (String) arguments.get("query");
+        String searchType = (String) arguments.get("search_type");
+
+        List<WordEntity> words;
+        switch (searchType) {
+            case "english_abbr":
+                words = wordRepository.findByStdWordEngAbbrNmIgnoreCase(query)
+                    .map(Arrays::asList).orElse(Collections.emptyList());
+                break;
+            case "english":
+                words = wordRepository.findByStdWordEngNmContainingIgnoreCase(query);
+                break;
+            default: // korean
+                words = wordRepository.findByStdWordNmContaining(query);
+        }
+
+        return words.stream().map(w -> {
+            Map<String, Object> item = new HashMap<>();
+            item.put("std_word_nm", w.getStdWordNm());
+            item.put("std_word_eng_abbr_nm", w.getStdWordEngAbbrNm());
+            item.put("std_word_eng_nm", w.getStdWordEngNm());
+            return item;
+        }).collect(Collectors.toList());
+    }
+
+    private Map<String, Object> singleProp(String type, String desc) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("type", type);
+        p.put("description", desc);
+        return p;
+    }
+}
+```
+
+**Step 3: 테스트 통과 확인**
+
+```
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 gradlew.bat test --tests "*.WordSearchToolTest" -i
+```
+
+**Step 4: Commit**
+
+```
+git add backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/WordSearchTool.java \
+        backend/src/test/java/com/devwogns/trmdict/module/mcp/tool/WordSearchToolTest.java
+git commit -m "feat(mcp): WordSearchTool — search_standard_word"
+```
+
+---
+
+## Task 5: NamingValidationTool 3종
+
+**Files:**
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/ValidateDbNameTool.java`
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/SuggestDbColumnNameTool.java`
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/ValidateJavaIdentifierTool.java`
+- Test: `backend/src/test/java/com/devwogns/trmdict/module/mcp/tool/ValidateDbNameToolTest.java`
+
+**Step 1: ValidateDbNameTool 실패 테스트**
+
+```java
+@ExtendWith(MockitoExtension.class)
+class ValidateDbNameToolTest {
+    @Mock WordRepository wordRepo;
+    @Mock CustomWordRepository customWordRepo;
+    @InjectMocks ValidateDbNameTool tool;
+
+    @Test
+    void execute_allTokensMatch_returnsValid() {
+        when(wordRepo.findByStdWordEngAbbrNmIgnoreCase("USER"))
+            .thenReturn(Optional.of(buildWord("사용자", "USER")));
+        when(wordRepo.findByStdWordEngAbbrNmIgnoreCase("NM"))
+            .thenReturn(Optional.of(buildWord("명", "NM")));
+
+        Map<String, Object> args = new HashMap<>();
+        args.put("name", "USER_NM");
+        args.put("type", "column");
+
+        Map<?, ?> result = (Map<?, ?>) tool.execute(args);
+        assertThat(result.get("valid")).isEqualTo(true);
+        assertThat(((List<?>) result.get("invalid_tokens"))).isEmpty();
+    }
+
+    @Test
+    void execute_unknownToken_returnsInvalid() {
+        when(wordRepo.findByStdWordEngAbbrNmIgnoreCase("BLKCHAIN")).thenReturn(Optional.empty());
+        when(customWordRepo.findByWordEngAbbrNmIgnoreCaseAndUseYn("BLKCHAIN", "Y"))
+            .thenReturn(Collections.emptyList());
+
+        Map<String, Object> args = new HashMap<>();
+        args.put("name", "BLKCHAIN_ID");
+        args.put("type", "column");
+
+        Map<?, ?> result = (Map<?, ?>) tool.execute(args);
+        assertThat(result.get("valid")).isEqualTo(false);
+        assertThat(((List<?>) result.get("invalid_tokens"))).contains("BLKCHAIN");
+    }
+}
+```
+
+**Step 2: ValidateDbNameTool 구현**
+
+```java
+// module/mcp/tool/ValidateDbNameTool.java
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ValidateDbNameTool implements McpTool {
+    private final WordRepository wordRepository;
+    private final CustomWordRepository customWordRepository;
+
+    @Override public String getName() { return "validate_db_name"; }
+
+    @Override
+    public String getDescription() {
+        return "DB 컬럼명 또는 테이블명이 행안부 표준 약어 규칙에 부합하는지 검증합니다.";
+    }
+
+    @Override
+    public Map<String, Object> getInputSchema() {
+        Map<String, Object> schema = new HashMap<>();
+        schema.put("type", "object");
+        Map<String, Object> props = new HashMap<>();
+        props.put("name", prop("string", "검사할 이름 (예: USER_NM)"));
+        props.put("type", prop("string", "column | table"));
+        schema.put("properties", props);
+        schema.put("required", Arrays.asList("name", "type"));
+        return schema;
+    }
+
+    @Override
+    public Object execute(Map<String, Object> arguments) {
+        String name = ((String) arguments.get("name")).toUpperCase();
+        String[] tokens = name.split("_");
+
+        List<Map<String, Object>> matched = new ArrayList<>();
+        List<String> invalidTokens = new ArrayList<>();
+
+        for (String token : tokens) {
+            if (token.isEmpty()) continue;
+            Optional<WordEntity> std = wordRepository.findByStdWordEngAbbrNmIgnoreCase(token);
+            if (std.isPresent()) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("token", token);
+                m.put("word_nm", std.get().getStdWordNm());
+                m.put("source", "standard");
+                matched.add(m);
+            } else {
+                List<CustomWord> custom = customWordRepository.findByWordEngAbbrNmIgnoreCaseAndUseYn(token, "Y");
+                if (!custom.isEmpty()) {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("token", token);
+                    m.put("word_nm", custom.get(0).getWordKrNm());
+                    m.put("source", "custom");
+                    matched.add(m);
+                } else {
+                    invalidTokens.add(token);
+                }
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("valid", invalidTokens.isEmpty());
+        result.put("tokens", Arrays.asList(tokens));
+        result.put("matched", matched);
+        result.put("invalid_tokens", invalidTokens);
+        if (!invalidTokens.isEmpty()) {
+            result.put("suggestions", buildSuggestion(invalidTokens));
+        }
+        return result;
+    }
+
+    private String buildSuggestion(List<String> invalids) {
+        return String.join(", ", invalids) + " 은(는) 표준 미등재. create_custom_word 로 비표준 용어 등록 후 사용 가능.";
+    }
+
+    private Map<String, Object> prop(String type, String desc) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("type", type); p.put("description", desc); return p;
+    }
+}
+```
+
+**Step 3: SuggestDbColumnNameTool 구현**
+
+```java
+// module/mcp/tool/SuggestDbColumnNameTool.java
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class SuggestDbColumnNameTool implements McpTool {
+    private final WordRepository wordRepository;
+
+    @Override public String getName() { return "suggest_db_column_name"; }
+    @Override public String getDescription() {
+        return "한글 설명을 입력하면 표준 약어 조합으로 컬럼명을 제안합니다.";
+    }
+
+    @Override
+    public Map<String, Object> getInputSchema() {
+        Map<String, Object> schema = new HashMap<>();
+        schema.put("type", "object");
+        Map<String, Object> props = new HashMap<>();
+        props.put("korean_description", prop("string", "한글 설명 (예: 사용자명)"));
+        schema.put("properties", props);
+        schema.put("required", Arrays.asList("korean_description"));
+        return schema;
+    }
+
+    @Override
+    public Object execute(Map<String, Object> arguments) {
+        String desc = (String) arguments.get("korean_description");
+        List<WordEntity> words = wordRepository.findByStdWordNmContaining(desc);
+
+        List<Map<String, Object>> basedOn = new ArrayList<>();
+        List<String> abbrTokens = new ArrayList<>();
+
+        for (WordEntity w : words) {
+            if (w.getStdWordEngAbbrNm() != null) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("korean", w.getStdWordNm());
+                item.put("abbr", w.getStdWordEngAbbrNm());
+                basedOn.add(item);
+                abbrTokens.add(w.getStdWordEngAbbrNm().toUpperCase());
+            }
+        }
+
+        String confidence = basedOn.isEmpty() ? "low" : (basedOn.size() >= 2 ? "high" : "medium");
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("suggested_name", String.join("_", abbrTokens));
+        result.put("confidence", confidence);
+        result.put("based_on", basedOn);
+        return result;
+    }
+
+    private Map<String, Object> prop(String type, String desc) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("type", type); p.put("description", desc); return p;
+    }
+}
+```
+
+**Step 4: ValidateJavaIdentifierTool 구현**
+
+```java
+// module/mcp/tool/ValidateJavaIdentifierTool.java
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ValidateJavaIdentifierTool implements McpTool {
+    private final WordRepository wordRepository;
+
+    @Override public String getName() { return "validate_java_identifier"; }
+    @Override public String getDescription() {
+        return "Java 식별자를 camelCase 분리 후 각 단어를 표준 단어 DB에서 확인합니다.";
+    }
+
+    @Override
+    public Map<String, Object> getInputSchema() {
+        Map<String, Object> schema = new HashMap<>();
+        schema.put("type", "object");
+        Map<String, Object> props = new HashMap<>();
+        props.put("identifier", prop("string", "Java 식별자 (예: userName)"));
+        props.put("type", prop("string", "class | field | method | variable"));
+        schema.put("properties", props);
+        schema.put("required", Arrays.asList("identifier", "type"));
+        return schema;
+    }
+
+    @Override
+    public Object execute(Map<String, Object> arguments) {
+        String identifier = (String) arguments.get("identifier");
+        // camelCase/PascalCase 분리
+        String[] tokens = identifier.split("(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])");
+
+        List<Map<String, Object>> words = new ArrayList<>();
+        List<String> invalidTokens = new ArrayList<>();
+        List<String> abbrTokens = new ArrayList<>();
+
+        for (String token : tokens) {
+            List<WordEntity> matches = wordRepository.findByStdWordEngNmContainingIgnoreCase(token);
+            if (!matches.isEmpty()) {
+                WordEntity w = matches.get(0);
+                Map<String, Object> item = new HashMap<>();
+                item.put("token", token);
+                item.put("std_word_nm", w.getStdWordNm());
+                item.put("std_abbr", w.getStdWordEngAbbrNm());
+                words.add(item);
+                if (w.getStdWordEngAbbrNm() != null) {
+                    abbrTokens.add(w.getStdWordEngAbbrNm().toUpperCase());
+                }
+            } else {
+                invalidTokens.add(token);
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("valid", invalidTokens.isEmpty());
+        result.put("words", words);
+        result.put("db_column_equivalent", String.join("_", abbrTokens));
+        result.put("invalid_tokens", invalidTokens);
+        return result;
+    }
+
+    private Map<String, Object> prop(String type, String desc) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("type", type); p.put("description", desc); return p;
+    }
+}
+```
+
+**Step 5: 테스트 통과 확인**
+
+```
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 gradlew.bat test --tests "*.ValidateDbNameToolTest" -i
+```
+
+**Step 6: Commit**
+
+```
+git add backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/ValidateDbNameTool.java \
+        backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/SuggestDbColumnNameTool.java \
+        backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/ValidateJavaIdentifierTool.java \
+        backend/src/test/java/com/devwogns/trmdict/module/mcp/tool/ValidateDbNameToolTest.java
+git commit -m "feat(mcp): NamingValidationTool 3종 — validate_db_name, suggest_db_column_name, validate_java_identifier"
+```
+
+---
+
+## Task 6: CustomWordTool 2종
+
+**Files:**
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/CreateCustomWordTool.java`
+- Create: `backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/SearchCustomWordTool.java`
+- Test: `backend/src/test/java/com/devwogns/trmdict/module/mcp/tool/CreateCustomWordToolTest.java`
+
+**Step 1: 실패 테스트 작성**
+
+```java
+@ExtendWith(MockitoExtension.class)
+class CreateCustomWordToolTest {
+    @Mock CustomWordService customWordService;
+    @InjectMocks CreateCustomWordTool tool;
+
+    @Test
+    void execute_createsWord_returnsCreatedVo() {
+        CustomWordVo vo = CustomWordVo.builder()
+            .id(1L).koreanName("블록체인").englishAbbr("BLOCKCHAIN").build();
+        when(customWordService.create("블록체인", "Blockchain", "BLOCKCHAIN", "신기술")).thenReturn(vo);
+
+        Map<String, Object> args = new HashMap<>();
+        args.put("korean_name", "블록체인");
+        args.put("english_name", "Blockchain");
+        args.put("english_abbr", "BLOCKCHAIN");
+        args.put("reason", "신기술");
+
+        Map<?, ?> result = (Map<?, ?>) tool.execute(args);
+        assertThat(result.get("id")).isEqualTo(1L);
+        assertThat(result.get("status")).isEqualTo("created");
+    }
+}
+```
+
+**Step 2: CreateCustomWordTool 구현**
+
+```java
+// module/mcp/tool/CreateCustomWordTool.java
+@Component
+@RequiredArgsConstructor
+public class CreateCustomWordTool implements McpTool {
+    private final CustomWordService customWordService;
+
+    @Override public String getName() { return "create_custom_word"; }
+    @Override public String getDescription() {
+        return "행안부 표준에 미등재된 단어를 비표준 용어로 등록합니다.";
+    }
+
+    @Override
+    public Map<String, Object> getInputSchema() {
+        Map<String, Object> schema = new HashMap<>();
+        schema.put("type", "object");
+        Map<String, Object> props = new HashMap<>();
+        props.put("korean_name", prop("string", "한글명"));
+        props.put("english_name", prop("string", "영문명"));
+        props.put("english_abbr", prop("string", "영문약어"));
+        props.put("reason", prop("string", "등록 사유"));
+        schema.put("properties", props);
+        schema.put("required", Arrays.asList("korean_name"));
+        return schema;
+    }
+
+    @Override
+    public Object execute(Map<String, Object> arguments) {
+        String kr = (String) arguments.get("korean_name");
+        String eng = (String) arguments.getOrDefault("english_name", null);
+        String abbr = (String) arguments.getOrDefault("english_abbr", null);
+        String reason = (String) arguments.getOrDefault("reason", null);
+
+        CustomWordVo vo = customWordService.create(kr, eng, abbr, reason);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", vo.getId());
+        result.put("status", "created");
+        result.put("message", abbr + " 이(가) 비표준 용어로 등록됐습니다. validate_db_name 에서 custom 출처로 인식됩니다.");
+        return result;
+    }
+
+    private Map<String, Object> prop(String type, String desc) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("type", type); p.put("description", desc); return p;
+    }
+}
+```
+
+**Step 3: SearchCustomWordTool 구현**
+
+```java
+// module/mcp/tool/SearchCustomWordTool.java
+@Component
+@RequiredArgsConstructor
+public class SearchCustomWordTool implements McpTool {
+    private final CustomWordService customWordService;
+
+    @Override public String getName() { return "search_custom_word"; }
+    @Override public String getDescription() {
+        return "등록된 비표준 용어를 검색합니다.";
+    }
+
+    @Override
+    public Map<String, Object> getInputSchema() {
+        Map<String, Object> schema = new HashMap<>();
+        schema.put("type", "object");
+        Map<String, Object> props = new HashMap<>();
+        props.put("query", prop("string", "검색어"));
+        schema.put("properties", props);
+        schema.put("required", Arrays.asList("query"));
+        return schema;
+    }
+
+    @Override
+    public Object execute(Map<String, Object> arguments) {
+        String query = (String) arguments.get("query");
+        return customWordService.search(query);
+    }
+
+    private Map<String, Object> prop(String type, String desc) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("type", type); p.put("description", desc); return p;
+    }
+}
+```
+
+**Step 4: 테스트 통과 확인**
+
+```
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 gradlew.bat test --tests "*.CreateCustomWordToolTest" -i
+```
+
+**Step 5: Commit**
+
+```
+git add backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/CreateCustomWordTool.java \
+        backend/src/main/java/com/devwogns/trmdict/module/mcp/tool/SearchCustomWordTool.java \
+        backend/src/test/java/com/devwogns/trmdict/module/mcp/tool/CreateCustomWordToolTest.java
+git commit -m "feat(mcp): CustomWordTool 2종 — create_custom_word, search_custom_word"
+```
+
+---
+
+## Task 7: SecurityConfig 경로 허용 + 통합 테스트
+
+**Files:**
+- Modify: `backend/src/main/java/com/devwogns/trmdict/common/security/SecurityConfig.java`
+- Create: `backend/src/test/java/com/devwogns/trmdict/module/mcp/McpIntegrationTest.java`
+
+**Step 1: SecurityConfig MCP 경로 허용 추가**
+
+`SecurityConfig.java`의 `antMatchers` 블록에 한 줄 추가:
+```java
+.antMatchers("/api/v1/mcp/**").permitAll()
+```
+
+기존 `/api/v1/auth/**` 등 permitAll 블록 바로 아래에 추가.
+
+**Step 2: 통합 테스트 작성**
+
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
+class McpIntegrationTest {
+    @Autowired TestRestTemplate restTemplate;
+
+    @Test
+    void toolsList_returnsAllSixTools() {
+        Map<String, Object> body = new HashMap<>();
+        body.put("jsonrpc", "2.0");
+        body.put("id", 1);
+        body.put("method", "tools/list");
+
+        ResponseEntity<Map> response = restTemplate.postForEntity(
+            "/api/v1/mcp/messages?sessionId=test-session",
+            body,
+            Map.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<?, ?> result = (Map<?, ?>) response.getBody().get("result");
+        List<?> tools = (List<?>) result.get("tools");
+        assertThat(tools).hasSize(6);
+    }
+
+    @Test
+    void initialize_returnsCapabilities() {
+        Map<String, Object> body = new HashMap<>();
+        body.put("jsonrpc", "2.0");
+        body.put("id", 1);
+        body.put("method", "initialize");
+        body.put("params", new HashMap<>());
+
+        ResponseEntity<Map> response = restTemplate.postForEntity(
+            "/api/v1/mcp/messages?sessionId=test-session",
+            body,
+            Map.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<?, ?> result = (Map<?, ?>) response.getBody().get("result");
+        assertThat(result).containsKey("capabilities");
+    }
+}
+```
+
+**Step 3: 전체 테스트 실행**
+
+```
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 gradlew.bat test -i
+```
+예상: 모든 테스트 PASS
+
+**Step 4: 로컬 서버 실행 후 SSE 연결 확인**
+
+```bash
+# 서버 기동
+java -jar build/libs/trmdict-1.0.0-SNAPSHOT.jar --spring.profiles.active=local
+
+# SSE 연결 확인
+curl -N http://localhost:8080/api/v1/mcp/sse
+# 예상: event:endpoint data:http://localhost:8080/api/v1/mcp/messages?sessionId=xxx
+```
+
+**Step 5: Claude Code 연결 확인**
+
+`~/.claude/settings.json` (또는 프로젝트 `.claude/settings.json`):
+```json
+{
+  "mcpServers": {
+    "trmdict": {
+      "url": "http://localhost:8080/api/v1/mcp/sse",
+      "type": "sse"
+    }
+  }
+}
+```
+Claude Code에서 `/mcp` 명령으로 trmdict 서버가 연결되는지 확인.
+
+**Step 6: Final Commit**
+
+```
+git add backend/src/main/java/com/devwogns/trmdict/common/security/SecurityConfig.java \
+        backend/src/test/java/com/devwogns/trmdict/module/mcp/McpIntegrationTest.java
+git commit -m "feat(mcp): SecurityConfig MCP 경로 허용 + 통합 테스트"
+```
+
+---
+
+## 검증 체크리스트
+
+- [ ] `TB_TRM_CUSTOM_WORD` 테이블 + 시퀀스 DB 적용 완료
+- [ ] `CustomWordServiceTest` PASS
+- [ ] `McpDispatcherTest` PASS
+- [ ] `WordSearchToolTest` PASS
+- [ ] `ValidateDbNameToolTest` PASS
+- [ ] `CreateCustomWordToolTest` PASS
+- [ ] `McpIntegrationTest` PASS
+- [ ] `curl -N http://localhost:8080/api/v1/mcp/sse` → endpoint event 수신
+- [ ] Claude Code `/mcp` → trmdict 서버 6개 tool 확인

@@ -1,0 +1,60 @@
+# Session: 2026-05-14
+**Date:** 2026-05-14
+**Started:** 11:37
+**Last Updated:** 18:02
+**Project:** test
+**Branch:** unknown
+**Worktree:** D:\21. harness\test
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- 질문  1. 클로드에서 제미나이에게 요청 2. 제미나이에서 리서치 결과 업데이트 3. 클로드에서 확인  그럼 클로드 cli에서는 workspace.md기준으로 결과물을 확인하고 출력할 수 있는거야?
+- 기능 업데이트  1. 클로드에서 종료가 감지되면, 해당 내용을 확인하고, 자체적으로 review하는 기능
+- 지금 각각 listener.py 디렉토리 위치가 변경되어서 안에 내용 수정할거 있으면 확인해
+- 질문  지금 클로드에서 리서치 프롬프트, 코드 프롬프트 날릴때 접미사 혹은 접두어 같은 규칙이 있어?  아니면 규칙에 의해서 알아서 리서치는 리서치, 코드는 코드로 가는거야
+- 뭔가 규칙을 좀 명확하게 나누고 싶은데
+- 예제코드 기준으로 다시 먼저 확인해
+- 예제코드 + 좀더 각 역할마다 역할을 명확하고 자세하게 작성하고 싶음
+- watch.py파일도 확인해줘
+- 질문  workspace.md는 각 에이전트들에게 질문 할때 초기화를 하고 내용을 다시 채우는 형식인거야?
+- 질문  workspace.md 안에 Global Goal 항목  Current Context 항목은 언제 업데이트되는거야
+
+### Files Modified
+- D:\21. harness\test\.agents-dev\roles\researcher.md
+- D:\21. harness\test\.agents-dev\roles\engineer.md
+- D:\21. harness\test\.agents-dev\roles\pm.md
+- D:\21. harness\test\.agents-dev\scripts\ask_gemini.py
+- D:\21. harness\test\.agents-dev\scripts\ask_codex.py
+- D:\21. harness\test\.agents-dev\scripts\ask_claude.py
+- D:\21. harness\test\watch.py
+- D:\21. harness\test\README.md
+- D:\21. harness\test\gemini_listener.py
+- D:\21. harness\test\codex_listener.py
+- D:\21. harness\test\claude_listener.py
+- D:\21. harness\test\.agents-dev\log\gemini-20260514-000000-result.md
+- D:\21. harness\test\workspace.md
+- D:\21. harness\test\.agents-dev\log\gemini-20260514-000001-result.md
+- D:\21. harness\test\agentListener\claude_listener.py
+- D:\21. harness\test\agentListener\gemini_listener.py
+- D:\21. harness\test\agentListener\codex_listener.py
+
+### Tools Used
+Skill, Read, Bash, AskUserQuestion, ToolSearch, WebFetch, mcp__ccd_session__mark_chapter, PowerShell, Write, Edit, TodoWrite, Glob
+
+### Stats
+- Total user messages: 36
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```
+
+---
+**[Compaction occurred at 16:49]** - Context was summarized

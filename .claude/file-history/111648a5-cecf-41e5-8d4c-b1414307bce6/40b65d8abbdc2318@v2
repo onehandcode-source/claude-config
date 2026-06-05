@@ -1,0 +1,1269 @@
+{
+  "id": "5aa613f2-6a39-4af7-9fb4-348452cc2cb9",
+  "name": "안전신고 유형별 테스트",
+  "description": "안전신고 유형별 테스트",
+  "testCases": [
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "안전분야 - 도로, 시설물 파손 및 고장",
+      "description": "신고유형 01 선택 후 전체 신고 흐름 검증",
+      "baseUrl": "http://localhost:8080/#main",
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#/main/login/login",
+          "description": "로그인 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "아이디" },
+          "text": "silver1875",
+          "description": "아이디 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "비밀번호" },
+          "text": "younggun22@@",
+          "description": "비밀번호 입력"
+        },
+        {
+          "type": "click",
+          "locator": { "selector": "button[onclick*='LoginUtil.login(1)']" },
+          "description": "로그인 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "로그인 처리 대기"
+        },
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#safereport/safereport",
+          "description": "신고 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고 페이지 초기 상태"
+        },
+        {
+          "type": "select",
+          "locator": { "role": "combobox", "name": "안전 신고 선택" },
+          "text": "도로, 시설물 파손 및 고장",
+          "description": "신고유형 선택: 도로, 시설물 파손 및 고장"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고유형 변경 반영 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고유형 선택 후 폼 상태"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "button", "name": "위치찾기" },
+          "description": "위치찾기 버튼 클릭 (카카오 우편번호 새 탭 열림)"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1500,
+          "description": "카카오 우편번호 서비스 탭 로드 대기"
+        },
+        {
+          "type": "switchTab",
+          "index": 1,
+          "description": "카카오 우편번호 서비스 탭으로 전환"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 3000,
+          "description": "iframe 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": {
+            "role": "textbox",
+            "frame": "iframe"
+          },
+          "text": "한림프라자",
+          "description": "주소 검색어 입력"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "role": "button",
+            "name": "검색",
+            "frame": "iframe"
+          },
+          "description": "주소 검색 실행"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "검색 결과 로드 대기"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "selector": "li:has-text('세종특별자치시 한누리대로 219')",
+            "frame": "iframe"
+          },
+          "description": "검색결과 3번째 항목 선택 (세종특별자치시 한누리대로 219)"
+        },
+        {
+          "type": "switchTab",
+          "index": 0,
+          "description": "신고 페이지로 복귀"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고 페이지 복귀 확인"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "제목" },
+          "text": "테스트 신고 - 도로, 시설물 파손 및 고장",
+          "description": "제목 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "신고내용" },
+          "text": "자동화 테스트를 위한 신고 내용입니다. (신고유형: 도로, 시설물 파손 및 고장)",
+          "description": "신고 내용 입력"
+        },
+        {
+          "type": "evaluate",
+          "script": "window.confirm = () => true",
+          "description": "confirm 팝업 자동 승인 설정"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "link", "name": "신청" },
+          "description": "신고 신청 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "신고 처리 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고 완료 후 화면"
+        }
+      ]
+    },
+    {
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "안전분야 - 사업장 안전(건설·공사현장 등)",
+      "description": "신고유형 02 선택 후 전체 신고 흐름 검증",
+      "baseUrl": "http://localhost:8080/#main",
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#/main/login/login",
+          "description": "로그인 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "아이디" },
+          "text": "silver1875",
+          "description": "아이디 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "비밀번호" },
+          "text": "younggun22@@",
+          "description": "비밀번호 입력"
+        },
+        {
+          "type": "click",
+          "locator": { "selector": "button[onclick*='LoginUtil.login(1)']" },
+          "description": "로그인 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "로그인 처리 대기"
+        },
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#safereport/safereport",
+          "description": "신고 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "select",
+          "locator": { "role": "combobox", "name": "안전 신고 선택" },
+          "text": "사업장 안전(건설·공사현장 등)",
+          "description": "신고유형 선택: 사업장 안전(건설·공사현장 등)"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고유형 변경 반영 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고유형 선택 후 폼 상태"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "button", "name": "위치찾기" },
+          "description": "위치찾기 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1500,
+          "description": "카카오 우편번호 서비스 탭 로드 대기"
+        },
+        {
+          "type": "switchTab",
+          "index": 1,
+          "description": "카카오 우편번호 서비스 탭으로 전환"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 3000,
+          "description": "iframe 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": {
+            "role": "textbox",
+            "frame": "iframe"
+          },
+          "text": "한림프라자",
+          "description": "주소 검색어 입력"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "role": "button",
+            "name": "검색",
+            "frame": "iframe"
+          },
+          "description": "주소 검색 실행"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "검색 결과 로드 대기"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "selector": "li:has-text('세종특별자치시 한누리대로 219')",
+            "frame": "iframe"
+          },
+          "description": "검색결과 3번째 항목 선택"
+        },
+        {
+          "type": "switchTab",
+          "index": 0,
+          "description": "신고 페이지로 복귀"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고 페이지 복귀 확인"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "제목" },
+          "text": "테스트 신고 - 사업장 안전(건설·공사현장 등)",
+          "description": "제목 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "신고내용" },
+          "text": "자동화 테스트를 위한 신고 내용입니다. (신고유형: 사업장 안전)",
+          "description": "신고 내용 입력"
+        },
+        {
+          "type": "evaluate",
+          "script": "window.confirm = () => true",
+          "description": "confirm 팝업 자동 승인 설정"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "link", "name": "신청" },
+          "description": "신고 신청 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "신고 처리 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고 완료 후 화면"
+        }
+      ]
+    },
+    {
+      "id": "a1b2c3d4-0009-4000-8000-000000000009",
+      "name": "안전분야 - 대기오염",
+      "description": "신고유형 09 선택 후 전체 신고 흐름 검증",
+      "baseUrl": "http://localhost:8080/#main",
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#/main/login/login",
+          "description": "로그인 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "아이디" },
+          "text": "silver1875",
+          "description": "아이디 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "비밀번호" },
+          "text": "younggun22@@",
+          "description": "비밀번호 입력"
+        },
+        {
+          "type": "click",
+          "locator": { "selector": "button[onclick*='LoginUtil.login(1)']" },
+          "description": "로그인 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "로그인 처리 대기"
+        },
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#safereport/safereport",
+          "description": "신고 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "select",
+          "locator": { "role": "combobox", "name": "안전 신고 선택" },
+          "text": "대기오염",
+          "description": "신고유형 선택: 대기오염"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고유형 변경 반영 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고유형 선택 후 폼 상태"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "button", "name": "위치찾기" },
+          "description": "위치찾기 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1500,
+          "description": "카카오 우편번호 서비스 탭 로드 대기"
+        },
+        {
+          "type": "switchTab",
+          "index": 1,
+          "description": "카카오 우편번호 서비스 탭으로 전환"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 3000,
+          "description": "iframe 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": {
+            "role": "textbox",
+            "frame": "iframe"
+          },
+          "text": "한림프라자",
+          "description": "주소 검색어 입력"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "role": "button",
+            "name": "검색",
+            "frame": "iframe"
+          },
+          "description": "주소 검색 실행"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "검색 결과 로드 대기"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "selector": "li:has-text('세종특별자치시 한누리대로 219')",
+            "frame": "iframe"
+          },
+          "description": "검색결과 3번째 항목 선택"
+        },
+        {
+          "type": "switchTab",
+          "index": 0,
+          "description": "신고 페이지로 복귀"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고 페이지 복귀 확인"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "제목" },
+          "text": "테스트 신고 - 대기오염",
+          "description": "제목 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "신고내용" },
+          "text": "자동화 테스트를 위한 신고 내용입니다. (신고유형: 대기오염)",
+          "description": "신고 내용 입력"
+        },
+        {
+          "type": "evaluate",
+          "script": "window.confirm = () => true",
+          "description": "confirm 팝업 자동 승인 설정"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "link", "name": "신청" },
+          "description": "신고 신청 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "신고 처리 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고 완료 후 화면"
+        }
+      ]
+    },
+    {
+      "id": "a1b2c3d4-0010-4000-8000-000000000010",
+      "name": "안전분야 - 수질오염",
+      "description": "신고유형 10 선택 후 전체 신고 흐름 검증",
+      "baseUrl": "http://localhost:8080/#main",
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#/main/login/login",
+          "description": "로그인 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "아이디" },
+          "text": "silver1875",
+          "description": "아이디 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "비밀번호" },
+          "text": "younggun22@@",
+          "description": "비밀번호 입력"
+        },
+        {
+          "type": "click",
+          "locator": { "selector": "button[onclick*='LoginUtil.login(1)']" },
+          "description": "로그인 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "로그인 처리 대기"
+        },
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#safereport/safereport",
+          "description": "신고 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "select",
+          "locator": { "role": "combobox", "name": "안전 신고 선택" },
+          "text": "수질오염",
+          "description": "신고유형 선택: 수질오염"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고유형 변경 반영 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고유형 선택 후 폼 상태"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "button", "name": "위치찾기" },
+          "description": "위치찾기 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1500,
+          "description": "카카오 우편번호 서비스 탭 로드 대기"
+        },
+        {
+          "type": "switchTab",
+          "index": 1,
+          "description": "카카오 우편번호 서비스 탭으로 전환"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 3000,
+          "description": "iframe 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": {
+            "role": "textbox",
+            "frame": "iframe"
+          },
+          "text": "한림프라자",
+          "description": "주소 검색어 입력"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "role": "button",
+            "name": "검색",
+            "frame": "iframe"
+          },
+          "description": "주소 검색 실행"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "검색 결과 로드 대기"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "selector": "li:has-text('세종특별자치시 한누리대로 219')",
+            "frame": "iframe"
+          },
+          "description": "검색결과 3번째 항목 선택"
+        },
+        {
+          "type": "switchTab",
+          "index": 0,
+          "description": "신고 페이지로 복귀"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고 페이지 복귀 확인"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "제목" },
+          "text": "테스트 신고 - 수질오염",
+          "description": "제목 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "신고내용" },
+          "text": "자동화 테스트를 위한 신고 내용입니다. (신고유형: 수질오염)",
+          "description": "신고 내용 입력"
+        },
+        {
+          "type": "evaluate",
+          "script": "window.confirm = () => true",
+          "description": "confirm 팝업 자동 승인 설정"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "link", "name": "신청" },
+          "description": "신고 신청 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "신고 처리 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고 완료 후 화면"
+        }
+      ]
+    },
+    {
+      "id": "a1b2c3d4-0011-4000-8000-000000000011",
+      "name": "안전분야 - 소방안전",
+      "description": "신고유형 11 선택 후 전체 신고 흐름 검증",
+      "baseUrl": "http://localhost:8080/#main",
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#/main/login/login",
+          "description": "로그인 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "아이디" },
+          "text": "silver1875",
+          "description": "아이디 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "비밀번호" },
+          "text": "younggun22@@",
+          "description": "비밀번호 입력"
+        },
+        {
+          "type": "click",
+          "locator": { "selector": "button[onclick*='LoginUtil.login(1)']" },
+          "description": "로그인 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "로그인 처리 대기"
+        },
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#safereport/safereport",
+          "description": "신고 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "select",
+          "locator": { "role": "combobox", "name": "안전 신고 선택" },
+          "text": "소방안전",
+          "description": "신고유형 선택: 소방안전"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고유형 변경 반영 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고유형 선택 후 폼 상태"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "button", "name": "위치찾기" },
+          "description": "위치찾기 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1500,
+          "description": "카카오 우편번호 서비스 탭 로드 대기"
+        },
+        {
+          "type": "switchTab",
+          "index": 1,
+          "description": "카카오 우편번호 서비스 탭으로 전환"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 3000,
+          "description": "iframe 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": {
+            "role": "textbox",
+            "frame": "iframe"
+          },
+          "text": "한림프라자",
+          "description": "주소 검색어 입력"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "role": "button",
+            "name": "검색",
+            "frame": "iframe"
+          },
+          "description": "주소 검색 실행"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "검색 결과 로드 대기"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "selector": "li:has-text('세종특별자치시 한누리대로 219')",
+            "frame": "iframe"
+          },
+          "description": "검색결과 3번째 항목 선택"
+        },
+        {
+          "type": "switchTab",
+          "index": 0,
+          "description": "신고 페이지로 복귀"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고 페이지 복귀 확인"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "제목" },
+          "text": "테스트 신고 - 소방안전",
+          "description": "제목 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "신고내용" },
+          "text": "자동화 테스트를 위한 신고 내용입니다. (신고유형: 소방안전)",
+          "description": "신고 내용 입력"
+        },
+        {
+          "type": "evaluate",
+          "script": "window.confirm = () => true",
+          "description": "confirm 팝업 자동 승인 설정"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "link", "name": "신청" },
+          "description": "신고 신청 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "신고 처리 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고 완료 후 화면"
+        }
+      ]
+    },
+    {
+      "id": "a1b2c3d4-0013-4000-8000-000000000013",
+      "name": "안전분야 - 계절별 집중신고",
+      "description": "신고유형 13 선택 후 전체 신고 흐름 검증",
+      "baseUrl": "http://localhost:8080/#main",
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#/main/login/login",
+          "description": "로그인 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "아이디" },
+          "text": "silver1875",
+          "description": "아이디 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "비밀번호" },
+          "text": "younggun22@@",
+          "description": "비밀번호 입력"
+        },
+        {
+          "type": "click",
+          "locator": { "selector": "button[onclick*='LoginUtil.login(1)']" },
+          "description": "로그인 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "로그인 처리 대기"
+        },
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#safereport/safereport",
+          "description": "신고 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "select",
+          "locator": { "role": "combobox", "name": "안전 신고 선택" },
+          "text": "계절별 집중신고",
+          "description": "신고유형 선택: 계절별 집중신고"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고유형 변경 반영 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고유형 선택 후 폼 상태"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "button", "name": "위치찾기" },
+          "description": "위치찾기 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1500,
+          "description": "카카오 우편번호 서비스 탭 로드 대기"
+        },
+        {
+          "type": "switchTab",
+          "index": 1,
+          "description": "카카오 우편번호 서비스 탭으로 전환"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 3000,
+          "description": "iframe 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": {
+            "role": "textbox",
+            "frame": "iframe"
+          },
+          "text": "한림프라자",
+          "description": "주소 검색어 입력"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "role": "button",
+            "name": "검색",
+            "frame": "iframe"
+          },
+          "description": "주소 검색 실행"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "검색 결과 로드 대기"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "selector": "li:has-text('세종특별자치시 한누리대로 219')",
+            "frame": "iframe"
+          },
+          "description": "검색결과 3번째 항목 선택"
+        },
+        {
+          "type": "switchTab",
+          "index": 0,
+          "description": "신고 페이지로 복귀"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고 페이지 복귀 확인"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "제목" },
+          "text": "테스트 신고 - 계절별 집중신고",
+          "description": "제목 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "신고내용" },
+          "text": "자동화 테스트를 위한 신고 내용입니다. (신고유형: 계절별 집중신고)",
+          "description": "신고 내용 입력"
+        },
+        {
+          "type": "evaluate",
+          "script": "window.confirm = () => true",
+          "description": "confirm 팝업 자동 승인 설정"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "link", "name": "신청" },
+          "description": "신고 신청 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "신고 처리 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고 완료 후 화면"
+        }
+      ]
+    },
+    {
+      "id": "a1b2c3d4-0014-4000-8000-000000000014",
+      "name": "안전분야 - 하천·계곡 내 불법시설",
+      "description": "신고유형 14 선택 후 전체 신고 흐름 검증",
+      "baseUrl": "http://localhost:8080/#main",
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#/main/login/login",
+          "description": "로그인 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "아이디" },
+          "text": "silver1875",
+          "description": "아이디 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "비밀번호" },
+          "text": "younggun22@@",
+          "description": "비밀번호 입력"
+        },
+        {
+          "type": "click",
+          "locator": { "selector": "button[onclick*='LoginUtil.login(1)']" },
+          "description": "로그인 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "로그인 처리 대기"
+        },
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#safereport/safereport",
+          "description": "신고 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "select",
+          "locator": { "role": "combobox", "name": "안전 신고 선택" },
+          "text": "하천·계곡 내 불법시설",
+          "description": "신고유형 선택: 하천·계곡 내 불법시설"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고유형 변경 반영 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고유형 선택 후 폼 상태"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "button", "name": "위치찾기" },
+          "description": "위치찾기 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1500,
+          "description": "카카오 우편번호 서비스 탭 로드 대기"
+        },
+        {
+          "type": "switchTab",
+          "index": 1,
+          "description": "카카오 우편번호 서비스 탭으로 전환"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 3000,
+          "description": "iframe 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": {
+            "role": "textbox",
+            "frame": "iframe"
+          },
+          "text": "한림프라자",
+          "description": "주소 검색어 입력"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "role": "button",
+            "name": "검색",
+            "frame": "iframe"
+          },
+          "description": "주소 검색 실행"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "검색 결과 로드 대기"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "selector": "li:has-text('세종특별자치시 한누리대로 219')",
+            "frame": "iframe"
+          },
+          "description": "검색결과 3번째 항목 선택"
+        },
+        {
+          "type": "switchTab",
+          "index": 0,
+          "description": "신고 페이지로 복귀"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고 페이지 복귀 확인"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "제목" },
+          "text": "테스트 신고 - 하천·계곡 내 불법시설",
+          "description": "제목 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "신고내용" },
+          "text": "자동화 테스트를 위한 신고 내용입니다. (신고유형: 하천·계곡 내 불법시설)",
+          "description": "신고 내용 입력"
+        },
+        {
+          "type": "evaluate",
+          "script": "window.confirm = () => true",
+          "description": "confirm 팝업 자동 승인 설정"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "link", "name": "신청" },
+          "description": "신고 신청 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "신고 처리 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고 완료 후 화면"
+        }
+      ]
+    },
+    {
+      "id": "a1b2c3d4-0007-4000-8000-000000000007",
+      "name": "안전분야 - 기타 안전·환경 위험요소",
+      "description": "신고유형 07 선택 후 전체 신고 흐름 검증",
+      "baseUrl": "http://localhost:8080/#main",
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#/main/login/login",
+          "description": "로그인 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "아이디" },
+          "text": "silver1875",
+          "description": "아이디 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "비밀번호" },
+          "text": "younggun22@@",
+          "description": "비밀번호 입력"
+        },
+        {
+          "type": "click",
+          "locator": { "selector": "button[onclick*='LoginUtil.login(1)']" },
+          "description": "로그인 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "로그인 처리 대기"
+        },
+        {
+          "type": "navigate",
+          "url": "http://localhost:8080/#safereport/safereport",
+          "description": "신고 페이지 이동"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "페이지 로드 대기"
+        },
+        {
+          "type": "select",
+          "locator": { "role": "combobox", "name": "안전 신고 선택" },
+          "text": "기타 안전·환경 위험요소",
+          "description": "신고유형 선택: 기타 안전·환경 위험요소"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고유형 변경 반영 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고유형 선택 후 폼 상태"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "button", "name": "위치찾기" },
+          "description": "위치찾기 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1500,
+          "description": "카카오 우편번호 서비스 탭 로드 대기"
+        },
+        {
+          "type": "switchTab",
+          "index": 1,
+          "description": "카카오 우편번호 서비스 탭으로 전환"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 3000,
+          "description": "iframe 로드 대기"
+        },
+        {
+          "type": "fill",
+          "locator": {
+            "role": "textbox",
+            "frame": "iframe"
+          },
+          "text": "한림프라자",
+          "description": "주소 검색어 입력"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "role": "button",
+            "name": "검색",
+            "frame": "iframe"
+          },
+          "description": "주소 검색 실행"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "검색 결과 로드 대기"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "selector": "li:has-text('세종특별자치시 한누리대로 219')",
+            "frame": "iframe"
+          },
+          "description": "검색결과 3번째 항목 선택"
+        },
+        {
+          "type": "switchTab",
+          "index": 0,
+          "description": "신고 페이지로 복귀"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 500,
+          "description": "신고 페이지 복귀 확인"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "제목" },
+          "text": "테스트 신고 - 기타 안전·환경 위험요소",
+          "description": "제목 입력"
+        },
+        {
+          "type": "fill",
+          "locator": { "role": "textbox", "name": "신고내용" },
+          "text": "자동화 테스트를 위한 신고 내용입니다. (신고유형: 기타 안전·환경 위험요소)",
+          "description": "신고 내용 입력"
+        },
+        {
+          "type": "evaluate",
+          "script": "window.confirm = () => true",
+          "description": "confirm 팝업 자동 승인 설정"
+        },
+        {
+          "type": "click",
+          "locator": { "role": "link", "name": "신청" },
+          "description": "신고 신청 버튼 클릭"
+        },
+        {
+          "type": "wait",
+          "milliseconds": 1000,
+          "description": "신고 처리 대기"
+        },
+        {
+          "type": "screenshot",
+          "description": "신고 완료 후 화면"
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-05-11T08:55:54.921Z",
+  "updatedAt": "2026-05-13T06:00:00.000Z"
+}

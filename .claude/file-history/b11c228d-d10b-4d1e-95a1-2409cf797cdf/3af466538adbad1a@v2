@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 분석 파이프라인 — 흐름도</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 28px 32px;
+      min-width: 1100px;
+    }
+
+    .page-header { text-align: center; margin-bottom: 24px; }
+    .page-header h1 { font-size: 22px; font-weight: 700; color: #f0f6fc; margin-bottom: 5px; }
+    .page-header p  { font-size: 12px; color: #8b949e; }
+
+    /* ── 탭 ── */
+    .tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 8px 22px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1.5px solid #30363d; background: #161b22;
+      color: #8b949e; transition: all 0.18s;
+    }
+    .tab-btn:hover { border-color: #3b82f6; color: #58a6ff; }
+    .tab-btn.active { background: #1f2937; border-color: #3b82f6; color: #60a5fa; }
+
+    /* ── 흐름 패널 ── */
+    .flow-panel { display: none; max-width: 1040px; margin: 0 auto; }
+    .flow-panel.active { display: block; }
+
+    /* ── 흐름 헤더 ── */
+    .flow-header {
+      background: #161b22; border: 1px solid #30363d;
+      border-radius: 10px; padding: 14px 18px; margin-bottom: 18px;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .flow-num {
+      width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+      background: #1f2937; border: 1.5px solid #3b82f6;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700; color: #60a5fa;
+    }
+    .flow-title { font-size: 14px; font-weight: 700; color: #f0f6fc; margin-bottom: 4px; }
+    .flow-desc  { font-size: 11px; color: #8b949e; line-height: 1.6; }
+
+    /* ── 컴포넌트 개요 바 ── */
+    .comp-bar {
+      display: flex; align-items: center; flex-wrap: nowrap;
+      background: #0d1117; border: 1px solid #21262d;
+      border-radius: 10px; padding: 12px 16px; margin-bottom: 20px;
+      overflow-x: auto; gap: 0;
+    }
+    .comp-node { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+    .comp-badge {
+      padding: 5px 11px; border-radius: 6px;
+      font-size: 10px; font-weight: 700; white-space: nowrap; border: 1px solid;
+    }
+    .cb-app     { background: #2d1810; border-color: #92400e; color: #f97316; }
+    .cb-alloy   { background: #0d1f12; border-color: #166534; color: #4ade80; }
+    .cb-loki    { background: #0d1f12; border-color: #166534; color: #34d399; }
+    .cb-prom    { background: #2d1810; border-color: #92400e; color: #f97316; }
+    .cb-grafana { background: #1a1000; border-color: #b45309; color: #f59e0b; }
+    .cb-llm     { background: #1a0a2e; border-color: #5b21b6; color: #c084fc; }
+    .cb-ollama  { background: #0f0a2a; border-color: #7c3aed; color: #a78bfa; }
+    .cb-user    { background: #0c1929; border-color: #1d4ed8; color: #60a5fa; }
+    .cb-result  { background: #0d1f12; border-color: #166534; color: #4ade80; }
+    .comp-label { font-size: 9px; color: #6e7681; }
+
+    .bar-arrow {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 0 5px; flex-shrink: 0; padding-bottom: 14px;
+    }
+    .bar-line {
+      width: 36px; height: 2px; background: #21262d; position: relative; margin-top: 10px;
+    }
+    .bar-line::after {
+      content: '▶'; position: absolute; right: -9px; top: -8px;
+      font-size: 10px; color: #444c56;
+    }
+    .bar-proto { font-size: 9px; color: #444c56; margin-top: 5px; font-family: monospace; }
+
+    /* ── 단계 목록 ── */
+    .steps { display: flex; flex-direction: column; }
+    .step  { display: flex; gap: 0; }
+
+    .step-connector {
+      display: flex; flex-direction: column; align-items: center; width: 38px; flex-shrink: 0;
+    }
+    .step-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0; border: 2px solid; z-index: 1;
+    }
+    .dot-req  { background: #081e22; border-color: #22d3ee; color: #22d3ee; }
+    .dot-resp { background: #1a1000; border-color: #f59e0b; color: #f59e0b; }
+    .dot-proc { background: #1a0a2e; border-color: #a855f7; color: #a855f7; }
+    .dot-act  { background: #0d1f12; border-color: #3fb950; color: #3fb950; }
+    .step-line { width: 2px; flex: 1; background: #21262d; min-height: 16px; }
+
+    .step-body { flex: 1; padding: 0 0 16px 14px; }
+    .step-card {
+      background: #161b22; border: 1px solid #21262d;
+      border-radius: 8px; padding: 11px 14px;
+      transition: border-color 0.15s;
+    }
+    .step-card:hover { border-color: #30363d; }
+
+    .step-head {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 8px; flex-wrap: wrap;
+    }
+    .sc {
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; white-space: nowrap;
+    }
+    .sc-app     { background: #2d1810; color: #f97316; }
+    .sc-alloy   { background: #0d2218; color: #4ade80; }
+    .sc-loki    { background: #0d2218; color: #34d399; }
+    .sc-prom    { background: #2d1810; color: #f97316; }
+    .sc-grafana { background: #1a1000; color: #f59e0b; }
+    .sc-llm     { background: #1a0a2e; color: #c084fc; }
+    .sc-ollama  { background: #0f0a2a; color: #a78bfa; }
+    .sc-user    { background: #0c1929; color: #60a5fa; }
+
+    .step-action { font-size: 12px; font-weight: 600; color: #e6edf3; flex: 1; }
+    .dir { font-size: 10px; font-weight: 700; white-space: nowrap; margin-left: auto; }
+    .dir-req  { color: #22d3ee; }
+    .dir-resp { color: #f59e0b; }
+    .dir-proc { color: #a855f7; }
+    .dir-done { color: #3fb950; }
+
+    .payload {
+      font-size: 10px; font-family: 'Cascadia Code', 'Consolas', 'D2Coding', monospace;
+      background: #0d1117; border: 1px solid #21262d;
+      border-radius: 5px; padding: 9px 11px; line-height: 1.75;
+      color: #8b949e; white-space: pre-wrap; word-break: break-all;
+    }
+    .pk { color: #79c0ff; }
+    .pv { color: #a5d6ff; }
+    .ps { color: #a8d8b9; }
+    .pe { color: #f87171; }
+    .po { color: #4ade80; }
+    .pw { color: #f59e0b; }
+    .ph { color: #e3b341; }
+    .pl { color: #c4b5fd; }
+    .pc { color: #22d3ee; }
+
+    /* ── 범례 ── */
+    .legend {
+      display: flex; gap: 20px; justify-content: center;
+      margin-top: 28px; flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8b949e; }
+    .leg-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+
+    footer { text-align: center; font-size: 11px; color: #444c56; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>AI 분석 파이프라인 — Request / Response 흐름</h1>
+  <p>Grafana LLM App Plugin · Ollama (qwen2.5-coder) · Prometheus · Loki · Alloy</p>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab(0)">① Exception 감지 &amp; AI 분석</button>
+  <button class="tab-btn"        onclick="showTab(1)">② 메트릭 이상 &amp; 원인 분석</button>
+  <button class="tab-btn"        onclick="showTab(2)">③ 자연어 → PromQL 변환</button>
+</div>
+
+<!-- ══ Flow 1: Exception 감지 ══ -->
+<div class="flow-panel active" id="flow-0">
+  <div class="flow-header">
+    <div class="flow-num">①</div>
+    <div>
+      <div class="flow-title">Exception 감지 → LLM 분석 → 알림</div>
+      <div class="flow-desc">앱 서버에서 예외 발생 시 Alloy가 OTLP로 로그를 수집해 Loki에 저장합니다.<br>
+      Grafana Alert Rule이 트리거되면 LLM Plugin이 Ollama에 분석을 요청하고, 결과를 대시보드에 표시하며 메신저 알림을 발송합니다.</div>
+    </div>
+  </div>
+
+  <div class="comp-bar">
+    <div class="comp-node"><div class="comp-badge cb-app">APP SERVER</div><div class="comp-label">ewas1</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">OTLP Log</div></div>
+    <div class="comp-node"><div class="comp-badge cb-alloy">ALLOY</div><div class="comp-label">엣지 GW</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">:4317</div></div>
+    <div class="comp-node"><div class="comp-badge cb-loki">LOKI</div><div class="comp-label">로그 저장</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">LogQL</div></div>
+    <div class="comp-node"><div class="comp-badge cb-grafana">GRAFANA</div><div class="comp-label">Alert Engine</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">HTTP API</div></div>
+    <div class="comp-node"><div class="comp-badge cb-llm">LLM PLUGIN</div><div class="comp-label">Grafana Plugin</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">:11434/v1</div></div>
+    <div class="comp-node"><div class="comp-badge cb-ollama">OLLAMA</div><div class="comp-label">qwen2.5-coder</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">응답</div></div>
+    <div class="comp-node"><div class="comp-badge cb-result">DASHBOARD</div><div class="comp-label">결과 + 알림</div></div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-act">1</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-app">APP SERVER</span>
+          <span class="step-action">NullPointerException 발생 — 에러 로그 출력</span>
+          <span class="dir dir-proc">발생</span>
+        </div>
+        <div class="payload"><span class="pe">ERROR</span> 2026-05-29 14:23:11.543 [http-nio-8080-exec-5] c.u.service.UserService -
+<span class="pk">NullPointerException</span>: Cannot invoke method <span class="ph">getId()</span> on null object reference
+  at com.uracle.service.UserService.<span class="ph">processRequest</span>(UserService.java:<span class="pw">142</span>)
+  at com.uracle.controller.UserController.handle(UserController.java:87)</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-req">2</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-alloy">ALLOY</span>
+          <span class="step-action">OTLP 로그 수집 → 엣지 집약 → mon:4317 전달</span>
+          <span class="dir dir-req">→ Request</span>
+        </div>
+        <div class="payload"><span class="pk">Protocol</span> : OTLP/gRPC   <span class="pk">Endpoint</span> : mon-server:<span class="ph">4317</span>
+
+<span class="pk">LogRecord</span> {
+  <span class="pk">timeUnixNano</span> : <span class="ps">"1748479391543000000"</span>
+  <span class="pk">severityText</span> : <span class="pe">"ERROR"</span>
+  <span class="pk">body</span>         : <span class="ps">"NullPointerException: Cannot invoke method getId()..."</span>
+  <span class="pk">attributes</span>   : { <span class="pk">service.name</span>: <span class="ps">"ewas-api"</span>, <span class="pk">host.name</span>: <span class="ps">"ewas1"</span> }
+}</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-resp">3</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-loki">LOKI</span>
+          <span class="step-action">로그 인덱싱 및 저장 완료</span>
+          <span class="dir dir-resp">← 저장</span>
+        </div>
+        <div class="payload"><span class="pk">stream</span> : { <span class="pk">job</span>: <span class="ps">"ewas"</span>, <span class="pk">level</span>: <span class="pe">"error"</span>, <span class="pk">host</span>: <span class="ps">"ewas1"</span>, <span class="pk">env</span>: <span class="ps">"prod"</span> }
+<span class="pk">values</span> : [[ <span class="ps">"1748479391543000000"</span>, <span class="ps">"NullPointerException: Cannot invoke..."</span> ]]
+<span class="po">→ 저장 완료</span>  (labels: 4개, retention: 30d)</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-proc">4</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-grafana">GRAFANA</span>
+          <span class="step-action">Alert Rule 평가 → FIRING 트리거</span>
+          <span class="dir dir-proc">⚡ FIRING</span>
+        </div>
+        <div class="payload"><span class="pk">Rule</span>  : <span class="ph">"Error Rate High — ewas"</span>
+<span class="pk">Query</span> : count_over_time({job=<span class="ps">"ewas"</span>, level=<span class="ps">"error"</span>}[5m]) &gt; <span class="pw">3</span>
+<span class="pk">Result</span>: <span class="pe">7</span> errors in last 5 min  →  <span class="pe">FIRING 🔴</span>
+<span class="pk">Labels</span>: { alertname: <span class="ps">"ErrorRateHigh"</span>, severity: <span class="pe">"critical"</span>, job: <span class="ps">"ewas"</span> }</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-req">5</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-llm">LLM PLUGIN</span>
+          <span class="step-action">Ollama API 호출 — 에러 분석 요청</span>
+          <span class="dir dir-req">→ POST /v1/chat/completions</span>
+        </div>
+        <div class="payload"><span class="pc">POST</span> http://ollama-server:<span class="ph">11434</span>/v1/chat/completions
+{
+  <span class="pk">"model"</span>   : <span class="ps">"qwen2.5-coder:14b"</span>,
+  <span class="pk">"messages"</span>: [{
+    <span class="pk">"role"</span>   : <span class="ps">"user"</span>,
+    <span class="pk">"content"</span>: <span class="ps">"다음 에러 로그를 분석하고 원인과 해결방법을 알려주세요:
+ERROR: NullPointerException at UserService.java:142
+최근 5분간 7회 발생. 서비스: ewas-api"</span>
+  }],
+  <span class="pk">"stream"</span>  : <span class="pw">false</span>
+}</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-resp">6</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-ollama">OLLAMA</span>
+          <span class="step-action">qwen2.5-coder:14b 분석 완료 — 응답 반환</span>
+          <span class="dir dir-resp">← Response</span>
+        </div>
+        <div class="payload">{
+  <span class="pk">"model"</span>          : <span class="ps">"qwen2.5-coder:14b"</span>,
+  <span class="pk">"message"</span>: {
+    <span class="pk">"content"</span>: <span class="pl">"## 에러 원인
+UserService.java:142에서 null 객체의 getId() 메서드를 직접 호출.
+user 객체가 null인 상태로 processRequest()에 진입한 것으로 추정됩니다.
+
+## 즉시 조치
+1. null 체크 추가: if (user == null) throw new IllegalArgumentException()
+2. Optional 사용: Optional.ofNullable(user).map(User::getId)
+
+## 근본 원인 파악
+DB 조회 실패 또는 세션 만료 가능성.
+Loki에서 UserRepository 로그 교차 확인 권장"</span>
+  },
+  <span class="pk">"total_duration"</span> : <span class="po">2843ms</span>
+}</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-act">7</div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-grafana">GRAFANA</span>
+          <span class="step-action">AI 분석 결과 대시보드 표시 + Contact Point 알림 발송</span>
+          <span class="dir dir-done">✓ 완료</span>
+        </div>
+        <div class="payload"><span class="po">✓</span> Alert Panel: AI 분석 결과 렌더링 완료
+<span class="po">✓</span> Contact Point → 메신저 알림 발송
+
+<span class="pk">알림 내용</span>:
+  <span class="pw">[🔴 CRITICAL] ewas — Error Rate High</span>
+  <span class="ps">원인: NullPointerException at UserService.java:142 (7회/5분)</span>
+  <span class="pl">AI 분석: null 체크 누락. Optional.ofNullable() 사용 권장.
+  DB 조회 실패 또는 세션 만료 가능성 — UserRepository 로그 확인 권장</span></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Flow 2: 메트릭 이상 ══ -->
+<div class="flow-panel" id="flow-1">
+  <div class="flow-header">
+    <div class="flow-num">②</div>
+    <div>
+      <div class="flow-title">메트릭 임계값 초과 → LLM 원인 분석</div>
+      <div class="flow-desc">JVM Heap 사용률이 임계값을 초과하면 Grafana Alert이 발화됩니다.<br>
+      LLM Plugin이 메트릭과 연관 로그를 함께 Ollama에 전달해 종합 원인 분석을 수행하고 대시보드에 결과를 표시합니다.</div>
+    </div>
+  </div>
+
+  <div class="comp-bar">
+    <div class="comp-node"><div class="comp-badge cb-app">APP SERVER</div><div class="comp-label">ewas1</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">OTLP Metric</div></div>
+    <div class="comp-node"><div class="comp-badge cb-alloy">ALLOY</div><div class="comp-label">엣지 GW</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">:4317</div></div>
+    <div class="comp-node"><div class="comp-badge cb-prom">PROMETHEUS</div><div class="comp-label">TSDB</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">PromQL</div></div>
+    <div class="comp-node"><div class="comp-badge cb-grafana">GRAFANA</div><div class="comp-label">Alert Engine</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">HTTP API</div></div>
+    <div class="comp-node"><div class="comp-badge cb-llm">LLM PLUGIN</div><div class="comp-label">Grafana Plugin</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">:11434/v1</div></div>
+    <div class="comp-node"><div class="comp-badge cb-ollama">OLLAMA</div><div class="comp-label">qwen2.5-coder</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">응답</div></div>
+    <div class="comp-node"><div class="comp-badge cb-result">DASHBOARD</div><div class="comp-label">결과 + 알림</div></div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-act">1</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-app">APP SERVER</span>
+          <span class="step-action">JVM Heap 사용률 급증 — 메트릭 발생</span>
+          <span class="dir dir-proc">발생</span>
+        </div>
+        <div class="payload">jvm_memory_used_bytes{area=<span class="ps">"heap"</span>, id=<span class="ps">"PS Old Gen"</span>} = <span class="pe">3,880,000,000</span>  (97%)
+jvm_memory_max_bytes{area=<span class="ps">"heap"</span>}                  = <span class="pv">4,000,000,000</span>
+process_cpu_usage{job=<span class="ps">"ewas"</span>}                         = <span class="pw">0.87</span>  (87%)
+<span class="pe">GC overhead limit exceeded</span> — 최근 10분간 3회 발생</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-req">2</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-alloy">ALLOY</span>
+          <span class="step-action">OTLP 메트릭 수집 → mon:4317 전달</span>
+          <span class="dir dir-req">→ Request</span>
+        </div>
+        <div class="payload"><span class="pk">Protocol</span> : OTLP/gRPC   <span class="pk">Endpoint</span> : mon-server:<span class="ph">4317</span>
+
+<span class="pk">ResourceMetrics</span> {
+  <span class="pk">resource</span> : { <span class="pk">service.name</span>: <span class="ps">"ewas-api"</span>, <span class="pk">host.name</span>: <span class="ps">"ewas1"</span> }
+  <span class="pk">metrics</span>  : [
+    { <span class="pk">name</span>: <span class="ps">"jvm_memory_used_bytes"</span>, <span class="pk">value</span>: <span class="pe">3880000000</span>,
+      <span class="pk">attributes</span>: { area: <span class="ps">"heap"</span> }, <span class="pk">timestamp</span>: <span class="pv">1748479391</span> }
+  ]
+}</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-resp">3</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-prom">PROMETHEUS</span>
+          <span class="step-action">메트릭 TSDB 저장</span>
+          <span class="dir dir-resp">← 저장</span>
+        </div>
+        <div class="payload">jvm_memory_used_bytes{job=<span class="ps">"ewas"</span>,instance=<span class="ps">"10.176.62.211:8081"</span>,area=<span class="ps">"heap"</span>} <span class="pe">3880000000</span> <span class="pv">1748479391</span>
+<span class="po">→ TSDB 저장 완료</span>  (retention: 15d, scrape_interval: 15s)</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-proc">4</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-grafana">GRAFANA</span>
+          <span class="step-action">Alert Rule 평가 → FIRING 트리거</span>
+          <span class="dir dir-proc">⚡ FIRING</span>
+        </div>
+        <div class="payload"><span class="pk">Rule</span>  : <span class="ph">"Heap Memory Critical — ewas"</span>
+<span class="pk">Query</span> : jvm_memory_used_bytes{job=<span class="ps">"ewas"</span>,area=<span class="ps">"heap"</span>} / jvm_memory_max_bytes{job=<span class="ps">"ewas"</span>,area=<span class="ps">"heap"</span>} &gt; <span class="pw">0.85</span>
+<span class="pk">Result</span>: <span class="pe">0.97</span>  →  <span class="pe">FIRING 🔴</span>
+<span class="pk">Labels</span>: { alertname: <span class="ps">"HeapMemoryCritical"</span>, severity: <span class="pe">"critical"</span>, job: <span class="ps">"ewas"</span> }</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-req">5</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-llm">LLM PLUGIN</span>
+          <span class="step-action">Ollama API 호출 — 메트릭 + 연관 로그 종합 분석 요청</span>
+          <span class="dir dir-req">→ POST /v1/chat/completions</span>
+        </div>
+        <div class="payload"><span class="pc">POST</span> http://ollama-server:<span class="ph">11434</span>/v1/chat/completions
+{
+  <span class="pk">"model"</span>   : <span class="ps">"qwen2.5-coder:14b"</span>,
+  <span class="pk">"messages"</span>: [{
+    <span class="pk">"role"</span>   : <span class="ps">"user"</span>,
+    <span class="pk">"content"</span>: <span class="ps">"ewas 서버 이상 상황 종합 분석:
+- Heap 사용률: 97% (3.88GB / 4GB)
+- CPU 사용률: 87%
+- GC overhead limit exceeded: 최근 10분간 3회
+- 관련 에러 로그: NullPointerException 7회
+원인과 즉시 조치 사항을 알려주세요."</span>
+  }]
+}</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-resp">6</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-ollama">OLLAMA</span>
+          <span class="step-action">qwen2.5-coder:14b 원인 분석 완료</span>
+          <span class="dir dir-resp">← Response</span>
+        </div>
+        <div class="payload">{
+  <span class="pk">"message"</span>: {
+    <span class="pk">"content"</span>: <span class="pl">"## 원인 분석
+GC overhead limit exceeded + Heap 97%는 메모리 누수 가능성이 높습니다.
+NullPointerException 반복은 해제되지 않는 객체 참조와 연관될 수 있습니다.
+
+## 즉시 조치 (우선순위 순)
+1. 힙 덤프 수집: jmap -dump:live,format=b,file=heap.hprof &lt;PID&gt;
+2. -Xmx 값 증설 검토 (현재 4GB → 8GB 임시 적용)
+3. 세션 TTL 단축 또는 캐시 eviction 정책 강화
+
+## 근본 원인 파악
+Loki에서 ObjectInputStream, Cache 관련 로그 확인 권장
+최근 배포 이력과 연계 분석 필요"</span>
+  },
+  <span class="pk">"total_duration"</span>: <span class="po">3241ms</span>
+}</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-act">7</div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-grafana">GRAFANA</span>
+          <span class="step-action">AI 분석 결과 대시보드 표시 + 알림 발송</span>
+          <span class="dir dir-done">✓ 완료</span>
+        </div>
+        <div class="payload"><span class="po">✓</span> 대시보드 AI 분석 패널 업데이트
+<span class="po">✓</span> Contact Point → 메신저 알림 발송
+
+<span class="pk">알림 내용</span>:
+  <span class="pw">[🔴 CRITICAL] ewas — Heap Memory Critical (97%)</span>
+  <span class="pl">AI 분석: 메모리 누수 가능성. 힙 덤프 수집 및 GC 로그 분석 권장.
+  -Xmx 증설 (임시) 및 캐시 eviction 정책 강화 검토</span></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Flow 3: 자연어 → PromQL ══ -->
+<div class="flow-panel" id="flow-2">
+  <div class="flow-header">
+    <div class="flow-num">③</div>
+    <div>
+      <div class="flow-title">운영자 자연어 질의 → PromQL 자동 생성 → 결과 시각화</div>
+      <div class="flow-desc">운영자가 Grafana에 자연어로 질의하면 LLM Plugin이 Ollama에 PromQL 변환을 요청합니다.<br>
+      생성된 PromQL로 Prometheus를 쿼리하고 결과를 Grafana 패널에 즉시 시각화합니다.</div>
+    </div>
+  </div>
+
+  <div class="comp-bar">
+    <div class="comp-node"><div class="comp-badge cb-user">운영자</div><div class="comp-label">자연어 입력</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">입력</div></div>
+    <div class="comp-node"><div class="comp-badge cb-grafana">GRAFANA</div><div class="comp-label">AI Query 패널</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">Plugin API</div></div>
+    <div class="comp-node"><div class="comp-badge cb-llm">LLM PLUGIN</div><div class="comp-label">Grafana Plugin</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">:11434/v1</div></div>
+    <div class="comp-node"><div class="comp-badge cb-ollama">OLLAMA</div><div class="comp-label">PromQL 생성</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">PromQL</div></div>
+    <div class="comp-node"><div class="comp-badge cb-prom">PROMETHEUS</div><div class="comp-label">쿼리 실행</div></div>
+    <div class="bar-arrow"><div class="bar-line"></div><div class="bar-proto">결과</div></div>
+    <div class="comp-node"><div class="comp-badge cb-result">DASHBOARD</div><div class="comp-label">시각화</div></div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-act">1</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-user">운영자</span>
+          <span class="step-action">Grafana AI Query 패널에 자연어 입력</span>
+          <span class="dir dir-proc">입력</span>
+        </div>
+        <div class="payload">Grafana 대시보드 &gt; AI Query 패널
+
+<span class="ph">질의</span>: <span class="ps">"지난 1시간 동안 ewas 서버에서 CPU가 90% 넘은 구간 보여줘"</span></div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-req">2</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-llm">LLM PLUGIN</span>
+          <span class="step-action">Ollama에 PromQL 변환 요청</span>
+          <span class="dir dir-req">→ POST /v1/chat/completions</span>
+        </div>
+        <div class="payload"><span class="pc">POST</span> http://ollama-server:<span class="ph">11434</span>/v1/chat/completions
+{
+  <span class="pk">"model"</span>   : <span class="ps">"qwen2.5-coder:14b"</span>,
+  <span class="pk">"messages"</span>: [
+    { <span class="pk">"role"</span>: <span class="ps">"system"</span>, <span class="pk">"content"</span>: <span class="ps">"당신은 Prometheus PromQL 전문가입니다. 자연어를 PromQL로 변환하세요."</span> },
+    { <span class="pk">"role"</span>: <span class="ps">"user"</span>,   <span class="pk">"content"</span>: <span class="ps">"지난 1시간 동안 ewas 서버에서 CPU가 90% 넘은 구간"</span> }
+  ]
+}</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-resp">3</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-ollama">OLLAMA</span>
+          <span class="step-action">PromQL 생성 완료 — 응답 반환</span>
+          <span class="dir dir-resp">← Response</span>
+        </div>
+        <div class="payload">{
+  <span class="pk">"message"</span>: {
+    <span class="pk">"content"</span>: <span class="pl">"## 생성된 PromQL
+
+rate(process_cpu_seconds_total{job=\"ewas\"}[5m]) * 100 &gt; 90
+
+## 설명
+- rate([5m]) : 5분 평균 CPU 사용률 계산
+- * 100      : 퍼센트(%) 단위로 변환
+- &gt; 90       : 90% 초과 구간만 필터링
+- {job=\"ewas\"}: ewas 서비스 인스턴스만 대상"</span>
+  },
+  <span class="pk">"total_duration"</span>: <span class="po">1523ms</span>
+}</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-req">4</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-grafana">GRAFANA</span>
+          <span class="step-action">생성된 PromQL로 Prometheus 쿼리 실행</span>
+          <span class="dir dir-req">→ GET /api/v1/query_range</span>
+        </div>
+        <div class="payload"><span class="pc">GET</span> http://prometheus:<span class="ph">9091</span>/api/v1/query_range
+  ?query=<span class="ph">rate(process_cpu_seconds_total{job="ewas"}[5m]) * 100 &gt; 90</span>
+  &amp;start=<span class="pv">now-1h</span>  &amp;end=<span class="pv">now</span>  &amp;step=<span class="pv">60s</span></div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-resp">5</div><div class="step-line"></div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-prom">PROMETHEUS</span>
+          <span class="step-action">쿼리 실행 결과 반환</span>
+          <span class="dir dir-resp">← Response</span>
+        </div>
+        <div class="payload">{
+  <span class="pk">"status"</span> : <span class="po">"success"</span>,
+  <span class="pk">"data"</span>   : {
+    <span class="pk">"resultType"</span>: <span class="ps">"matrix"</span>,
+    <span class="pk">"result"</span>: [{
+      <span class="pk">"metric"</span>: { <span class="pk">"job"</span>: <span class="ps">"ewas"</span>, <span class="pk">"instance"</span>: <span class="ps">"10.176.62.211:8081"</span> },
+      <span class="pk">"values"</span>: [
+        [ <span class="pv">1748475791</span>, <span class="pw">"91.3"</span> ],
+        [ <span class="pv">1748475851</span>, <span class="pw">"93.8"</span> ],
+        [ <span class="pv">1748475911</span>, <span class="pw">"92.1"</span> ]
+      ]
+    }]
+  }
+}</div>
+      </div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot dot-act">6</div></div>
+      <div class="step-body"><div class="step-card">
+        <div class="step-head">
+          <span class="sc sc-grafana">GRAFANA</span>
+          <span class="step-action">결과 시각화 완료 — 패널 렌더링</span>
+          <span class="dir dir-done">✓ 완료</span>
+        </div>
+        <div class="payload"><span class="po">✓</span> 시계열 그래프 렌더링 완료
+<span class="po">✓</span> CPU 90% 초과 구간: 14:02 ~ 14:08  (<span class="pw">91~93%</span>)
+<span class="po">✓</span> 생성된 PromQL을 패널에 저장하는 옵션 제공
+
+<span class="pk">사용된 PromQL</span>: <span class="ph">rate(process_cpu_seconds_total{job="ewas"}[5m]) * 100 &gt; 90</span></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="leg-dot" style="background:#22d3ee;"></div>요청 (→ Request)</div>
+  <div class="legend-item"><div class="leg-dot" style="background:#f59e0b;"></div>응답 (← Response)</div>
+  <div class="legend-item"><div class="leg-dot" style="background:#a855f7;"></div>내부 처리</div>
+  <div class="legend-item"><div class="leg-dot" style="background:#3fb950;"></div>이벤트 발생 / 완료</div>
+  <div class="legend-item"><div class="leg-dot" style="background:#f97316;"></div>기존 컴포넌트</div>
+  <div class="legend-item"><div class="leg-dot" style="background:#4ade80;"></div>신규 컴포넌트</div>
+  <div class="legend-item"><div class="leg-dot" style="background:#c084fc;"></div>LLM / 플러그인</div>
+</div>
+
+<footer>AI Agent 기반 지능형 통합 모니터링 고도화 — 폐쇄망 환경</footer>
+
+<script>
+  function showTab(idx) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+    document.querySelectorAll('.flow-panel').forEach((p, i) => p.classList.toggle('active', i === idx));
+  }
+</script>
+</body>
+</html>

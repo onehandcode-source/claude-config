@@ -1,0 +1,107 @@
+package kr.go.safepeople.deamon.filesync.config.rabbitMQ;
+
+import java.time.Duration;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Component
+@Profile("!backup")
+public class RMUpstreamHealthProbe {
+
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private final WebClient webClient;
+
+    @Value("${file.ipath.load_balancer_server}")
+    private String iHost;
+
+    @Value("${file.epath.load_balancer_server}")
+    private String eHost;
+
+    @Value("${file.backup.load_balancer_server}")
+    private String bHost;
+
+    @Value("${request.file.url.iPath}")
+    private String iPath;
+
+    @Value("${request.file.url.ePath}")
+    private String ePath;
+
+    @Value("${request.file.url.bPath}")
+    private String bPath;
+
+    @Value("${QUEUE_NAME}")
+    private String queueName;
+
+    @Value("${RECOVERY_QUEUE_NAME:${QUEUE_NAME}}")
+    private String recoveryQueueName;
+
+    public RMUpstreamHealthProbe(CircuitBreakerRegistry circuitBreakerRegistry, WebClient webClient) {
+        this.circuitBreakerRegistry = circuitBreakerRegistry;
+        this.webClient = webClient;
+    }
+
+    /**
+     * 30초 주기로 CB OPEN 상태의 업스트림 가용성을 확인한다.
+     * 5xx가 아닌 응답(200, 404 등)은 LB 라우팅이 성공했음을 의미하므로
+     * cb.transitionToHalfOpenState()를 수동 호출하여 CBListenerConfig가 리스너를 재시작하도록 한다.
+     */
+    @Scheduled(fixedDelay = 30_000, initialDelay = 30_000)
+    public void probe() {
+        probeOne("filesync-main",     resolveProbeUrl(queueName));
+        probeOne("filesync-recovery", resolveProbeUrl(recoveryQueueName));
+    }
+
+    // package-private: 테스트에서 직접 호출 가능
+    void probeOne(String cbName, String baseUrl) {
+        CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker(cbName);
+        if (cb.getState() != CircuitBreaker.State.OPEN) {
+            return;
+        }
+
+        String url = baseUrl + "?filename=_probe&filepath=/probe";
+        Optional<Integer> status = executeProbe(url);
+
+        // 5xx(서버 오류, LB 인스턴스 없음 포함) 또는 네트워크 예외는 다운으로 판정
+        boolean isUp = status.isPresent() && status.get() < 500;
+
+        if (isUp) {
+            log.info("[HealthProbe-{}] 업스트림 복구 감지 (status={}) → HALF_OPEN 전환", cbName, status.get());
+            cb.transitionToHalfOpenState();
+        } else {
+            log.debug("[HealthProbe-{}] 업스트림 다운 (status={})", cbName, status.orElse(null));
+        }
+    }
+
+    // package-private: 테스트에서 검증 가능
+    String resolveProbeUrl(String qName) {
+        switch (qName) {
+            case "iQueue":         return eHost + ePath;  // anl 서버 → ewas LB
+            case "iRecoveryQueue": return bHost + bPath;  // ewas 서버 → bwas LB
+            default:               return iHost + iPath;  // eQueue, eRecoveryQueue → anl LB
+        }
+    }
+
+    // package-private: 테스트에서 오버라이드 가능
+    Optional<Integer> executeProbe(String url) {
+        try {
+            return webClient.head()
+                .uri(url)
+                .exchangeToMono(r -> reactor.core.publisher.Mono.just(r.statusCode().value()))
+                .timeout(Duration.ofSeconds(5))
+                .blockOptional();
+        } catch (Exception e) {
+            log.debug("[HealthProbe] probe 예외: url={}, cause={}", url, e.getMessage());
+            return Optional.empty();
+        }
+    }
+}

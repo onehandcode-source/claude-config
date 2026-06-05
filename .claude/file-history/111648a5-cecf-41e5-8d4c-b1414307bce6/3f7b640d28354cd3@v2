@@ -1,0 +1,70 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import type { Macro } from "@/lib/types";
+
+export default function MacrosPage() {
+  const [macros, setMacros] = useState<Macro[]>([]);
+
+  async function loadMacros() {
+    const response = await fetch("/api/macros");
+    const payload = (await response.json()) as { success: boolean; data?: Macro[] };
+    if (payload.success && payload.data) setMacros(payload.data);
+  }
+
+  async function handleDelete(id: string) {
+    if (!window.confirm("삭제하시겠습니까?")) return;
+    await fetch(`/api/macros/${id}`, { method: "DELETE" });
+    await loadMacros();
+  }
+
+  useEffect(() => {
+    void loadMacros();
+  }, []);
+
+  return (
+    <main className="px-4 py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">매크로 라이브러리</h1>
+        <p className="text-sm text-muted-foreground">
+          테스트케이스 편집 시 공통 Step 묶음을 삽입할 수 있습니다.
+        </p>
+      </div>
+
+      {macros.length === 0 ? (
+        <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
+          저장된 매크로가 없습니다.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {macros.map((macro) => (
+            <div key={macro.id} className="rounded-xl border bg-card p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="font-semibold">{macro.name}</h2>
+                  <p className="text-sm text-muted-foreground">{macro.description}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{macro.steps.length}개 Step</p>
+                </div>
+                <Button size="sm" variant="destructive" onClick={() => handleDelete(macro.id)}>
+                  삭제
+                </Button>
+              </div>
+              <div className="mt-3 space-y-1">
+                {macro.steps.map((step, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-slate-900 px-1.5 py-0.5 text-xs text-white">
+                      {i + 1}
+                    </span>
+                    <span className="text-muted-foreground">[{step.type}]</span>
+                    <span>{step.description ?? ""}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </main>
+  );
+}

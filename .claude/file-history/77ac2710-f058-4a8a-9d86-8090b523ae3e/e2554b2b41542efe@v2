@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrmWordDict — 컴포넌트 구조</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; padding: 32px; }
+  h1 { font-size: 20px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #64748b; margin-bottom: 32px; }
+
+  .tree { display: flex; flex-direction: column; gap: 0; }
+  .node { display: flex; align-items: flex-start; gap: 0; }
+  .children { margin-left: 24px; border-left: 1px dashed #334155; }
+  .connector {
+    width: 24px; min-width: 24px; height: 32px;
+    border-bottom: 1px dashed #334155;
+    flex-shrink: 0;
+  }
+
+  .box {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    margin: 3px 0; white-space: nowrap;
+  }
+  .box .path { font-size: 11px; font-weight: 400; opacity: 0.6; margin-left: 4px; }
+  .box .badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 3px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+
+  .entry    { background: #1e3a5f; border: 1px solid #2563eb; color: #93c5fd; }
+  .entry .badge { background: #2563eb; color: #fff; }
+  .provider { background: #1a2e1a; border: 1px solid #16a34a; color: #86efac; }
+  .provider .badge { background: #16a34a; color: #fff; }
+  .router   { background: #2d1f3d; border: 1px solid #7c3aed; color: #c4b5fd; }
+  .router .badge { background: #7c3aed; color: #fff; }
+  .layout   { background: #1e2d3d; border: 1px solid #0284c7; color: #7dd3fc; }
+  .layout .badge { background: #0284c7; color: #fff; }
+  .guard    { background: #3d2b1a; border: 1px solid #d97706; color: #fcd34d; }
+  .guard .badge { background: #d97706; color: #fff; }
+  .page     { background: #1e1b2e; border: 1px solid #6d28d9; color: #ddd6fe; }
+  .page .badge { background: #6d28d9; color: #fff; }
+  .shared   { background: #1f2937; border: 1px solid #374151; color: #9ca3af; }
+  .shared .badge { background: #374151; color: #d1d5db; }
+  .store    { background: #2d1f1f; border: 1px solid #dc2626; color: #fca5a5; }
+  .store .badge { background: #dc2626; color: #fff; }
+  .external { background: #1a1a2e; border: 1px solid #4f46e5; color: #a5b4fc; font-style: italic; }
+
+  .route-label {
+    font-size: 11px; color: #475569; margin: 2px 0 2px 24px;
+    padding-left: 12px; border-left: 1px dashed #1e3a5f;
+  }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+  h2 { font-size: 13px; font-weight: 600; color: #94a3b8; margin-bottom: 14px;
+       text-transform: uppercase; letter-spacing: 0.06em; }
+  .section { margin-bottom: 28px; }
+  .note { font-size: 11px; color: #475569; margin-top: 4px; margin-left: 12px; font-style: italic; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px;
+    padding-top: 20px; border-top: 1px solid #1e293b;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64748b; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<h1>TrmWordDict — 컴포넌트 구조</h1>
+<p class="subtitle">React 18 + Vite 5 + shadcn/ui &nbsp;|&nbsp; 2026-05-18</p>
+
+<div class="cols">
+
+<!-- LEFT: 진입점 ~ 라우터 -->
+<div>
+  <h2>진입점 &amp; 라우터 트리</h2>
+
+  <div class="tree">
+    <div class="box entry">
+      <span class="badge">Entry</span>
+      main.jsx
+      <span class="path">src/main.jsx</span>
+    </div>
+    <div class="children">
+
+      <div class="node"><div class="connector"></div>
+        <div>
+          <div class="box provider">
+            <span class="badge">Provider</span>
+            &lt;Providers /&gt;
+            <span class="path">src/app/providers.jsx</span>
+          </div>
+          <div class="children">
+
+            <div class="node"><div class="connector"></div>
+              <div class="box external">&lt;QueryClientProvider&gt; — TanStack Query v5</div>
+            </div>
+
+            <div class="node"><div class="connector"></div>
+              <div>
+                <div class="box router">
+                  <span class="badge">Router</span>
+                  &lt;RouterProvider&gt; createBrowserRouter
+                  <span class="path">src/app/router.jsx</span>
+                </div>
+                <div class="children">
+
+                  <!-- BlankLayout -->
+                  <div class="node"><div class="connector"></div>
+                    <div>
+                      <div class="box layout">
+                        <span class="badge">Layout</span>
+                        &lt;BlankLayout /&gt;
+                        <span class="path">src/layouts/BlankLayout.jsx</span>
+                      </div>
+                      <div class="route-label">path: /login</div>
+                      <div class="children">
+                        <div class="node"><div class="connector"></div>
+                          <div class="box page">
+                            <span class="badge">Page</span>
+                            &lt;LoginPage /&gt;
+                            <span class="path">src/features/auth/LoginPage.jsx</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- ProtectedRoute -->
+                  <div class="node"><div class="connector"></div>
+                    <div>
+                      <div class="box guard">
+                        <span class="badge">Guard</span>
+                        &lt;ProtectedRoute /&gt;
+                        <span class="path">src/router/ProtectedRoute.jsx</span>
+                      </div>
+                      <div class="children">
+                        <div class="node"><div class="connector"></div>
+                          <div>
+                            <div class="box layout">
+                              <span class="badge">Layout</span>
+                              &lt;MainLayout /&gt;
+                              <span class="path">src/layouts/MainLayout.jsx</span>
+                            </div>
+                            <div class="children">
+
+                              <!-- HomePage -->
+                              <div class="node"><div class="connector"></div>
+                                <div>
+                                  <div class="box page"><span class="badge">Page</span>&lt;HomePage /&gt;<span class="path">src/features/home/HomePage.jsx</span></div>
+                                  <div class="route-label">path: /home</div>
+                                </div>
+                              </div>
+
+                              <!-- UploadPage -->
+                              <div class="node"><div class="connector"></div>
+                                <div>
+                                  <div class="box page"><span class="badge">Page</span>&lt;UploadPage /&gt;<span class="path">src/features/import/UploadPage.jsx</span></div>
+                                  <div class="route-label">path: /import</div>
+                                  <div class="children">
+                                    <div class="node"><div class="connector"></div>
+                                      <div class="box shared"><span class="badge">UI</span>&lt;FileUpload /&gt;</div>
+                                    </div>
+                                    <div class="node"><div class="connector"></div>
+                                      <div class="box shared"><span class="badge">UI</span>&lt;Button /&gt; (shadcn)</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <!-- DetailPage -->
+                              <div class="node"><div class="connector"></div>
+                                <div>
+                                  <div class="box page"><span class="badge">Page</span>&lt;DetailPage /&gt;<span class="path">src/features/import/DetailPage.jsx</span></div>
+                                  <div class="route-label">path: /import/:historyId</div>
+                                  <div class="children">
+                                    <div class="node"><div class="connector"></div>
+                                      <div class="box shared"><span class="badge">UI</span>&lt;DataGrid /&gt; (오류 목록, polling)</div>
+                                    </div>
+                                    <div class="node"><div class="connector"></div>
+                                      <div class="box shared"><span class="badge">UI</span>&lt;DetailPanel /&gt;</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <!-- DomainListPage -->
+                              <div class="node"><div class="connector"></div>
+                                <div>
+                                  <div class="box page"><span class="badge">Page</span>&lt;DomainListPage /&gt;<span class="path">src/features/domain/DomainListPage.jsx</span></div>
+                                  <div class="route-label">path: /domain</div>
+                                  <div class="children">
+                                    <div class="node"><div class="connector"></div>
+                                      <div class="box shared"><span class="badge">UI</span>&lt;SearchForm /&gt;</div>
+                                    </div>
+                                    <div class="node"><div class="connector"></div>
+                                      <div class="box shared"><span class="badge">UI</span>&lt;DataGrid /&gt; (도메인 목록)</div>
+                                    </div>
+                                    <div class="node"><div class="connector"></div>
+                                      <div>
+                                        <div class="box shared"><span class="badge">UI</span>&lt;DetailPanel /&gt; (우측 패널)</div>
+                                        <div class="children">
+                                          <div class="node"><div class="connector"></div>
+                                            <div class="box shared"><span class="badge">UI</span>&lt;EditDrawer /&gt; (Sheet 기반)</div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div><!-- /ProtectedRoute -->
+
+                </div>
+              </div>
+            </div><!-- /RouterProvider -->
+
+            <div class="node"><div class="connector"></div>
+              <div class="box external">&lt;Toaster /&gt; — sonner</div>
+            </div>
+
+          </div>
+        </div>
+      </div><!-- /Providers -->
+
+    </div>
+  </div><!-- /tree -->
+
+  <div style="margin-top: 20px; padding: 12px 14px; border: 1px dashed #334155; border-radius: 6px;">
+    <div class="box entry" style="opacity:0.55; border-style:dashed; font-size:12px;">
+      <span class="badge">Entry</span>
+      App.jsx (미사용)
+      <span class="path">src/App.jsx</span>
+    </div>
+    <p class="note">main.jsx가 Providers를 직접 렌더링하므로 App.jsx는 실행되지 않음.<br>
+    내부의 AppRouter(BrowserRouter)는 중복 라우터 — 삭제 가능.</p>
+  </div>
+
+</div>
+
+<!-- RIGHT: 공유 컴포넌트 & 상태 -->
+<div>
+
+  <div class="section">
+    <h2>공유 컴포넌트</h2>
+
+    <div class="box shared" style="margin-bottom:4px;">
+      <span class="badge">UI</span>DataGrid
+      <span class="path">src/shared/components/DataGrid/DataGrid.jsx</span>
+    </div>
+    <p class="note">shadcn Table 래퍼. columns + data props.</p>
+
+    <div class="box shared" style="margin: 8px 0 4px;">
+      <span class="badge">UI</span>SearchForm
+      <span class="path">src/shared/components/SearchForm/SearchForm.jsx</span>
+    </div>
+    <p class="note">Input(shadcn) + Button(shadcn). onSearch 콜백.</p>
+
+    <div class="box shared" style="margin: 8px 0 4px;">
+      <span class="badge">UI</span>FileUpload
+      <span class="path">src/shared/components/FileUpload/FileUpload.jsx</span>
+    </div>
+    <p class="note">드래그앤드롭 + 파일 선택. accept / onFileSelect props.</p>
+
+    <div class="box shared" style="margin: 8px 0 4px;">
+      <span class="badge">UI</span>DetailPanel
+      <span class="path">src/shared/components/DetailPanel/DetailPanel.jsx</span>
+    </div>
+    <p class="note">우측 고정 패널. 선택 행의 상세 데이터 표시.</p>
+
+    <div class="box shared" style="margin: 8px 0 4px;">
+      <span class="badge">UI</span>EditDrawer
+      <span class="path">src/shared/components/EditDrawer/EditDrawer.jsx</span>
+    </div>
+    <p class="note">Sheet(shadcn) 기반 우측 슬라이드 서랍.<br>SheetHeader + SheetBody + SheetFooter 구조.</p>
+  </div>
+
+  <div class="section">
+    <h2>shadcn/ui 프리미티브</h2>
+    <div class="box external" style="margin-bottom:4px;">Button — Radix Slot + cva (variant / size)</div>
+    <div class="box external" style="margin-bottom:4px;">Input — border-input CSS variable</div>
+    <div class="box external" style="margin-bottom:4px;">Table / TableHeader / TableRow / TableCell …</div>
+    <div class="box external" style="margin-bottom:4px;">Sheet — Radix Dialog + cva (side: right / left / top / bottom)</div>
+    <p class="note">src/shared/components/ui/ 위치. shadcn CLI 복사 방식 (npm 패키지 아님).</p>
+  </div>
+
+  <div class="section">
+    <h2>전역 상태 (Zustand)</h2>
+    <div class="box store">
+      <span class="badge">Store</span>useAuthStore
+      <span class="path">src/store/authStore.js</span>
+    </div>
+    <p class="note">isAuthenticated · user · token<br>
+    ProtectedRoute → 인증 확인<br>
+    LoginPage → login() 호출<br>
+    MainLayout → logout() 호출</p>
+  </div>
+
+  <div class="section">
+    <h2>서버 상태 (TanStack Query)</h2>
+    <div class="box external" style="margin-bottom:4px;">useDomainList — GET /api/v1/domain</div>
+    <div class="box external" style="margin-bottom:4px;">useImportJobDetail — GET /api/v1/import/:id (polling)</div>
+    <div class="box external" style="margin-bottom:4px;">useUploadMutation — POST /api/v1/import</div>
+    <p class="note">src/features/{module}/hooks/ 또는 api/ 위치.</p>
+  </div>
+
+  <div class="section">
+    <h2>데이터 흐름</h2>
+    <div style="font-size:12px; color:#64748b; line-height:2;">
+      <p>① <span style="color:#7dd3fc">main.jsx</span> → Providers 마운트 (QueryClient + Router + Toaster)</p>
+      <p>② <span style="color:#fcd34d">ProtectedRoute</span> → useAuthStore 확인 → 미인증 시 /login 리다이렉트</p>
+      <p>③ <span style="color:#7dd3fc">MainLayout</span> → 사이드바 Nav + Outlet으로 페이지 교체</p>
+      <p>④ Page → <span style="color:#a5b4fc">TanStack Query hooks</span>로 API 호출 → DataGrid · DetailPanel에 props 전달</p>
+      <p>⑤ 수정 요청 → <span style="color:#9ca3af">EditDrawer</span>(Sheet) 폼 → useMutation → invalidateQueries</p>
+    </div>
+  </div>
+
+</div>
+</div><!-- /cols -->
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#2563eb;"></div>진입점</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#16a34a;"></div>Provider</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7c3aed;"></div>Router</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#0284c7;"></div>Layout</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d97706;"></div>Guard (인증)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#6d28d9;"></div>Page</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#374151;"></div>공유 컴포넌트</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div>Store (Zustand)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4f46e5;"></div>외부 라이브러리</div>
+</div>
+
+</body>
+</html>

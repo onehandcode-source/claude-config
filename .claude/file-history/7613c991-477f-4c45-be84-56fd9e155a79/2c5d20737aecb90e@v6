@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 통합 모니터링 — 전체 아키텍처 (기존 + 고도화)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 28px 32px;
+      min-width: 1440px;
+    }
+
+    /* ── 헤더 ── */
+    .page-header { text-align: center; margin-bottom: 10px; }
+    .page-header h1 { font-size: 19px; font-weight: 700; color: #f0f6fc; margin-bottom: 5px; }
+    .page-header p  { font-size: 12px; color: #7d8590; }
+
+    /* ── 범례 ── */
+    .legend {
+      display: flex; gap: 20px; justify-content: center;
+      margin-bottom: 22px; flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8b949e; }
+    .legend-dot  { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .dot-existing { background: #b45309; border: 1px solid #f97316; }
+    .dot-new      { background: #1a3424; border: 1px solid #3fb950; }
+    .dot-internet { background: #0c1929; border: 2px solid #3b82f6; }
+    .dot-intranet { background: #1a1200; border: 2px solid #d29922; }
+    .dot-backup   { background: #12100e; border: 1.5px solid #6b7280; }
+    .dot-rpm      { background: #374151; border: 1px dashed #9ca3af; }
+    .dot-docker   { background: #081e22; border: 1px solid #06b6d4; }
+    .dot-jar      { background: #1f1005; border: 1px solid #fb923c; }
+
+    /* ── 최상위 ── */
+    .main-wrap {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 0;
+    }
+
+    /* ── 공용 섹션 테두리 ── */
+    .section {
+      width: 100%; max-width: 1380px;
+      border-radius: 12px; padding: 16px 18px;
+    }
+    .sec-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.1px;
+      text-transform: uppercase; margin-bottom: 12px; opacity: 0.8;
+    }
+
+    /* ── HQ ── */
+    .sec-hq { background: #161b22; border: 1.5px solid #1f4068; }
+    .sec-hq .sec-label { color: #58a6ff; }
+    .hq-inner { display: flex; gap: 14px; }
+    .hq-git {
+      flex: 1; background: #0d1117; border: 1px solid #1f4068;
+      border-radius: 8px; padding: 12px 14px;
+    }
+    .hq-git h3 { font-size: 12px; font-weight: 600; color: #58a6ff; margin-bottom: 8px; }
+    .mono { font-size: 11px; font-family: monospace; color: #8b949e; line-height: 1.9; }
+    .mono .hl { color: #e3b341; }
+    .hq-cards { display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
+    .hq-card  {
+      background: #0d1117; border: 1px solid #30363d;
+      border-radius: 8px; padding: 10px 14px; flex: 1;
+    }
+    .hq-card h4 { font-size: 11px; font-weight: 600; color: #8b949e; margin-bottom: 4px; }
+    .hq-card p  { font-size: 11px; color: #6e7681; line-height: 1.5; }
+
+    /* ── 연결선 ── */
+    .vconn {
+      display: flex; flex-direction: column; align-items: center; padding: 3px 0;
+    }
+    .vline { width: 2px; height: 14px; background: #444c56; }
+    .vtag  {
+      font-size: 11px; color: #7d8590; background: #0d1117;
+      padding: 2px 14px; border-radius: 10px; border: 1px solid #30363d;
+      white-space: nowrap; margin: 2px 0;
+    }
+
+    /* ── 현장 섹션 ── */
+    .sec-site { background: #161b22; border: 1.5px solid #238636; }
+    .sec-site > .sec-label { color: #3fb950; }
+
+    /* ══════════════════════════════════════════
+       핵심: 3열 그리드 (모든 행 동일 컬럼 사용)
+       col1: 인터넷망  col2: 업무망  col3: 백업+우측
+    ══════════════════════════════════════════ */
+    .site-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 12px;
+    }
+
+    /* 상단 행 */
+    .cell-internet { grid-column: 1; grid-row: 1; }
+    .cell-intranet { grid-column: 2; grid-row: 1; }
+    .cell-backup   { grid-column: 3; grid-row: 1; }
+
+    /* 하단 행 */
+    .cell-mon      { grid-column: 1 / 3; grid-row: 2; } /* col1~2 span */
+    .cell-right    { grid-column: 3;     grid-row: 2; } /* col3 */
+
+    /* ── 망 박스 ── */
+    .net-box { border-radius: 10px; padding: 12px 14px; height: 100%; }
+    .net-internet { background: #0c1929; border: 1.5px solid #3b82f6; }
+    .net-intranet { background: #1a1200; border: 1.5px solid #d29922; }
+    .net-backup   { background: #12100e; border: 1.5px solid #6b7280; }
+    .net-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+      text-transform: uppercase; margin-bottom: 10px;
+    }
+    .net-internet .net-label { color: #3b82f6; }
+    .net-intranet .net-label { color: #d29922; }
+    .net-backup   .net-label { color: #9ca3af; }
+    .net-servers  { display: flex; gap: 10px; }
+
+    /* ── 개별 서버 ── */
+    .srv {
+      background: #0d1117; border: 1px solid #30363d;
+      border-radius: 8px; padding: 10px 12px; flex: 1;
+    }
+    .srv-name { font-size: 12px; font-weight: 700; color: #e6edf3; margin-bottom: 2px; }
+    .srv-ip   { font-size: 10px; font-family: monospace; color: #7d8590; margin-bottom: 8px; }
+    .srv-comps { display: flex; flex-direction: column; gap: 5px; }
+
+    .comp {
+      border-radius: 5px; padding: 5px 8px;
+      display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+    }
+    .comp-e { background: #2d1810; border: 1px solid #92400e; }
+    .comp-n { background: #0d1f12; border: 1px solid #166534; }
+    .comp-name { font-size: 11px; font-weight: 600; flex: 1; }
+    .comp-e .comp-name { color: #f97316; }
+    .comp-n .comp-name { color: #4ade80; }
+    .comp-port { font-size: 10px; font-family: monospace; color: #6e7681; }
+
+    /* 태그 */
+    .tag {
+      font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 700;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .tag-new    { background: #166534; color: #4ade80; }
+    .tag-rpm    { background: #374151; color: #9ca3af; }
+    .tag-docker { background: #081e22; color: #22d3ee; }
+    .tag-jar    { background: #1f1005; color: #fb923c; }
+
+    /* ── 모니터링 서버 (col1-2) ── */
+    .mon-box {
+      background: #0c1929; border: 2px solid #3b82f6;
+      border-radius: 10px; padding: 14px 16px; height: 100%;
+    }
+    .mon-title {
+      font-size: 13px; font-weight: 700; color: #e6edf3; margin-bottom: 2px;
+    }
+    .mon-ip { font-size: 11px; font-family: monospace; color: #7d8590; margin-bottom: 12px; }
+    .mon-inner { display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px; }
+
+    .mon-sub {
+      border-radius: 8px; padding: 10px 12px;
+    }
+    .mon-sub-e { background: #1a0e00; border: 1px solid #92400e; }
+    .mon-sub-n { background: #0d1f12; border: 1px solid #166534; }
+    .mon-sub-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .mon-sub-e .mon-sub-label { color: #f97316; }
+    .mon-sub-n .mon-sub-label { color: #4ade80; }
+    .mon-comps { display: flex; flex-direction: column; gap: 6px; }
+
+    .mc {
+      border-radius: 6px; padding: 7px 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .mc-e { background: #2d1810; border: 1px solid #92400e; }
+    .mc-n { background: #0d2a18; border: 1px solid #166534; }
+    .mc-name { font-size: 12px; font-weight: 700; }
+    .mc-e .mc-name { color: #f97316; }
+    .mc-n .mc-name { color: #4ade80; }
+    .mc-port { font-size: 11px; font-family: monospace; color: #7d8590; }
+    .mc-desc { font-size: 10px; color: #6e7681; margin-left: auto; }
+    .mc-tags { display: flex; gap: 4px; margin-left: auto; align-items: center; }
+
+    .mon-note {
+      margin-top: 8px; font-size: 10px; color: #6e7681;
+      font-style: italic; padding: 4px 2px;
+    }
+
+    /* ── 우측 열 (col3): RabbitMQ + 인프라 스택 ── */
+    .right-col { display: flex; flex-direction: column; gap: 10px; height: 100%; }
+
+    .rmq-box {
+      background: #1a1200; border: 1px solid #d29922;
+      border-radius: 10px; padding: 12px 14px; flex: 1.5;
+    }
+    .rmq-title { font-size: 12px; font-weight: 700; color: #e3b341; margin-bottom: 8px; }
+    .rmq-body  { font-size: 11px; font-family: monospace; color: #8b949e; line-height: 2; }
+    .rmq-body .ql { color: #e3b341; }
+    .rmq-ports { margin-top: 8px; }
+    .rmq-port  {
+      font-size: 10px; font-family: monospace; color: #6e7681;
+      display: flex; gap: 8px; margin-bottom: 3px;
+    }
+    .rmq-port .pn { color: #f87171; }
+
+    .infra-stack { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .infra-item  {
+      background: #161b22; border: 1px solid #30363d;
+      border-radius: 8px; padding: 10px 12px; flex: 1;
+    }
+    .infra-item.new-item { border-color: #166534; background: #0d1f12; }
+    .infra-item h4 { font-size: 11px; font-weight: 600; color: #8b949e; margin-bottom: 4px; }
+    .infra-item.new-item h4 { color: #4ade80; }
+    .infra-item p  { font-size: 10px; color: #6e7681; line-height: 1.6; font-family: monospace; }
+
+    /* ── 배지 ── */
+    .badge { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 20px; font-weight: 600; }
+    .b-green { background: #1a3424; color: #3fb950; }
+    .b-gray  { background: #21262d; color: #8b949e; }
+
+    /* ── 데이터 흐름 ── */
+    .flow-panel {
+      width: 100%; max-width: 1380px;
+      background: #161b22; border: 1px solid #30363d;
+      border-radius: 12px; padding: 16px 18px; margin-top: 14px;
+    }
+    .flow-title {
+      font-size: 10px; font-weight: 700; color: #7d8590;
+      letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;
+    }
+    .flow-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .fi {
+      background: #0d1117; border-radius: 8px; padding: 10px 12px;
+      border-left: 3px solid;
+    }
+    .fi.c-blue   { border-color: #3b82f6; }
+    .fi.c-green  { border-color: #3fb950; }
+    .fi.c-orange { border-color: #e3b341; }
+    .fi.c-purple { border-color: #a78bfa; }
+    .fi.c-cyan   { border-color: #06b6d4; }
+    .fi.c-pink   { border-color: #ea4b71; }
+    .fi.c-gray   { border-color: #6b7280; }
+    .fi-t { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+    .fi.c-blue   .fi-t { color: #3b82f6; }
+    .fi.c-green  .fi-t { color: #3fb950; }
+    .fi.c-orange .fi-t { color: #e3b341; }
+    .fi.c-purple .fi-t { color: #a78bfa; }
+    .fi.c-cyan   .fi-t { color: #06b6d4; }
+    .fi.c-pink   .fi-t { color: #ea4b71; }
+    .fi.c-gray   .fi-t { color: #6b7280; }
+    .fi-d { font-size: 10px; color: #6e7681; line-height: 1.7; font-family: monospace; }
+
+    footer { text-align: center; font-size: 11px; color: #444c56; margin-top: 18px; }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>AI Agent 기반 지능형 통합 모니터링 — 기존 인프라 + 고도화 설계</h1>
+  <p>실제 운영 아키텍처 기반 · 폐쇄망 다환경 배포 · GitOps · 2인팀 v1</p>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot dot-existing"></div>기존 컴포넌트 (운영중)</div>
+  <div class="legend-item"><div class="legend-dot dot-new"></div>신규 추가 (AI 모니터링 고도화)</div>
+  <div class="legend-item"><div class="legend-dot dot-internet"></div>인터넷망</div>
+  <div class="legend-item"><div class="legend-dot dot-intranet"></div>업무망</div>
+  <div class="legend-item"><div class="legend-dot dot-backup"></div>백업망 (광주)</div>
+  <div class="legend-item"><div class="legend-dot dot-rpm"></div>RPM 설치 (jboss 계정)</div>
+  <div class="legend-item"><div class="legend-dot dot-docker"></div>Docker 컨테이너</div>
+  <div class="legend-item"><div class="legend-dot dot-jar"></div>Spring Boot JAR</div>
+</div>
+
+<div class="main-wrap">
+
+  <!-- ══ HQ ══ -->
+  <div class="section sec-hq">
+    <div class="sec-label">HQ — 내부망 (신규)</div>
+    <div class="hq-inner">
+      <div class="hq-git">
+        <h3>📁 Git 저장소 + Ansible GitOps</h3>
+        <div class="mono">
+          ansible/<br>
+          &nbsp;&nbsp;├── roles/ &nbsp;grafana / prometheus / loki / ollama / fastapi / n8n / alloy<br>
+          &nbsp;&nbsp;├── profiles/ &nbsp;<span class="hl">bare-metal-highspec.yml</span> &nbsp;/&nbsp; <span class="hl">bare-metal-lowspec.yml</span><br>
+          &nbsp;&nbsp;└── sites/ &nbsp;<span class="hl">template/</span> &nbsp;/&nbsp; new-safe/ &nbsp;/&nbsp; site-B/
+        </div>
+      </div>
+      <div class="hq-cards">
+        <div class="hq-card">
+          <h4>⚙️ Ansible Control Node</h4>
+          <p>VPN → 현장 배포·설정 변경<br>preflight → deploy → rollback</p>
+        </div>
+        <div class="hq-card">
+          <h4>📡 Health Beacon 집계</h4>
+          <p><span class="badge b-gray">v1: 선택</span> &nbsp;<span class="badge b-green">v2: 표준</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="vconn">
+    <div class="vline"></div>
+    <div class="vtag">ansible-playbook deploy.yml &nbsp;(목표: 30분 이내 신규 현장 기동)</div>
+    <div class="vline"></div>
+  </div>
+
+  <!-- ══ 현장 ══ -->
+  <div class="section sec-site">
+    <div class="sec-label">현장 — 폐쇄망 (인터넷 차단 · 업무망 내부 통신 가능)</div>
+
+    <div class="site-grid">
+
+      <!-- ── 상단 Row 1: 3개 망 박스 ── -->
+
+      <!-- Col 1: 인터넷망 -->
+      <div class="cell-internet">
+        <div class="net-box net-internet">
+          <div class="net-label">🌐 인터넷망 (외부망)</div>
+          <div class="net-servers">
+            <div class="srv">
+              <div class="srv-name">new-safe-ewas1</div>
+              <div class="srv-ip">10.176.62.211 / 27.101.236.83</div>
+              <div class="srv-comps">
+                <div class="comp comp-e">
+                  <span class="comp-name">LoadBalancer</span>
+                  <span class="comp-port">:8080 :8081</span>
+                  <span class="tag tag-jar">JAR</span>
+                </div>
+                <div class="comp comp-e">
+                  <span class="comp-name">Consumer1</span>
+                  <span class="comp-port">:8082 :8083</span>
+                  <span class="tag tag-jar">JAR</span>
+                </div>
+                <div class="comp comp-n">
+                  <span class="comp-name">Alloy</span>
+                  <span class="comp-port">:12345</span>
+                  <span class="tag tag-new">신규</span>
+                  <span class="tag tag-rpm">RPM</span>
+                </div>
+              </div>
+            </div>
+            <div class="srv">
+              <div class="srv-name">new-safe-ewas2</div>
+              <div class="srv-ip">10.176.62.212 / 27.101.236.84</div>
+              <div class="srv-comps">
+                <div class="comp comp-e">
+                  <span class="comp-name">Consumer2</span>
+                  <span class="comp-port">:8082 :8083</span>
+                  <span class="tag tag-jar">JAR</span>
+                </div>
+                <div class="comp comp-n">
+                  <span class="comp-name">Alloy</span>
+                  <span class="comp-port">:12345</span>
+                  <span class="tag tag-new">신규</span>
+                  <span class="tag tag-rpm">RPM</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 2: 업무망 -->
+      <div class="cell-intranet">
+        <div class="net-box net-intranet">
+          <div class="net-label">🏢 업무망 (내부망)</div>
+          <div class="net-servers">
+            <div class="srv">
+              <div class="srv-name">new-safe-anl1</div>
+              <div class="srv-ip">10.177.18.138</div>
+              <div class="srv-comps">
+                <div class="comp comp-e">
+                  <span class="comp-name">LoadBalancer</span>
+                  <span class="comp-port">:8080 :8081</span>
+                  <span class="tag tag-jar">JAR</span>
+                </div>
+                <div class="comp comp-e">
+                  <span class="comp-name">Consumer1</span>
+                  <span class="comp-port">:8082 :8083</span>
+                  <span class="tag tag-jar">JAR</span>
+                </div>
+                <div class="comp comp-n">
+                  <span class="comp-name">Alloy</span>
+                  <span class="comp-port">:12345</span>
+                  <span class="tag tag-new">신규</span>
+                  <span class="tag tag-rpm">RPM</span>
+                </div>
+              </div>
+            </div>
+            <div class="srv">
+              <div class="srv-name">new-safe-anl2</div>
+              <div class="srv-ip">10.177.18.139</div>
+              <div class="srv-comps">
+                <div class="comp comp-e">
+                  <span class="comp-name">Consumer2</span>
+                  <span class="comp-port">:8082 :8083</span>
+                  <span class="tag tag-jar">JAR</span>
+                </div>
+                <div class="comp comp-n">
+                  <span class="comp-name">Alloy</span>
+                  <span class="comp-port">:12345</span>
+                  <span class="tag tag-new">신규</span>
+                  <span class="tag tag-rpm">RPM</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 3: 백업서버 -->
+      <div class="cell-backup">
+        <div class="net-box net-backup">
+          <div class="net-label">💾 백업서버 (광주)</div>
+          <div class="net-servers">
+            <div class="srv">
+              <div class="srv-name">백업서버1</div>
+              <div class="srv-ip">10.188.142.189</div>
+              <div class="srv-comps">
+                <div class="comp comp-e">
+                  <span class="comp-name">LoadBalancer</span>
+                  <span class="comp-port">:8080 :8081</span>
+                  <span class="tag tag-jar">JAR</span>
+                </div>
+                <div class="comp comp-e">
+                  <span class="comp-name">Consumer1</span>
+                  <span class="comp-port">:8082 :8083</span>
+                  <span class="tag tag-jar">JAR</span>
+                </div>
+                <div class="comp comp-n">
+                  <span class="comp-name">Alloy</span>
+                  <span class="comp-port">:12345</span>
+                  <span class="tag tag-new">신규</span>
+                  <span class="tag tag-rpm">RPM</span>
+                </div>
+              </div>
+            </div>
+            <div class="srv">
+              <div class="srv-name">백업서버2</div>
+              <div class="srv-ip">10.188.142.189</div>
+              <div class="srv-comps">
+                <div class="comp comp-e">
+                  <span class="comp-name">LoadBalancer</span>
+                  <span class="comp-port">:8080 :8081</span>
+                  <span class="tag tag-jar">JAR</span>
+                </div>
+                <div class="comp comp-e">
+                  <span class="comp-name">Consumer1</span>
+                  <span class="comp-port">:8082 :8083</span>
+                  <span class="tag tag-jar">JAR</span>
+                </div>
+                <div class="comp comp-n">
+                  <span class="comp-name">Alloy</span>
+                  <span class="comp-port">:12345</span>
+                  <span class="tag tag-new">신규</span>
+                  <span class="tag tag-rpm">RPM</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 하단 Row 2 ── -->
+
+      <!-- Col 1-2 span: 모니터링 서버 -->
+      <div class="cell-mon">
+        <div class="mon-box">
+          <div class="mon-title">🖥️ new-safe-mon — 모니터링 서버</div>
+          <div class="mon-ip">내부IP: 10.176.62.225</div>
+          <div class="mon-inner">
+
+            <!-- 기존 -->
+            <div class="mon-sub mon-sub-e">
+              <div class="mon-sub-label">기존 운영중</div>
+              <div class="mon-comps">
+                <div class="mc mc-e">
+                  <div>
+                    <div class="mc-name">Grafana</div>
+                    <div class="mc-port">:3000</div>
+                  </div>
+                  <div class="mc-desc">대시보드 · 알림</div>
+                  <div class="mc-tags"><span class="tag tag-rpm">RPM</span></div>
+                </div>
+                <div class="mc mc-e">
+                  <div>
+                    <div class="mc-name">Prometheus</div>
+                    <div class="mc-port">:9091</div>
+                  </div>
+                  <div class="mc-desc">메트릭 저장</div>
+                  <div class="mc-tags"><span class="tag tag-rpm">RPM</span></div>
+                </div>
+                <div class="mc mc-e">
+                  <div>
+                    <div class="mc-name">RabbitMQ</div>
+                    <div class="mc-port">:5672 :15672</div>
+                  </div>
+                  <div class="mc-desc">메시지 브로커</div>
+                  <div class="mc-tags"><span class="tag tag-rpm">RPM</span></div>
+                </div>
+              </div>
+              <div class="mon-note">※ jboss 계정 실행 (rpm2cpio ~ | cpio -idmv)</div>
+            </div>
+
+            <!-- 신규 -->
+            <div class="mon-sub mon-sub-n">
+              <div class="mon-sub-label">신규 추가 — AI 모니터링 고도화</div>
+              <div class="mon-comps">
+                <div class="mc mc-n">
+                  <div>
+                    <div class="mc-name">Loki</div>
+                    <div class="mc-port">:3100</div>
+                  </div>
+                  <div class="mc-desc">로그 저장</div>
+                  <div class="mc-tags"><span class="tag tag-docker">Docker</span><span class="tag tag-new">신규</span></div>
+                </div>
+                <div class="mc mc-n">
+                  <div>
+                    <div class="mc-name">Ollama</div>
+                    <div class="mc-port">:11434</div>
+                  </div>
+                  <div class="mc-desc">온프레미스 LLM</div>
+                  <div class="mc-tags"><span class="tag tag-docker">Docker</span><span class="tag tag-new">신규</span></div>
+                </div>
+                <div class="mc mc-n">
+                  <div>
+                    <div class="mc-name">FastAPI</div>
+                    <div class="mc-port">:8000</div>
+                  </div>
+                  <div class="mc-desc">AI분석 · 대상관리</div>
+                  <div class="mc-tags"><span class="tag tag-docker">Docker</span><span class="tag tag-new">신규</span></div>
+                </div>
+                <div class="mc mc-n">
+                  <div>
+                    <div class="mc-name">n8n</div>
+                    <div class="mc-port">:5678</div>
+                  </div>
+                  <div class="mc-desc">워크플로우 자동화</div>
+                  <div class="mc-tags"><span class="tag tag-docker">Docker</span><span class="tag tag-new">신규</span></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 3: RabbitMQ Queue + 인프라 -->
+      <div class="cell-right">
+        <div class="right-col">
+
+          <div class="rmq-box">
+            <div class="rmq-title">🐰 RabbitMQ Task Queue</div>
+            <div class="rmq-body">
+              <span class="ql">├ eQueue</span> &nbsp;(외부)<br>
+              <span class="ql">├ iQueue</span> &nbsp;(내부)<br>
+              <span class="ql">├ archiveQueue</span> &nbsp;(백업)<br>
+              <span class="ql">├ recoveryQueue</span> &nbsp;(복구)<br>
+              <span class="ql">└ fQueue</span> &nbsp;(실패/DLQ)
+            </div>
+            <div class="rmq-ports">
+              <div class="rmq-port"><span class="pn">15692</span><span>actuator</span></div>
+              <div class="rmq-port"><span class="pn">15672</span><span>관리 콘솔</span></div>
+              <div class="rmq-port"><span class="pn">5672</span><span>AMQP queue</span></div>
+            </div>
+          </div>
+
+          <div class="infra-stack">
+            <div class="infra-item">
+              <h4>🗄️ NAS</h4>
+              <p>FileSync<br>외부망 ↔ 내부망<br>↔ 백업서버</p>
+            </div>
+            <div class="infra-item">
+              <h4>🗃️ Tibero DB</h4>
+              <p>FileQ Table<br>@Scheduled<br>(6개월 cron)</p>
+            </div>
+            <div class="infra-item new-item">
+              <h4>📡 Health Beacon</h4>
+              <p>VPN 연결 시<br>HQ 상태 보고<br><span class="badge b-gray">v1:선택</span></p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /site-grid -->
+  </div><!-- /sec-site -->
+
+  <!-- ══ 데이터 흐름 ══ -->
+  <div class="flow-panel">
+    <div class="flow-title">데이터 흐름</div>
+    <div class="flow-grid">
+      <div class="fi c-gray">
+        <div class="fi-t">기존 · 메시지 큐</div>
+        <div class="fi-d">Consumer → Subscribe<br>RabbitMQ :5672<br>Exchange (Routing Key)</div>
+      </div>
+      <div class="fi c-orange">
+        <div class="fi-t">기존 · Prometheus 스크레이프</div>
+        <div class="fi-d">Prometheus :9091<br>→ 각 서버 actuator<br>(:8081 / :8083)</div>
+      </div>
+      <div class="fi c-blue">
+        <div class="fi-t">기존 · FileSync (NAS)</div>
+        <div class="fi-d">외부망 was ↔ NAS<br>↔ 내부망 was<br>↔ 백업서버 (광주)</div>
+      </div>
+      <div class="fi c-gray">
+        <div class="fi-t">기존 · Spring Cloud Gateway</div>
+        <div class="fi-d">HTTP Request<br>→ Load Balancing<br>WebFlux · CircuitBreaker</div>
+      </div>
+      <div class="fi c-green">
+        <div class="fi-t">신규 · Alloy 메트릭 수집</div>
+        <div class="fi-d">각 서버 Alloy :12345<br>→ Prometheus :9091<br>(DISK·CPU·데몬·포트)</div>
+      </div>
+      <div class="fi c-green">
+        <div class="fi-t">신규 · Alloy 로그 수집</div>
+        <div class="fi-d">각 서버 Alloy<br>→ Loki :3100<br>(앱로그·시스템로그)</div>
+      </div>
+      <div class="fi c-cyan">
+        <div class="fi-t">신규 · 자연어 AI 분석</div>
+        <div class="fi-d">FastAPI /api/analyze<br>→ Ollama → Prometheus<br>→ 자연어 요약</div>
+      </div>
+      <div class="fi c-purple">
+        <div class="fi-t">신규 · n8n 자동화</div>
+        <div class="fi-d">일일 리포트 (Cron 08:00)<br>알림 AI 보강 (Webhook)<br>Health Beacon (10분)</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-wrap -->
+
+<footer>
+  AI Agent 기반 지능형 통합 모니터링 고도화 &nbsp;·&nbsp; 실제 인프라 기반 설계 &nbsp;·&nbsp; 2인팀 v1 &nbsp;·&nbsp; 2026-05-28
+</footer>
+
+</body>
+</html>

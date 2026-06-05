@@ -1,0 +1,74 @@
+import { X } from 'lucide-react';
+import { cn } from '@/shared/utils/cn';
+
+export const Sheet = ({ open, onOpenChange, children }) => {
+    if (!open) return null;
+
+    return (
+        <div className='fixed inset-0 z-50'>
+            <button
+                type='button'
+                aria-label='Dismiss sheet backdrop'
+                className='absolute inset-0 bg-slate-950/40'
+                onClick={() => onOpenChange?.(false)}
+            />
+            {children}
+        </div>
+    );
+}
+
+export const SheetContent = ({ className, side = 'right', width = '480px', children }) => {
+    const sideClassName =
+        side === 'right'
+            ? 'right-0 top-0 h-full border-l'
+            : 'bottom-0 left-0 w-full border-t';
+
+    const style = side === 'right' ? { width } : undefined;
+
+    return (
+        <section
+            style={style}
+            className={cn(
+                'absolute z-10 flex bg-white shadow-2xl',
+                side === 'right' ? 'max-w-full flex-col' : 'max-h-[40vh] flex-col',
+                sideClassName,
+                className,
+            )}
+        >
+            {children}
+        </section>
+    );
+}
+
+export const SheetHeader = ({ className, children }) => {
+    return <header className={cn('flex items-center justify-between border-b px-4 py-3', className)}>{children}</header>;
+}
+
+export const SheetTitle = ({ className, children }) => {
+    return <h3 className={cn('m-0 text-base font-semibold text-slate-900', className)}>{children}</h3>;
+}
+
+export const SheetDescription = ({ className, children }) => {
+    return <p className={cn('m-0 text-sm text-slate-500', className)}>{children}</p>;
+}
+
+export const SheetBody = ({ className, children }) => {
+    return <div className={cn('flex-1 overflow-auto px-4 py-4', className)}>{children}</div>;
+}
+
+export const SheetFooter = ({ className, children }) => {
+    return <footer className={cn('flex justify-end gap-2 border-t px-4 py-3', className)}>{children}</footer>;
+}
+
+export const SheetClose = ({ className, onClick }) => {
+    return (
+        <button
+            type='button'
+            aria-label='Close sheet'
+            className={cn('inline-flex rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900', className)}
+            onClick={onClick}
+        >
+            <X className='h-4 w-4' />
+        </button>
+    );
+}

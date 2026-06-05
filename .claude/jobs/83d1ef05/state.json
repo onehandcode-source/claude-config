@@ -1,0 +1,33 @@
+{
+  "state": "done",
+  "detail": "`docs/cycles/03-c2-frontend-core/plan.md`와 `status.md`를 React 18 + Vite 5 스택 기준으로 재작성/갱신 완료 (worktree: c2-frontend-react-plan)",
+  "tempo": "idle",
+  "inFlight": {
+    "tasks": 0,
+    "queued": 0,
+    "kinds": []
+  },
+  "output": {
+    "result": "`docs/cycles/03-c2-frontend-core/plan.md`와 `status.md`를 React 18 + Vite 5 스택 기준으로 재작성/갱신 완료 (worktree: c2-frontend-react-plan)"
+  },
+  "children": null,
+  "linkScanOffset": 5548573,
+  "linkScanPath": "C:\\Users\\ygkim\\.claude\\projects\\D--20--POC-TrmWordDict\\83d1ef05-1595-4b81-962b-89f4178b16d4.jsonl",
+  "template": "claude",
+  "respawnFlags": [],
+  "intent": "03-c2-frontend-core 하위 plan.md파일 수정이 필요함. 01. system.md파일에 의하면 frontend는 react로 진행하기로 되어있음.",
+  "name": "frontend core plan rewrite",
+  "nameSource": "auto",
+  "sessionId": "83d1ef05-1595-4b81-962b-89f4178b16d4",
+  "resumeSessionId": "83d1ef05-1595-4b81-962b-89f4178b16d4",
+  "daemonShort": "83d1ef05",
+  "cliVersion": "2.1.140",
+  "cwd": "D:\\20. POC\\TrmWordDict",
+  "createdAt": "2026-05-15T07:46:15.394Z",
+  "updatedAt": "2026-05-18T03:57:20.489Z",
+  "firstTerminalAt": "2026-05-15T08:25:13.307Z",
+  "worktreePath": "D:\\20. POC\\TrmWordDict\\.claude\\worktrees\\c2-frontend-react-plan",
+  "worktreeBranch": "worktree-c2-frontend-react-plan",
+  "originCwd": "D:\\20. POC\\TrmWordDict",
+  "backend": "daemon"
+}

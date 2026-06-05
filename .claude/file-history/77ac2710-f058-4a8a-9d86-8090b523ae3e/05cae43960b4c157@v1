@@ -1,0 +1,11 @@
+import { http, unwrapResponse } from '@/core/api/http';
+
+export async function searchDomains(payload) {
+    const response = await http.post('/v1/domains/search', payload);
+    return unwrapResponse(response);
+}
+
+export async function getDomainById(id) {
+    const response = await http.get(`/v1/domains/${id}`);
+    return unwrapResponse(response);
+}

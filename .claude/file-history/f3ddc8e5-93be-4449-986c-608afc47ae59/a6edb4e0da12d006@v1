@@ -1,0 +1,123 @@
+﻿{
+  "id": "scenario-safereport-001",
+  "name": "안전신고 - 안전분야 신고유형별 테스트",
+  "description": "안전신고 페이지(#safereport/safereport)에서 안전분야 신고유형을 각각 선택했을 때 폼 상태를 검증한다.",
+  "testCases": [
+    {
+      "id": "tc-safereport-01",
+      "name": "안전분야 - 도로, 시설물 파손 및 고장",
+      "target": "web",
+      "baseUrl": "http://localhost:8080",
+      "steps": [
+        { "type": "navigate", "url": "http://localhost:8080/#safereport/safereport", "description": "안전신고 페이지 이동" },
+        { "type": "wait", "milliseconds": 2000, "description": "페이지 로드 대기" },
+        { "type": "screenshot", "description": "신고 페이지 초기 상태" },
+        { "type": "select", "selector": "#ReportTypeSelect", "text": "01", "description": "신고유형 선택: 도로, 시설물 파손 및 고장" },
+        { "type": "wait", "milliseconds": 500, "description": "신고유형 변경 반영 대기" },
+        { "type": "evaluate", "script": "document.querySelector('#C_A_CONTENTS').placeholder", "description": "신고내용 placeholder 확인" },
+        { "type": "screenshot", "description": "신고유형 선택 후 폼 상태" }
+      ]
+    },
+    {
+      "id": "tc-safereport-02",
+      "name": "안전분야 - 사업장 안전(건설·공사현장 등)",
+      "target": "web",
+      "baseUrl": "http://localhost:8080",
+      "steps": [
+        { "type": "navigate", "url": "http://localhost:8080/#safereport/safereport", "description": "안전신고 페이지 이동" },
+        { "type": "wait", "milliseconds": 2000, "description": "페이지 로드 대기" },
+        { "type": "select", "selector": "#ReportTypeSelect", "text": "02", "description": "신고유형 선택: 사업장 안전(건설·공사현장 등)" },
+        { "type": "wait", "milliseconds": 500, "description": "신고유형 변경 반영 대기" },
+        { "type": "evaluate", "script": "document.querySelector('#C_A_CONTENTS').placeholder", "description": "신고내용 placeholder 확인" },
+        { "type": "screenshot", "description": "신고유형 선택 후 폼 상태" }
+      ]
+    },
+    {
+      "id": "tc-safereport-09",
+      "name": "안전분야 - 대기오염",
+      "target": "web",
+      "baseUrl": "http://localhost:8080",
+      "steps": [
+        { "type": "navigate", "url": "http://localhost:8080/#safereport/safereport", "description": "안전신고 페이지 이동" },
+        { "type": "wait", "milliseconds": 2000, "description": "페이지 로드 대기" },
+        { "type": "select", "selector": "#ReportTypeSelect", "text": "09", "description": "신고유형 선택: 대기오염" },
+        { "type": "wait", "milliseconds": 500, "description": "신고유형 변경 반영 대기" },
+        { "type": "evaluate", "script": "document.querySelector('#C_A_CONTENTS').placeholder", "description": "신고내용 placeholder 확인" },
+        { "type": "screenshot", "description": "신고유형 선택 후 폼 상태" }
+      ]
+    },
+    {
+      "id": "tc-safereport-10",
+      "name": "안전분야 - 수질오염",
+      "target": "web",
+      "baseUrl": "http://localhost:8080",
+      "steps": [
+        { "type": "navigate", "url": "http://localhost:8080/#safereport/safereport", "description": "안전신고 페이지 이동" },
+        { "type": "wait", "milliseconds": 2000, "description": "페이지 로드 대기" },
+        { "type": "select", "selector": "#ReportTypeSelect", "text": "10", "description": "신고유형 선택: 수질오염" },
+        { "type": "wait", "milliseconds": 500, "description": "신고유형 변경 반영 대기" },
+        { "type": "evaluate", "script": "document.querySelector('#C_A_CONTENTS').placeholder", "description": "신고내용 placeholder 확인" },
+        { "type": "screenshot", "description": "신고유형 선택 후 폼 상태" }
+      ]
+    },
+    {
+      "id": "tc-safereport-11",
+      "name": "안전분야 - 소방안전",
+      "target": "web",
+      "baseUrl": "http://localhost:8080",
+      "steps": [
+        { "type": "navigate", "url": "http://localhost:8080/#safereport/safereport", "description": "안전신고 페이지 이동" },
+        { "type": "wait", "milliseconds": 2000, "description": "페이지 로드 대기" },
+        { "type": "select", "selector": "#ReportTypeSelect", "text": "11", "description": "신고유형 선택: 소방안전" },
+        { "type": "wait", "milliseconds": 500, "description": "신고유형 변경 반영 대기" },
+        { "type": "evaluate", "script": "document.querySelector('#C_A_CONTENTS').placeholder", "description": "신고내용 placeholder 확인" },
+        { "type": "screenshot", "description": "신고유형 선택 후 폼 상태" }
+      ]
+    },
+    {
+      "id": "tc-safereport-13",
+      "name": "안전분야 - 계절별 집중신고",
+      "target": "web",
+      "baseUrl": "http://localhost:8080",
+      "steps": [
+        { "type": "navigate", "url": "http://localhost:8080/#safereport/safereport", "description": "안전신고 페이지 이동" },
+        { "type": "wait", "milliseconds": 2000, "description": "페이지 로드 대기" },
+        { "type": "select", "selector": "#ReportTypeSelect", "text": "13", "description": "신고유형 선택: 계절별 집중신고" },
+        { "type": "wait", "milliseconds": 500, "description": "신고유형 변경 반영 대기" },
+        { "type": "evaluate", "script": "document.querySelector('#C_A_CONTENTS').placeholder", "description": "신고내용 placeholder 확인" },
+        { "type": "screenshot", "description": "신고유형 선택 후 폼 상태" }
+      ]
+    },
+    {
+      "id": "tc-safereport-14",
+      "name": "안전분야 - 하천·계곡 내 불법시설",
+      "target": "web",
+      "baseUrl": "http://localhost:8080",
+      "steps": [
+        { "type": "navigate", "url": "http://localhost:8080/#safereport/safereport", "description": "안전신고 페이지 이동" },
+        { "type": "wait", "milliseconds": 2000, "description": "페이지 로드 대기" },
+        { "type": "select", "selector": "#ReportTypeSelect", "text": "14", "description": "신고유형 선택: 하천·계곡 내 불법시설" },
+        { "type": "wait", "milliseconds": 500, "description": "신고유형 변경 반영 대기" },
+        { "type": "evaluate", "script": "document.querySelector('#C_A_CONTENTS').placeholder", "description": "신고내용 placeholder 확인" },
+        { "type": "screenshot", "description": "신고유형 선택 후 폼 상태" }
+      ]
+    },
+    {
+      "id": "tc-safereport-07",
+      "name": "안전분야 - 기타 안전·환경 위험요소",
+      "target": "web",
+      "baseUrl": "http://localhost:8080",
+      "steps": [
+        { "type": "navigate", "url": "http://localhost:8080/#safereport/safereport", "description": "안전신고 페이지 이동" },
+        { "type": "wait", "milliseconds": 2000, "description": "페이지 로드 대기" },
+        { "type": "select", "selector": "#ReportTypeSelect", "text": "07", "description": "신고유형 선택: 기타 안전·환경 위험요소" },
+        { "type": "wait", "milliseconds": 500, "description": "신고유형 변경 반영 대기" },
+        { "type": "evaluate", "script": "document.querySelector('#C_A_CONTENTS').placeholder", "description": "신고내용 placeholder 확인" },
+        { "type": "evaluate", "script": "document.querySelector('#otherChkDiv').style.display", "description": "기타 체크박스 영역 표시 여부 확인" },
+        { "type": "screenshot", "description": "신고유형 선택 후 폼 상태" }
+      ]
+    }
+  ],
+  "createdAt": "2026-05-11T00:00:00.000Z",
+  "updatedAt": "2026-05-11T00:00:00.000Z"
+}

@@ -1,0 +1,201 @@
+import { AgGridReact } from 'ag-grid-react';
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
+import { useCallback, useMemo, useRef } from 'react';
+import * as XLSX from 'xlsx';
+import { cn } from '@/lib/utils';
+import { Button } from '../ui/button';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+const gridTheme = themeQuartz.withParams({
+    backgroundColor: 'hsl(var(--card))',
+    foregroundColor: 'hsl(var(--foreground))',
+    borderColor: 'hsl(var(--border))',
+    headerBackgroundColor: 'hsl(var(--muted))',
+    headerTextColor: 'hsl(var(--muted-foreground))',
+    headerFontWeight: 600,
+    rowHoverColor: 'hsl(var(--accent))',
+    selectedRowBackgroundColor: 'hsl(var(--secondary))',
+    fontFamily: 'inherit',
+    fontSize: 13,
+    rowHeight: 40,
+    headerHeight: 40,
+});
+
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const DEFAULT_COLUMNS = [];
+
+const buildPageItems = (currentPage, totalPages) => {
+    if (totalPages <= 1) {
+        return [];
+    }
+
+    if (totalPages <= 7) {
+        return Array.from({ length: totalPages }, (_, index) => ({ type: 'page', value: index + 1 }));
+    }
+
+    const pages = new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+    const ordered = [...pages]
+        .filter((page) => page >= 1 && page <= totalPages)
+        .sort((a, b) => a - b);
+
+    const items = [];
+    let lastPage = 0;
+
+    ordered.forEach((page) => {
+        if (page - lastPage > 1) {
+            items.push({ type: 'ellipsis', key: `ellipsis-${lastPage}-${page}` });
+        }
+
+        items.push({ type: 'page', value: page });
+        lastPage = page;
+    });
+
+    return items;
+};
+
+const getCellStyle = (align) => {
+    if (align === 'center') return { textAlign: 'center' };
+    if (align === 'end') return { textAlign: 'right' };
+    return { textAlign: 'left' };
+};
+
+export const DataGrid = ({
+    columns = DEFAULT_COLUMNS,
+    pageData = null,
+    pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
+    selectable = false,
+    onPageChange,
+    onSortChange,
+    onSelectionChange,
+    onRowClick,
+}) => {
+    const gridRef = useRef();
+    const rows = pageData?.items ?? [];
+    const pageItems = useMemo(
+        () => buildPageItems(pageData?.page ?? 1, pageData?.totalPages ?? 1),
+        [pageData?.page, pageData?.totalPages],
+    );
+
+    const columnDefs = useMemo(
+        () =>
+            columns.map((col) => ({
+                field: col.key,
+                headerName: col.header,
+                sortable: col.sortable ?? false,
+                filter: 'agTextColumnFilter',
+                width: col.width ?? undefined,
+                flex: col.width ? undefined : 1,
+                pinned: col.pin ?? null,
+                cellStyle: getCellStyle(col.align),
+                cellRenderer: col.cell
+                    ? ({ value, data }) => col.cell({ value, row: data })
+                    : undefined,
+                suppressMovable: true,
+                resizable: true,
+            })),
+        [columns],
+    );
+
+    const onSortChanged = useCallback(
+        (event) => {
+            const sorted = event.api.getColumnState().find((c) => c.sort);
+            if (sorted) {
+                onSortChange?.({ active: sorted.colId, direction: sorted.sort });
+            } else {
+                onSortChange?.({ active: null, direction: '' });
+            }
+        },
+        [onSortChange],
+    );
+
+    const onSelectionChanged = useCallback(
+        (event) => {
+            onSelectionChange?.(event.api.getSelectedRows());
+        },
+        [onSelectionChange],
+    );
+
+    const handleExcelExport = useCallback(() => {
+        const headers = columns.map((c) => c.header);
+        const data = rows.map((row) => columns.map((c) => row[c.key] ?? ''));
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+        XLSX.writeFile(wb, 'export.xlsx');
+    }, [columns, rows]);
+
+    return (
+        <section className='overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm'>
+            <div className='flex items-center justify-end border-b border-border px-3 py-2'>
+                <Button variant='outline' size='sm' onClick={handleExcelExport}>
+                    엑셀 다운로드
+                </Button>
+            </div>
+            <AgGridReact
+                ref={gridRef}
+                theme={gridTheme}
+                rowData={rows}
+                columnDefs={columnDefs}
+                domLayout='autoHeight'
+                rowSelection={
+                    selectable
+                        ? { mode: 'multiRow', checkboxes: true, headerCheckbox: true }
+                        : undefined
+                }
+                onSortChanged={onSortChanged}
+                onSelectionChanged={onSelectionChanged}
+                onRowClicked={(event) => onRowClick?.(event.data)}
+                suppressCellFocus
+                suppressRowClickSelection={selectable}
+            />
+
+            {pageData ? (
+                <footer className='flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3'>
+                    <div className='text-sm text-muted-foreground'>
+                        페이지 {pageData.page} / {pageData.totalPages} · {pageData.totalElements}건
+                    </div>
+                    <div className='flex flex-wrap items-center gap-2'>
+                        <select
+                            aria-label='Page size'
+                            className='h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm'
+                            value={pageData.size}
+                            onChange={(event) =>
+                                onPageChange?.({
+                                    page: 1,
+                                    size: Number(event.target.value),
+                                })
+                            }
+                        >
+                            {pageSizeOptions.map((option) => (
+                                <option key={option} value={option}>
+                                    {option} / page
+                                </option>
+                            ))}
+                        </select>
+                        <div className='flex items-center gap-1'>
+                            {pageItems.map((item) =>
+                                item.type === 'ellipsis' ? (
+                                    <span key={item.key} className='px-2 text-sm text-muted-foreground'>
+                                        ...
+                                    </span>
+                                ) : (
+                                    <Button
+                                        key={item.value}
+                                        variant={item.value === pageData.page ? 'default' : 'outline'}
+                                        size='sm'
+                                        className={cn('min-w-9 px-3', item.value === pageData.page && 'pointer-events-none')}
+                                        aria-current={item.value === pageData.page ? 'page' : undefined}
+                                        onClick={() => onPageChange?.({ page: item.value, size: pageData.size })}
+                                    >
+                                        {item.value}
+                                    </Button>
+                                ),
+                            )}
+                        </div>
+                    </div>
+                </footer>
+            ) : null}
+        </section>
+    );
+};

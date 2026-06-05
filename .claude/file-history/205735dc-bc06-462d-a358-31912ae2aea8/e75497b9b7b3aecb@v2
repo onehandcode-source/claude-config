@@ -1,0 +1,2905 @@
+# Universal Regression Test Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** Add a `Site` domain that lets users register any website, crawl it with BFS, capture DOM + screenshot baselines, and detect regressions by comparing later runs against the baseline. The existing `Scenario` flow is untouched.
+
+**Architecture:** Add a parallel domain (`Site`) with its own types, manager, crawler, runner, diff engine, API routes, and UI. Reuse only `chromium`/Playwright primitives via a new `lib/browser-bootstrap.ts`. Persistence is plain JSON files under `data/sites/<siteId>/...`. Visual diff uses `pixelmatch` + `pngjs`; DOM diff uses `diff` after deterministic normalization in `page.evaluate`. Auth is handled by Playwright `storageState`.
+
+**Tech Stack:** Next.js 14 (App Router) · TypeScript · Playwright (chromium) · pixelmatch · pngjs · diff · jsdom (test only) · Node `node:test`-style unit tests under `tests/unit/` (existing convention) · Tailwind / shadcn-style UI components (already present).
+
+**Design doc:** `docs/plans/2026-06-04-universal-regression-test-design.md` (commit `3634aa8`). Companion to the existing `docs/design/01_시스템설계.md` describing the Scenario domain.
+
+---
+
+## How to read this plan
+
+- Steps inside a task are 2–5 minutes each. Do them in order.
+- TDD is the default: write the failing test → run it → write the minimal code → run it → commit.
+- Every task ends with **one commit**. The commit subject is prescribed; the body is optional.
+- File paths are repo-root relative (no leading `./`).
+- `Expected: FAIL ...` describes the only failure mode you should accept; a different failure means fix the test first.
+- "Mirror the existing pattern" means open the referenced existing file and copy its shape. Do not invent new patterns.
+- Run unit tests via `npx tsx --test tests/unit/<file>.test.ts`. The existing `tests/unit/*.test.ts` files follow the same pattern.
+
+---
+
+## Task 0 — Prep: dependencies, gitignore, scaffolding
+
+**Files:**
+- Modify: `package.json`
+- Modify: `.gitignore`
+- Create: `data/sites/.gitkeep`
+
+**Step 1: Add npm dependencies**
+
+```bash
+npm install pixelmatch@5 pngjs@7 diff@5
+npm install -D @types/pixelmatch @types/pngjs @types/diff jsdom@22 @types/jsdom
+```
+
+Expected: `package.json` lists them. No install errors.
+
+**Step 2: Update `.gitignore`**
+
+Append:
+
+```gitignore
+
+# Universal regression test (Site domain)
+data/sites/*/storage-state.json
+data/sites/*/runs/
+data/sites/*/baseline/
+data/sites/*/baseline.json
+data/sites/*/baseline.*.archive.json
+```
+
+Rationale: storage-state holds credentials; run artifacts are large and machine-specific; baselines should be regenerated on demand.
+
+**Step 3: Scaffold directory anchor**
+
+```bash
+mkdir -p data/sites
+touch data/sites/.gitkeep
+```
+
+**Step 4: Commit**
+
+```bash
+git add package.json package-lock.json .gitignore data/sites/.gitkeep
+git commit -m "chore(site): add deps and gitignore for site domain"
+```
+
+---
+
+## Task 1 — `lib/site-types.ts`
+
+**Files:**
+- Create: `lib/site-types.ts`
+
+No test in this task — pure types. Subsequent tasks exercise these.
+
+**Step 1: Create the type module**
+
+```ts
+export interface SiteCrawlConfig {
+  startUrls: string[];
+  maxDepth: number;
+  maxPages: number;
+  includePatterns?: string[];
+  excludePatterns?: string[];
+  allowSubdomains: boolean;
+}
+
+export interface VisualConfig {
+  enabled: boolean;
+  maskSelectors: string[];
+  threshold: number;
+  maxDiffRatio: number;
+  viewport: { width: number; height: number };
+}
+
+export interface DomConfig {
+  enabled: boolean;
+  ignoreSelectors: string[];
+  normalizeWhitespace: boolean;
+}
+
+export interface Site {
+  id: string;
+  name: string;
+  description?: string;
+  crawl: SiteCrawlConfig;
+  visual: VisualConfig;
+  dom: DomConfig;
+  storageStatePath?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SitePageCapture {
+  url: string;
+  finalUrl: string;
+  httpStatus: number;
+  domHash: string;
+  domSerialized: string;
+  screenshotPath?: string;
+  capturedAt: string;
+}
+
+export interface SiteRunResult {
+  runId: string;
+  siteId: string;
+  startedAt: string;
+  finishedAt: string;
+  status: "completed" | "partial" | "error";
+  pages: SitePageCapture[];
+  errors: { url: string; message: string }[];
+}
+
+export type PageDiffStatus =
+  | "identical" | "domChanged" | "visualChanged"
+  | "both" | "missing" | "added" | "error";
+
+export interface PageDiff {
+  url: string;
+  status: PageDiffStatus;
+  domDiff?: { added: string[]; removed: string[]; changed: string[] };
+  visualDiff?: { diffPixels: number; diffRatio: number; diffImagePath: string };
+  severity: "critical" | "warning" | "info";
+}
+
+export interface SiteReport {
+  siteId: string;
+  baselineRunId: string;
+  currentRunId: string;
+  comparedAt: string;
+  overall: "identical" | "different" | "error";
+  pageDiffs: PageDiff[];
+}
+
+export interface SiteRunProgress {
+  siteId: string;
+  runId: string;
+  status: "idle" | "running" | "completed" | "error";
+  startedAt: string;
+  updatedAt: string;
+  visited: number;
+  total: number;
+  currentUrl?: string;
+  message?: string;
+  error?: string;
+}
+```
+
+**Step 2: tsc sanity**
+
+```bash
+npx tsc --noEmit
+```
+
+Expected: no new errors.
+
+**Step 3: Commit**
+
+```bash
+git add lib/site-types.ts
+git commit -m "feat(site): add site-types module"
+```
+
+---
+
+## Task 2 — `lib/url-normalizer.ts` (TDD)
+
+**Files:**
+- Create: `tests/unit/url-normalizer.test.ts`
+- Create: `lib/url-normalizer.ts`
+
+**Step 1: Write failing tests**
+
+```ts
+import test from "node:test";
+import assert from "node:assert/strict";
+import { normalizeUrl, isHttpUrl, sameOrigin } from "../../lib/url-normalizer.ts";
+
+test("lowercases protocol and host", () => {
+  assert.equal(normalizeUrl("HTTPS://Example.COM/Path"), "https://example.com/Path");
+});
+
+test("strips fragment", () => {
+  assert.equal(normalizeUrl("https://a.com/x#frag"), "https://a.com/x");
+});
+
+test("preserves query string", () => {
+  assert.equal(normalizeUrl("https://a.com/x?b=2&a=1"), "https://a.com/x?b=2&a=1");
+});
+
+test("removes trailing slash except for root", () => {
+  assert.equal(normalizeUrl("https://a.com/x/"), "https://a.com/x");
+  assert.equal(normalizeUrl("https://a.com/"), "https://a.com/");
+});
+
+test("resolves relative against base", () => {
+  assert.equal(normalizeUrl("/about", "https://a.com/home"), "https://a.com/about");
+});
+
+test("isHttpUrl: accepts http(s), rejects mailto/javascript/file", () => {
+  assert.equal(isHttpUrl("https://a.com"), true);
+  assert.equal(isHttpUrl("http://a.com"), true);
+  assert.equal(isHttpUrl("mailto:x@y.com"), false);
+  assert.equal(isHttpUrl("javascript:alert(1)"), false);
+  assert.equal(isHttpUrl("file:///etc/passwd"), false);
+});
+
+test("sameOrigin honors allowSubdomains=false", () => {
+  assert.equal(sameOrigin("https://a.com/x", "https://a.com/y", false), true);
+  assert.equal(sameOrigin("https://a.com/x", "https://sub.a.com/y", false), false);
+});
+
+test("sameOrigin honors allowSubdomains=true", () => {
+  assert.equal(sameOrigin("https://a.com/x", "https://sub.a.com/y", true), true);
+  assert.equal(sameOrigin("https://a.com/x", "https://b.com/y", true), false);
+});
+
+test("returns null for malformed URL", () => {
+  assert.equal(normalizeUrl("::::bad::::"), null);
+});
+```
+
+**Step 2: Run to verify failure**
+
+```bash
+npx tsx --test tests/unit/url-normalizer.test.ts
+```
+
+Expected: FAIL with "Cannot find module ... url-normalizer".
+
+**Step 3: Implement**
+
+```ts
+export function normalizeUrl(input: string, base?: string): string | null {
+  try {
+    const url = base ? new URL(input, base) : new URL(input);
+    url.protocol = url.protocol.toLowerCase();
+    url.hostname = url.hostname.toLowerCase();
+    url.hash = "";
+    if (url.pathname.length > 1 && url.pathname.endsWith("/")) {
+      url.pathname = url.pathname.replace(/\/+$/, "");
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+export function isHttpUrl(input: string): boolean {
+  try {
+    const protocol = new URL(input).protocol;
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+export function sameOrigin(a: string, b: string, allowSubdomains: boolean): boolean {
+  try {
+    const left = new URL(a);
+    const right = new URL(b);
+    if (left.protocol !== right.protocol) return false;
+    if (allowSubdomains) {
+      const leftRoot = left.hostname.split(".").slice(-2).join(".");
+      const rightRoot = right.hostname.split(".").slice(-2).join(".");
+      return leftRoot === rightRoot;
+    }
+    return left.host === right.host;
+  } catch {
+    return false;
+  }
+}
+```
+
+**Step 4: Run to verify pass**
+
+```bash
+npx tsx --test tests/unit/url-normalizer.test.ts
+```
+
+Expected: PASS — 9/9.
+
+**Step 5: Commit**
+
+```bash
+git add lib/url-normalizer.ts tests/unit/url-normalizer.test.ts
+git commit -m "feat(site): add url-normalizer with tests"
+```
+
+---
+
+## Task 3 — `lib/browser-bootstrap.ts`
+
+**Files:**
+- Create: `lib/browser-bootstrap.ts`
+
+No unit test — exercised by e2e in Task 20.
+
+**Step 1: Implement**
+
+```ts
+import { chromium, type Browser, type BrowserContext } from "@playwright/test";
+
+export interface SiteContextOptions {
+  storageStatePath?: string;
+  viewport?: { width: number; height: number };
+}
+
+export async function launchBrowser(): Promise<Browser> {
+  return chromium.launch({ headless: true });
+}
+
+export async function newSiteContext(
+  browser: Browser,
+  options: SiteContextOptions
+): Promise<BrowserContext> {
+  return browser.newContext({
+    storageState: options.storageStatePath,
+    viewport: options.viewport ?? { width: 1280, height: 800 },
+  });
+}
+```
+
+**Step 2: tsc**
+
+```bash
+npx tsc --noEmit
+```
+
+**Step 3: Commit**
+
+```bash
+git add lib/browser-bootstrap.ts
+git commit -m "feat(site): add browser-bootstrap helper"
+```
+
+---
+
+## Task 4 — `lib/dom-normalizer.ts` (TDD with jsdom)
+
+**Files:**
+- Create: `tests/unit/dom-normalizer.test.ts`
+- Create: `lib/dom-normalizer.ts`
+
+Two layers:
+- `normalizeHtmlString(html, config)` — jsdom-based, used in tests and offline re-comparison.
+- The browser-side mirror lives inside SiteRunner (Task 10), executed via `page.evaluate`.
+
+**Step 1: Write failing tests**
+
+```ts
+import test from "node:test";
+import assert from "node:assert/strict";
+import { normalizeHtmlString } from "../../lib/dom-normalizer.ts";
+import type { DomConfig } from "../../lib/site-types.ts";
+
+const baseConfig: DomConfig = {
+  enabled: true,
+  ignoreSelectors: [],
+  normalizeWhitespace: true,
+};
+
+test("removes script/style/noscript", () => {
+  const { serialized } = normalizeHtmlString(
+    `<html><body><script>x</script><style>y</style><noscript>z</noscript><p>keep</p></body></html>`,
+    baseConfig
+  );
+  assert.ok(serialized.includes("keep"));
+  assert.ok(!serialized.includes("script"));
+  assert.ok(!serialized.includes("style"));
+  assert.ok(!serialized.includes("noscript"));
+});
+
+test("removes ignoreSelectors matches", () => {
+  const { serialized } = normalizeHtmlString(
+    `<html><body><p>keep</p><div class="ad">drop</div></body></html>`,
+    { ...baseConfig, ignoreSelectors: [".ad"] }
+  );
+  assert.ok(serialized.includes("keep"));
+  assert.ok(!serialized.includes("drop"));
+});
+
+test("normalizes whitespace in text nodes", () => {
+  const { serialized } = normalizeHtmlString(
+    `<html><body><p>a   b\n\nc</p></body></html>`,
+    baseConfig
+  );
+  assert.ok(serialized.includes("a b c"));
+});
+
+test("sorts attributes alphabetically", () => {
+  const { serialized } = normalizeHtmlString(
+    `<html><body><a href="x" class="c" id="i">t</a></body></html>`,
+    baseConfig
+  );
+  const idx = (s: string) => serialized.indexOf(s);
+  assert.ok(idx("class=") < idx("href="));
+  assert.ok(idx("href=") < idx("id="));
+});
+
+test("same input -> same hash", () => {
+  const html = `<html><body><p>hi</p></body></html>`;
+  const a = normalizeHtmlString(html, baseConfig);
+  const b = normalizeHtmlString(html, baseConfig);
+  assert.equal(a.hash, b.hash);
+  assert.equal(a.hash.length, 64);
+});
+
+test("different input -> different hash", () => {
+  const a = normalizeHtmlString(`<html><body><p>a</p></body></html>`, baseConfig);
+  const b = normalizeHtmlString(`<html><body><p>b</p></body></html>`, baseConfig);
+  assert.notEqual(a.hash, b.hash);
+});
+
+test("masks auto-generated id-like attribute values", () => {
+  const { hash: h1 } = normalizeHtmlString(
+    `<html><body><div aria-describedby="tooltip-a1b2c3">t</div></body></html>`,
+    baseConfig
+  );
+  const { hash: h2 } = normalizeHtmlString(
+    `<html><body><div aria-describedby="tooltip-x9y8z7">t</div></body></html>`,
+    baseConfig
+  );
+  assert.equal(h1, h2);
+});
+```
+
+**Step 2: Run to verify failure**
+
+```bash
+npx tsx --test tests/unit/dom-normalizer.test.ts
+```
+
+Expected: FAIL — module not found.
+
+**Step 3: Implement**
+
+```ts
+import { createHash } from "node:crypto";
+import { JSDOM } from "jsdom";
+import type { DomConfig } from "./site-types.ts";
+
+const ID_LIKE_ATTR_PATTERN = /-?[a-z0-9]{6,}/gi;
+const ID_BEARING_ATTRS = new Set([
+  "aria-describedby",
+  "aria-labelledby",
+  "aria-controls",
+  "aria-owns",
+  "id",
+  "for",
+]);
+
+export interface NormalizeResult {
+  serialized: string;
+  hash: string;
+}
+
+export function normalizeHtmlString(html: string, config: DomConfig): NormalizeResult {
+  const dom = new JSDOM(html);
+  const document = dom.window.document;
+
+  document.querySelectorAll("script, style, noscript").forEach((n) => n.remove());
+  for (const selector of config.ignoreSelectors) {
+    document.querySelectorAll(selector).forEach((n) => n.remove());
+  }
+
+  walk(document.body, config);
+
+  const serialized = document.body ? document.body.outerHTML : "";
+  const hash = createHash("sha256").update(serialized).digest("hex");
+
+  return { serialized, hash };
+}
+
+function walk(node: Element | null, config: DomConfig): void {
+  if (!node) return;
+
+  if (node.attributes) {
+    const attrs = Array.from(node.attributes);
+    const sorted = attrs
+      .map((a) => ({
+        name: a.name,
+        value: ID_BEARING_ATTRS.has(a.name)
+          ? a.value.replace(ID_LIKE_ATTR_PATTERN, "<id>")
+          : a.value,
+      }))
+      .sort((x, y) => x.name.localeCompare(y.name));
+
+    for (const a of attrs) node.removeAttribute(a.name);
+    for (const { name, value } of sorted) node.setAttribute(name, value);
+  }
+
+  for (const child of Array.from(node.childNodes)) {
+    if (child.nodeType === 3) {
+      if (config.normalizeWhitespace && child.textContent) {
+        child.textContent = child.textContent.replace(/\s+/g, " ").trim();
+      }
+    } else if (child.nodeType === 1) {
+      walk(child as Element, config);
+    }
+  }
+}
+```
+
+**Step 4: Run to verify pass**
+
+```bash
+npx tsx --test tests/unit/dom-normalizer.test.ts
+```
+
+Expected: PASS — 7/7.
+
+**Step 5: Commit**
+
+```bash
+git add lib/dom-normalizer.ts tests/unit/dom-normalizer.test.ts
+git commit -m "feat(site): add dom-normalizer with jsdom-based tests"
+```
+
+---
+
+## Task 5 — `lib/visual-diff.ts` (TDD)
+
+**Files:**
+- Create: `tests/fixtures/visual/red-10x10.png`
+- Create: `tests/fixtures/visual/red-10x10-copy.png`
+- Create: `tests/fixtures/visual/blue-10x10.png`
+- Create: `tests/unit/visual-diff.test.ts`
+- Create: `lib/visual-diff.ts`
+
+**Step 1: Generate PNG fixtures (one-time script)**
+
+`scratch/gen-fixtures.ts`:
+
+```ts
+import fs from "node:fs";
+import { PNG } from "pngjs";
+
+function solid(filename: string, r: number, g: number, b: number) {
+  const png = new PNG({ width: 10, height: 10 });
+  for (let i = 0; i < png.data.length; i += 4) {
+    png.data[i] = r;
+    png.data[i + 1] = g;
+    png.data[i + 2] = b;
+    png.data[i + 3] = 255;
+  }
+  fs.writeFileSync(filename, PNG.sync.write(png));
+}
+
+fs.mkdirSync("tests/fixtures/visual", { recursive: true });
+solid("tests/fixtures/visual/red-10x10.png", 255, 0, 0);
+solid("tests/fixtures/visual/red-10x10-copy.png", 255, 0, 0);
+solid("tests/fixtures/visual/blue-10x10.png", 0, 0, 255);
+```
+
+```bash
+npx tsx scratch/gen-fixtures.ts
+rm -rf scratch
+```
+
+**Step 2: Write failing tests**
+
+```ts
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { compareImages } from "../../lib/visual-diff.ts";
+
+const FIX = "tests/fixtures/visual";
+const TMP = "tests/fixtures/visual/.tmp";
+
+test.before(() => fs.mkdirSync(TMP, { recursive: true }));
+test.after(() => fs.rmSync(TMP, { recursive: true, force: true }));
+
+test("identical images produce diffRatio 0", async () => {
+  const result = await compareImages(
+    path.join(FIX, "red-10x10.png"),
+    path.join(FIX, "red-10x10-copy.png"),
+    { threshold: 0.1, diffImagePath: path.join(TMP, "diff-eq.png") }
+  );
+  assert.equal(result.diffPixels, 0);
+  assert.equal(result.diffRatio, 0);
+});
+
+test("fully different images produce diffRatio near 1", async () => {
+  const result = await compareImages(
+    path.join(FIX, "red-10x10.png"),
+    path.join(FIX, "blue-10x10.png"),
+    { threshold: 0.1, diffImagePath: path.join(TMP, "diff-rb.png") }
+  );
+  assert.equal(result.diffPixels, 100);
+  assert.equal(result.diffRatio, 1);
+  assert.ok(fs.existsSync(path.join(TMP, "diff-rb.png")));
+});
+```
+
+**Step 3: Run to verify failure**
+
+```bash
+npx tsx --test tests/unit/visual-diff.test.ts
+```
+
+Expected: FAIL — module not found.
+
+**Step 4: Implement**
+
+```ts
+import fs from "node:fs";
+import path from "node:path";
+import { PNG } from "pngjs";
+import pixelmatch from "pixelmatch";
+import type { Page } from "@playwright/test";
+import type { VisualConfig } from "./site-types.ts";
+
+export interface CompareOptions {
+  threshold: number;
+  diffImagePath: string;
+}
+
+export interface CompareResult {
+  diffPixels: number;
+  diffRatio: number;
+  diffImagePath: string;
+}
+
+export async function captureMasked(
+  page: Page,
+  config: VisualConfig,
+  outputPath: string
+): Promise<Buffer> {
+  await page.setViewportSize(config.viewport);
+  const mask = config.maskSelectors.map((s) => page.locator(s));
+  const buffer = await page.screenshot({ fullPage: true, mask });
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, buffer);
+  return buffer;
+}
+
+export async function compareImages(
+  baselinePath: string,
+  currentPath: string,
+  options: CompareOptions
+): Promise<CompareResult> {
+  const baseline = PNG.sync.read(fs.readFileSync(baselinePath));
+  const current = PNG.sync.read(fs.readFileSync(currentPath));
+
+  const width = Math.max(baseline.width, current.width);
+  const height = Math.max(baseline.height, current.height);
+
+  const a = pad(baseline, width, height);
+  const b = pad(current, width, height);
+  const diff = new PNG({ width, height });
+
+  const diffPixels = pixelmatch(a.data, b.data, diff.data, width, height, {
+    threshold: options.threshold,
+    includeAA: false,
+  });
+
+  fs.mkdirSync(path.dirname(options.diffImagePath), { recursive: true });
+  fs.writeFileSync(options.diffImagePath, PNG.sync.write(diff));
+
+  return {
+    diffPixels,
+    diffRatio: diffPixels / (width * height),
+    diffImagePath: options.diffImagePath,
+  };
+}
+
+function pad(src: PNG, width: number, height: number): PNG {
+  if (src.width === width && src.height === height) return src;
+  const out = new PNG({ width, height });
+  PNG.bitblt(src, out, 0, 0, src.width, src.height, 0, 0);
+  return out;
+}
+```
+
+**Step 5: Run to verify pass**
+
+```bash
+npx tsx --test tests/unit/visual-diff.test.ts
+```
+
+Expected: PASS — 2/2.
+
+**Step 6: Commit**
+
+```bash
+git add lib/visual-diff.ts tests/unit/visual-diff.test.ts tests/fixtures/visual/*.png
+git commit -m "feat(site): add visual-diff with pixelmatch and tests"
+```
+
+---
+
+## Task 6 — `lib/site-manager.ts` (TDD; mirrors `scenario-manager.ts`)
+
+**Files:**
+- Create: `tests/unit/site-manager.test.ts`
+- Create: `lib/site-manager.ts`
+
+Mirror `lib/scenario-manager.ts`. Same `assertSafeId`, same per-file JSON layout. On save, also ensure `data/sites/<id>/` exists.
+
+**Step 1: Write failing tests**
+
+```ts
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { listSites, getSite, saveSite, deleteSite } from "../../lib/site-manager.ts";
+import type { Site } from "../../lib/site-types.ts";
+
+const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "site-mgr-"));
+const originalCwd = process.cwd();
+
+test.before(() => process.chdir(tmpRoot));
+test.after(() => {
+  process.chdir(originalCwd);
+  fs.rmSync(tmpRoot, { recursive: true, force: true });
+});
+
+function sample(id: string): Site {
+  return {
+    id,
+    name: id,
+    crawl: {
+      startUrls: [`https://${id}.test/`],
+      maxDepth: 1,
+      maxPages: 10,
+      allowSubdomains: false,
+    },
+    visual: {
+      enabled: true,
+      maskSelectors: [],
+      threshold: 0.1,
+      maxDiffRatio: 0.01,
+      viewport: { width: 1280, height: 800 },
+    },
+    dom: { enabled: true, ignoreSelectors: [], normalizeWhitespace: true },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+test("save then get returns the same site", () => {
+  const s = sample("site-1");
+  saveSite(s);
+  assert.deepEqual(getSite("site-1"), s);
+});
+
+test("list returns all saved", () => {
+  saveSite(sample("site-2"));
+  const ids = listSites().map((s) => s.id).sort();
+  assert.deepEqual(ids, ["site-1", "site-2"]);
+});
+
+test("delete removes the file", () => {
+  assert.equal(deleteSite("site-1"), true);
+  assert.equal(getSite("site-1"), null);
+  assert.equal(deleteSite("site-1"), false);
+});
+
+test("rejects unsafe id", () => {
+  assert.throws(() => getSite("../etc"));
+});
+```
+
+**Step 2: Run to verify failure**
+
+```bash
+npx tsx --test tests/unit/site-manager.test.ts
+```
+
+Expected: FAIL — module not found.
+
+**Step 3: Implement**
+
+```ts
+import fs from "node:fs";
+import path from "node:path";
+import type { Site } from "./site-types.ts";
+
+const SITES_DIR = () => path.join(process.cwd(), "data", "sites");
+
+function ensureDir() {
+  const dir = SITES_DIR();
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+function assertSafeId(id: string): void {
+  if (!/^[\w-]+$/.test(id)) throw new Error(`Invalid site id: ${id}`);
+}
+
+function filePath(id: string): string {
+  assertSafeId(id);
+  ensureDir();
+  return path.join(SITES_DIR(), `${id}.json`);
+}
+
+export function listSites(): Site[] {
+  ensureDir();
+  return fs
+    .readdirSync(SITES_DIR())
+    .filter((e) => e.endsWith(".json"))
+    .flatMap((e) => {
+      try {
+        return [JSON.parse(fs.readFileSync(path.join(SITES_DIR(), e), "utf-8")) as Site];
+      } catch {
+        return [];
+      }
+    });
+}
+
+export function getSite(id: string): Site | null {
+  const target = filePath(id);
+  if (!fs.existsSync(target)) return null;
+  return JSON.parse(fs.readFileSync(target, "utf-8")) as Site;
+}
+
+export function saveSite(site: Site): void {
+  const target = filePath(site.id);
+  fs.writeFileSync(target, JSON.stringify(site, null, 2), "utf-8");
+  const siteDir = path.join(SITES_DIR(), site.id);
+  if (!fs.existsSync(siteDir)) fs.mkdirSync(siteDir, { recursive: true });
+}
+
+export function deleteSite(id: string): boolean {
+  const target = filePath(id);
+  if (!fs.existsSync(target)) return false;
+  fs.unlinkSync(target);
+  const siteDir = path.join(SITES_DIR(), id);
+  if (fs.existsSync(siteDir)) fs.rmSync(siteDir, { recursive: true, force: true });
+  return true;
+}
+```
+
+**Step 4: Run to verify pass**
+
+```bash
+npx tsx --test tests/unit/site-manager.test.ts
+```
+
+Expected: PASS — 4/4.
+
+**Step 5: Commit**
+
+```bash
+git add lib/site-manager.ts tests/unit/site-manager.test.ts
+git commit -m "feat(site): add site-manager mirroring scenario-manager"
+```
+
+---
+
+## Task 7 — `lib/site-crawler.ts` (TDD with a fake Page)
+
+**Files:**
+- Create: `tests/unit/site-crawler.test.ts`
+- Create: `lib/site-crawler.ts`
+
+Crawler accepts a minimal structural `CrawlPage` so tests can inject a fake without Playwright.
+
+**Step 1: Write failing tests**
+
+```ts
+import test from "node:test";
+import assert from "node:assert/strict";
+import { crawl, type CrawlPage } from "../../lib/site-crawler.ts";
+import type { SiteCrawlConfig } from "../../lib/site-types.ts";
+
+interface FakeNode { url: string; status: number; links: string[]; }
+
+function makePage(nodes: Record<string, FakeNode>): CrawlPage {
+  let current: FakeNode | null = null;
+  return {
+    async goto(url) {
+      const node = nodes[url];
+      current = node ?? null;
+      return node ? { status: () => node.status, url: () => node.url } : null;
+    },
+    async getLinks() { return current ? current.links : []; },
+    url() { return current?.url ?? "about:blank"; },
+  };
+}
+
+const baseCfg: SiteCrawlConfig = {
+  startUrls: ["https://a.com/"], maxDepth: 2, maxPages: 10, allowSubdomains: false,
+};
+
+test("visits start url at depth 0", async () => {
+  const page = makePage({ "https://a.com/": { url: "https://a.com/", status: 200, links: [] } });
+  const out = await crawl(page, baseCfg);
+  assert.equal(out.visited.length, 1);
+});
+
+test("follows same-origin links up to maxDepth", async () => {
+  const page = makePage({
+    "https://a.com/": { url: "https://a.com/", status: 200, links: ["/x", "/y"] },
+    "https://a.com/x": { url: "https://a.com/x", status: 200, links: ["/z"] },
+    "https://a.com/y": { url: "https://a.com/y", status: 200, links: [] },
+    "https://a.com/z": { url: "https://a.com/z", status: 200, links: [] },
+  });
+  const out = await crawl(page, { ...baseCfg, maxDepth: 1 });
+  const urls = out.visited.map((v) => v.url).sort();
+  assert.deepEqual(urls, ["https://a.com/", "https://a.com/x", "https://a.com/y"]);
+});
+
+test("rejects external origin", async () => {
+  const page = makePage({
+    "https://a.com/": { url: "https://a.com/", status: 200, links: ["https://b.com/x"] },
+  });
+  const out = await crawl(page, baseCfg);
+  assert.equal(out.visited.length, 1);
+  assert.ok(out.skipped.some((s) => s.reason === "external"));
+});
+
+test("respects excludePatterns", async () => {
+  const page = makePage({
+    "https://a.com/": { url: "https://a.com/", status: 200, links: ["/admin/danger", "/safe"] },
+    "https://a.com/safe": { url: "https://a.com/safe", status: 200, links: [] },
+  });
+  const out = await crawl(page, { ...baseCfg, excludePatterns: ["/admin/"] });
+  const urls = out.visited.map((v) => v.url).sort();
+  assert.deepEqual(urls, ["https://a.com/", "https://a.com/safe"]);
+});
+
+test("respects maxPages", async () => {
+  const page = makePage({
+    "https://a.com/": { url: "https://a.com/", status: 200, links: ["/a", "/b", "/c"] },
+    "https://a.com/a": { url: "https://a.com/a", status: 200, links: [] },
+    "https://a.com/b": { url: "https://a.com/b", status: 200, links: [] },
+    "https://a.com/c": { url: "https://a.com/c", status: 200, links: [] },
+  });
+  const out = await crawl(page, { ...baseCfg, maxPages: 2 });
+  assert.equal(out.visited.length, 2);
+});
+
+test("calls onVisit for each visit", async () => {
+  const page = makePage({
+    "https://a.com/": { url: "https://a.com/", status: 200, links: ["/x"] },
+    "https://a.com/x": { url: "https://a.com/x", status: 200, links: [] },
+  });
+  const seen: string[] = [];
+  await crawl(page, baseCfg, async (rec) => { seen.push(rec.url); });
+  assert.deepEqual(seen.sort(), ["https://a.com/", "https://a.com/x"]);
+});
+```
+
+**Step 2: Run to verify failure**
+
+```bash
+npx tsx --test tests/unit/site-crawler.test.ts
+```
+
+Expected: FAIL — module not found.
+
+**Step 3: Implement**
+
+```ts
+import { isHttpUrl, normalizeUrl, sameOrigin } from "./url-normalizer.ts";
+import type { SiteCrawlConfig } from "./site-types.ts";
+
+export interface CrawlPage {
+  goto(url: string): Promise<{ status: () => number; url: () => string } | null>;
+  getLinks(): Promise<string[]>;
+  url(): string;
+}
+
+export interface VisitRecord {
+  url: string; finalUrl: string; httpStatus: number; depth: number;
+}
+
+export interface SkipRecord {
+  url: string;
+  reason: "depth" | "pattern" | "external" | "limit" | "duplicate" | "non-http";
+}
+
+export interface CrawlOutcome {
+  visited: VisitRecord[];
+  skipped: SkipRecord[];
+  errors: { url: string; message: string }[];
+}
+
+export async function crawl(
+  page: CrawlPage,
+  config: SiteCrawlConfig,
+  onVisit?: (record: VisitRecord) => Promise<void>
+): Promise<CrawlOutcome> {
+  const visited = new Set<string>();
+  const visitedRecords: VisitRecord[] = [];
+  const skipped: SkipRecord[] = [];
+  const errors: { url: string; message: string }[] = [];
+
+  const queue: { url: string; depth: number }[] = [];
+  const origins: string[] = [];
+
+  for (const raw of config.startUrls) {
+    const n = normalizeUrl(raw);
+    if (n) {
+      queue.push({ url: n, depth: 0 });
+      origins.push(n);
+    }
+  }
+
+  const includeREs = (config.includePatterns ?? []).map((p) => new RegExp(p));
+  const excludeREs = (config.excludePatterns ?? []).map((p) => new RegExp(p));
+
+  while (queue.length > 0) {
+    if (visited.size >= config.maxPages) {
+      for (const q of queue) skipped.push({ url: q.url, reason: "limit" });
+      break;
+    }
+
+    const next = queue.shift();
+    if (!next) break;
+
+    if (visited.has(next.url)) { skipped.push({ url: next.url, reason: "duplicate" }); continue; }
+    if (next.depth > config.maxDepth) { skipped.push({ url: next.url, reason: "depth" }); continue; }
+    if (!isHttpUrl(next.url)) { skipped.push({ url: next.url, reason: "non-http" }); continue; }
+
+    const internal = origins.some((o) => sameOrigin(o, next.url, config.allowSubdomains));
+    if (!internal) { skipped.push({ url: next.url, reason: "external" }); continue; }
+
+    if (excludeREs.some((re) => re.test(next.url))) {
+      skipped.push({ url: next.url, reason: "pattern" }); continue;
+    }
+    if (includeREs.length > 0 && !includeREs.some((re) => re.test(next.url))) {
+      skipped.push({ url: next.url, reason: "pattern" }); continue;
+    }
+
+    visited.add(next.url);
+
+    try {
+      const response = await page.goto(next.url);
+      const finalUrl = response?.url() ?? next.url;
+      const status = response?.status() ?? 0;
+      const record: VisitRecord = { url: next.url, finalUrl, httpStatus: status, depth: next.depth };
+      visitedRecords.push(record);
+      if (onVisit) await onVisit(record);
+
+      if (next.depth < config.maxDepth) {
+        for (const raw of await page.getLinks()) {
+          if (
+            !isHttpUrl(raw) &&
+            !raw.startsWith("/") &&
+            !raw.startsWith("./") &&
+            !raw.startsWith("../")
+          ) {
+            skipped.push({ url: raw, reason: "non-http" });
+            continue;
+          }
+          const normalized = normalizeUrl(raw, finalUrl);
+          if (!normalized) continue;
+          if (!visited.has(normalized)) queue.push({ url: normalized, depth: next.depth + 1 });
+        }
+      }
+    } catch (error) {
+      errors.push({ url: next.url, message: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  return { visited: visitedRecords, skipped, errors };
+}
+```
+
+**Step 4: Run to verify pass**
+
+```bash
+npx tsx --test tests/unit/site-crawler.test.ts
+```
+
+Expected: PASS — 6/6.
+
+**Step 5: Commit**
+
+```bash
+git add lib/site-crawler.ts tests/unit/site-crawler.test.ts
+git commit -m "feat(site): add BFS crawler with same-origin and pattern filters"
+```
+
+---
+
+## Task 8 — `lib/site-diff-engine.ts` (TDD)
+
+**Files:**
+- Create: `tests/unit/site-diff-engine.test.ts`
+- Create: `lib/site-diff-engine.ts`
+
+URL-keyed outer-join + severity. Visual diff is injected.
+
+**Step 1: Write failing tests**
+
+```ts
+import test from "node:test";
+import assert from "node:assert/strict";
+import { diffSiteRuns } from "../../lib/site-diff-engine.ts";
+import type { Site, SiteRunResult, SitePageCapture } from "../../lib/site-types.ts";
+
+function page(url: string, hash: string, screenshotPath = `${url}.png`): SitePageCapture {
+  return {
+    url, finalUrl: url, httpStatus: 200,
+    domHash: hash, domSerialized: "",
+    screenshotPath, capturedAt: "2026-06-04T00:00:00.000Z",
+  };
+}
+
+function run(id: string, pages: SitePageCapture[]): SiteRunResult {
+  return {
+    runId: id, siteId: "s",
+    startedAt: "2026-06-04T00:00:00.000Z", finishedAt: "2026-06-04T00:01:00.000Z",
+    status: "completed", pages, errors: [],
+  };
+}
+
+const baseSite: Site = {
+  id: "s", name: "s",
+  crawl: { startUrls: [], maxDepth: 0, maxPages: 0, allowSubdomains: false },
+  visual: { enabled: false, maskSelectors: [], threshold: 0.1, maxDiffRatio: 0.01, viewport: { width: 1280, height: 800 } },
+  dom: { enabled: true, ignoreSelectors: [], normalizeWhitespace: true },
+  createdAt: "", updatedAt: "",
+};
+
+const stubVisual = async () => ({ diffPixels: 0, diffRatio: 0, diffImagePath: "" });
+
+test("identical when both runs share urls and hashes", async () => {
+  const report = await diffSiteRuns(baseSite, run("a", [page("/x", "h1")]), run("b", [page("/x", "h1")]), stubVisual);
+  assert.equal(report.overall, "identical");
+  assert.equal(report.pageDiffs[0].status, "identical");
+});
+
+test("domChanged when hash differs and visual matches", async () => {
+  const report = await diffSiteRuns(baseSite, run("a", [page("/x", "h1")]), run("b", [page("/x", "h2")]), stubVisual);
+  assert.equal(report.pageDiffs[0].status, "domChanged");
+  assert.equal(report.pageDiffs[0].severity, "warning");
+});
+
+test("visualChanged when hash matches and visual differs", async () => {
+  const visual = async () => ({ diffPixels: 9999, diffRatio: 0.5, diffImagePath: "d.png" });
+  const report = await diffSiteRuns(
+    { ...baseSite, visual: { ...baseSite.visual, enabled: true } },
+    run("a", [page("/x", "h1")]), run("b", [page("/x", "h1")]), visual
+  );
+  assert.equal(report.pageDiffs[0].status, "visualChanged");
+});
+
+test("both when hash and visual both differ", async () => {
+  const visual = async () => ({ diffPixels: 9999, diffRatio: 0.5, diffImagePath: "d.png" });
+  const report = await diffSiteRuns(
+    { ...baseSite, visual: { ...baseSite.visual, enabled: true } },
+    run("a", [page("/x", "h1")]), run("b", [page("/x", "h2")]), visual
+  );
+  assert.equal(report.pageDiffs[0].status, "both");
+  assert.equal(report.pageDiffs[0].severity, "critical");
+});
+
+test("missing when baseline url not in current", async () => {
+  const report = await diffSiteRuns(baseSite, run("a", [page("/x", "h1")]), run("b", []), stubVisual);
+  assert.equal(report.pageDiffs[0].status, "missing");
+});
+
+test("added when current has a url baseline lacks", async () => {
+  const report = await diffSiteRuns(baseSite, run("a", []), run("b", [page("/x", "h1")]), stubVisual);
+  assert.equal(report.pageDiffs[0].status, "added");
+});
+```
+
+**Step 2: Run to verify failure**
+
+```bash
+npx tsx --test tests/unit/site-diff-engine.test.ts
+```
+
+Expected: FAIL — module not found.
+
+**Step 3: Implement**
+
+```ts
+import type {
+  PageDiff, PageDiffStatus, Site, SitePageCapture, SiteReport, SiteRunResult,
+} from "./site-types.ts";
+
+export type VisualDiffFn = (
+  baselineCapture: SitePageCapture,
+  currentCapture: SitePageCapture,
+  diffImagePath: string
+) => Promise<{ diffPixels: number; diffRatio: number; diffImagePath: string }>;
+
+export async function diffSiteRuns(
+  site: Site,
+  baseline: SiteRunResult,
+  current: SiteRunResult,
+  visualDiff: VisualDiffFn
+): Promise<SiteReport> {
+  const byUrlBase = new Map(baseline.pages.map((p) => [p.url, p]));
+  const byUrlCurr = new Map(current.pages.map((p) => [p.url, p]));
+  const allUrls = new Set<string>([...byUrlBase.keys(), ...byUrlCurr.keys()]);
+
+  const pageDiffs: PageDiff[] = [];
+
+  for (const url of allUrls) {
+    const b = byUrlBase.get(url);
+    const c = byUrlCurr.get(url);
+
+    if (b && !c) { pageDiffs.push({ url, status: "missing", severity: "critical" }); continue; }
+    if (!b && c) { pageDiffs.push({ url, status: "added", severity: "info" }); continue; }
+    if (!b || !c) continue;
+
+    const domChanged = site.dom.enabled && b.domHash !== c.domHash;
+    let visualChanged = false;
+    let visualResult: PageDiff["visualDiff"];
+
+    if (site.visual.enabled && b.screenshotPath && c.screenshotPath) {
+      const diff = await visualDiff(b, c, `${current.runId}-${encodeURIComponent(url)}.diff.png`);
+      visualResult = diff;
+      visualChanged = diff.diffRatio > site.visual.maxDiffRatio;
+    }
+
+    const status: PageDiffStatus =
+      domChanged && visualChanged ? "both" :
+      domChanged ? "domChanged" :
+      visualChanged ? "visualChanged" : "identical";
+
+    const severity: PageDiff["severity"] =
+      status === "both" ? "critical" :
+      status === "identical" ? "info" : "warning";
+
+    pageDiffs.push({ url, status, severity, visualDiff: visualResult });
+  }
+
+  const hasError = current.errors.length > 0 || baseline.errors.length > 0;
+  const hasDifference = pageDiffs.some((d) => d.status !== "identical");
+  const overall: SiteReport["overall"] = hasError ? "error" : hasDifference ? "different" : "identical";
+
+  return {
+    siteId: site.id,
+    baselineRunId: baseline.runId,
+    currentRunId: current.runId,
+    comparedAt: new Date().toISOString(),
+    overall,
+    pageDiffs,
+  };
+}
+```
+
+**Step 4: Run to verify pass**
+
+```bash
+npx tsx --test tests/unit/site-diff-engine.test.ts
+```
+
+Expected: PASS — 6/6.
+
+**Step 5: Commit**
+
+```bash
+git add lib/site-diff-engine.ts tests/unit/site-diff-engine.test.ts
+git commit -m "feat(site): add site-diff-engine with url-keyed outer join"
+```
+
+---
+
+## Task 9 — `lib/site-run-progress.ts`
+
+**Files:**
+- Create: `lib/site-run-progress.ts`
+
+Mirror `lib/run-progress.ts` — in-memory Map keyed by siteId.
+
+**Step 1: Implement**
+
+```ts
+import type { SiteRunProgress } from "./site-types.ts";
+
+const progressMap = new Map<string, SiteRunProgress>();
+
+export function setSiteRunProgress(p: SiteRunProgress): void {
+  progressMap.set(p.siteId, p);
+}
+
+export function getSiteRunProgress(siteId: string): SiteRunProgress | null {
+  return progressMap.get(siteId) ?? null;
+}
+
+export function updateSiteRunProgress(
+  siteId: string,
+  patch: (p: SiteRunProgress) => SiteRunProgress
+): void {
+  const existing = progressMap.get(siteId);
+  if (existing) progressMap.set(siteId, patch(existing));
+}
+
+export function clearSiteRunProgress(siteId: string): void {
+  progressMap.delete(siteId);
+}
+```
+
+**Step 2: tsc**
+
+```bash
+npx tsc --noEmit
+```
+
+**Step 3: Commit**
+
+```bash
+git add lib/site-run-progress.ts
+git commit -m "feat(site): add site-run-progress in-memory tracker"
+```
+
+---
+
+## Task 10 — `lib/site-runner.ts`
+
+**Files:**
+- Create: `lib/site-runner.ts`
+
+Assembly point — no unit test (covered by e2e in Task 20). Inline DOM normalize script mirrors `lib/dom-normalizer.ts` algorithm.
+
+**Step 1: Implement**
+
+```ts
+import { createHash } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { launchBrowser, newSiteContext } from "./browser-bootstrap.ts";
+import { crawl, type CrawlPage, type VisitRecord } from "./site-crawler.ts";
+import { captureMasked } from "./visual-diff.ts";
+import { setSiteRunProgress, updateSiteRunProgress } from "./site-run-progress.ts";
+import type { Site, SitePageCapture, SiteRunResult } from "./site-types.ts";
+
+export async function runSite(site: Site): Promise<SiteRunResult> {
+  const runId = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const startedAt = new Date().toISOString();
+
+  setSiteRunProgress({
+    siteId: site.id, runId, status: "running",
+    startedAt, updatedAt: startedAt,
+    visited: 0, total: site.crawl.maxPages,
+  });
+
+  const runDir = path.join("data", "sites", site.id, "runs", runId);
+  fs.mkdirSync(runDir, { recursive: true });
+
+  const browser = await launchBrowser();
+  const context = await newSiteContext(browser, {
+    storageStatePath: site.storageStatePath,
+    viewport: site.visual.viewport,
+  });
+  const page = await context.newPage();
+
+  const crawlPage: CrawlPage = {
+    async goto(url) {
+      try {
+        const response = await page.goto(url, { waitUntil: "load" });
+        return response ? { status: () => response.status(), url: () => page.url() } : null;
+      } catch {
+        return null;
+      }
+    },
+    async getLinks() {
+      return page.$$eval("a[href]", (as) => (as as HTMLAnchorElement[]).map((a) => a.href));
+    },
+    url() { return page.url(); },
+  };
+
+  const pages: SitePageCapture[] = [];
+  let pageIndex = 0;
+
+  const captureCurrent = async (record: VisitRecord): Promise<void> => {
+    pageIndex += 1;
+    const fileBase = `page-${String(pageIndex).padStart(3, "0")}`;
+
+    const screenshotPath = site.visual.enabled
+      ? path.join(runDir, `${fileBase}.png`)
+      : undefined;
+    if (screenshotPath) {
+      await captureMasked(page, site.visual, screenshotPath);
+    }
+
+    let domHash = "";
+    let domSerialized = "";
+    if (site.dom.enabled) {
+      domSerialized = await page.evaluate(BROWSER_NORMALIZE_FN, site.dom);
+      domHash = createHash("sha256").update(domSerialized).digest("hex");
+    }
+
+    pages.push({
+      url: record.url,
+      finalUrl: record.finalUrl,
+      httpStatus: record.httpStatus,
+      domHash, domSerialized,
+      screenshotPath: screenshotPath ? path.relative(process.cwd(), screenshotPath) : undefined,
+      capturedAt: new Date().toISOString(),
+    });
+
+    updateSiteRunProgress(site.id, (p) => ({
+      ...p, visited: pages.length, currentUrl: record.url,
+      updatedAt: new Date().toISOString(),
+    }));
+  };
+
+  let outcome;
+  try {
+    outcome = await crawl(crawlPage, site.crawl, captureCurrent);
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+
+  const finishedAt = new Date().toISOString();
+  const status: SiteRunResult["status"] = outcome.errors.length > 0 ? "partial" : "completed";
+
+  const result: SiteRunResult = {
+    runId, siteId: site.id, startedAt, finishedAt, status,
+    pages, errors: outcome.errors,
+  };
+
+  fs.writeFileSync(
+    path.join("data", "sites", site.id, "runs", `${runId}.json`),
+    JSON.stringify(result, null, 2),
+    "utf-8"
+  );
+
+  updateSiteRunProgress(site.id, (p) => ({ ...p, status: "completed", updatedAt: finishedAt }));
+
+  return result;
+}
+
+const BROWSER_NORMALIZE_FN = (config: { ignoreSelectors: string[]; normalizeWhitespace: boolean }) => {
+  const ID_ATTRS = new Set([
+    "aria-describedby", "aria-labelledby", "aria-controls", "aria-owns", "id", "for",
+  ]);
+  const ID_RE = /-?[a-z0-9]{6,}/gi;
+
+  const doc = document.cloneNode(true) as Document;
+  doc.querySelectorAll("script, style, noscript").forEach((n) => n.remove());
+  for (const sel of config.ignoreSelectors) {
+    doc.querySelectorAll(sel).forEach((n) => n.remove());
+  }
+
+  const walk = (node: Element | null): void => {
+    if (!node) return;
+    if (node.attributes) {
+      const attrs = Array.from(node.attributes);
+      const sorted = attrs
+        .map((a) => ({
+          name: a.name,
+          value: ID_ATTRS.has(a.name) ? a.value.replace(ID_RE, "<id>") : a.value,
+        }))
+        .sort((x, y) => x.name.localeCompare(y.name));
+      for (const a of attrs) node.removeAttribute(a.name);
+      for (const { name, value } of sorted) node.setAttribute(name, value);
+    }
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === 3 && config.normalizeWhitespace) {
+        child.textContent = (child.textContent ?? "").replace(/\s+/g, " ").trim();
+      } else if (child.nodeType === 1) {
+        walk(child as Element);
+      }
+    }
+  };
+
+  walk(doc.body);
+  return doc.body ? doc.body.outerHTML : "";
+};
+```
+
+**Step 2: tsc**
+
+```bash
+npx tsc --noEmit
+```
+
+**Step 3: Commit**
+
+```bash
+git add lib/site-runner.ts
+git commit -m "feat(site): add site-runner assembling crawl + capture + persist"
+```
+
+---
+
+## Task 11 — `lib/site-baseline.ts` (TDD)
+
+**Files:**
+- Create: `tests/unit/site-baseline.test.ts`
+- Create: `lib/site-baseline.ts`
+
+Promote a run to baseline (copy `runs/<runId>.json` + screenshots), load baseline, archive previous baseline.
+
+**Step 1: Write failing tests**
+
+```ts
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { loadBaseline, promoteRunToBaseline } from "../../lib/site-baseline.ts";
+
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "site-base-"));
+const original = process.cwd();
+test.before(() => process.chdir(tmp));
+test.after(() => {
+  process.chdir(original);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+function seedRun(siteId: string, runId: string) {
+  const runDir = path.join("data", "sites", siteId, "runs", runId);
+  fs.mkdirSync(runDir, { recursive: true });
+  fs.writeFileSync(
+    path.join("data", "sites", siteId, "runs", `${runId}.json`),
+    JSON.stringify({
+      runId, siteId,
+      startedAt: "x", finishedAt: "y",
+      status: "completed", pages: [], errors: [],
+    })
+  );
+  fs.writeFileSync(path.join(runDir, "page-001.png"), Buffer.from([0]));
+}
+
+test("loadBaseline returns null when missing", () => {
+  assert.equal(loadBaseline("s1"), null);
+});
+
+test("promote copies run json and screenshots", () => {
+  seedRun("s2", "r1");
+  promoteRunToBaseline("s2", "r1");
+  assert.ok(fs.existsSync("data/sites/s2/baseline.json"));
+  assert.ok(fs.existsSync("data/sites/s2/baseline/page-001.png"));
+  assert.equal(loadBaseline("s2")?.runId, "r1");
+});
+
+test("promote archives previous baseline", () => {
+  seedRun("s2", "r2");
+  promoteRunToBaseline("s2", "r2");
+  const entries = fs.readdirSync("data/sites/s2");
+  assert.ok(entries.some((e) => e.startsWith("baseline.") && e.endsWith(".archive.json")));
+  assert.equal(loadBaseline("s2")?.runId, "r2");
+});
+```
+
+**Step 2: Run to verify failure**
+
+```bash
+npx tsx --test tests/unit/site-baseline.test.ts
+```
+
+Expected: FAIL — module not found.
+
+**Step 3: Implement**
+
+```ts
+import fs from "node:fs";
+import path from "node:path";
+import type { SiteRunResult } from "./site-types.ts";
+
+function siteDir(siteId: string): string {
+  return path.join(process.cwd(), "data", "sites", siteId);
+}
+
+export function loadBaseline(siteId: string): SiteRunResult | null {
+  const target = path.join(siteDir(siteId), "baseline.json");
+  if (!fs.existsSync(target)) return null;
+  return JSON.parse(fs.readFileSync(target, "utf-8")) as SiteRunResult;
+}
+
+export function promoteRunToBaseline(siteId: string, runId: string): void {
+  const dir = siteDir(siteId);
+  const runJson = path.join(dir, "runs", `${runId}.json`);
+  const runShots = path.join(dir, "runs", runId);
+  if (!fs.existsSync(runJson)) throw new Error(`Run not found: ${runId}`);
+
+  const baselineJson = path.join(dir, "baseline.json");
+  const baselineShots = path.join(dir, "baseline");
+
+  if (fs.existsSync(baselineJson)) {
+    const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    fs.renameSync(baselineJson, path.join(dir, `baseline.${ts}.archive.json`));
+  }
+  if (fs.existsSync(baselineShots)) {
+    fs.rmSync(baselineShots, { recursive: true, force: true });
+  }
+
+  fs.copyFileSync(runJson, baselineJson);
+  if (fs.existsSync(runShots)) {
+    fs.mkdirSync(baselineShots, { recursive: true });
+    for (const entry of fs.readdirSync(runShots)) {
+      fs.copyFileSync(path.join(runShots, entry), path.join(baselineShots, entry));
+    }
+  }
+}
+```
+
+**Step 4: Run to verify pass**
+
+```bash
+npx tsx --test tests/unit/site-baseline.test.ts
+```
+
+Expected: PASS — 3/3.
+
+**Step 5: Commit**
+
+```bash
+git add lib/site-baseline.ts tests/unit/site-baseline.test.ts
+git commit -m "feat(site): add baseline promote/load with archive"
+```
+
+---
+
+## Task 12 — API: Site CRUD
+
+**Files:**
+- Create: `app/api/sites/route.ts`
+- Create: `app/api/sites/[id]/route.ts`
+
+Mirror `app/api/scenarios/route.ts` and `app/api/scenarios/[id]/route.ts`. Same `{ success, data, error }` envelope.
+
+**Step 1: list/create**
+
+`app/api/sites/route.ts`:
+
+```ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { listSites, saveSite } from "@/lib/site-manager";
+import { isHttpUrl } from "@/lib/url-normalizer";
+import type { Site } from "@/lib/site-types";
+
+export async function GET() {
+  return NextResponse.json({ success: true, data: listSites() });
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = (await req.json()) as Site;
+    validate(body);
+    const now = new Date().toISOString();
+    saveSite({ ...body, createdAt: now, updatedAt: now });
+    return NextResponse.json({ success: true, data: body });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : String(error) },
+      { status: 400 }
+    );
+  }
+}
+
+function validate(site: Site) {
+  if (!site.id || !/^[\w-]+$/.test(site.id)) throw new Error("Invalid id");
+  if (!site.name?.trim()) throw new Error("name required");
+  if (!Array.isArray(site.crawl?.startUrls) || site.crawl.startUrls.length === 0) {
+    throw new Error("startUrls required");
+  }
+  for (const u of site.crawl.startUrls) {
+    if (!isHttpUrl(u)) throw new Error(`startUrl not http(s): ${u}`);
+  }
+  for (const pat of [...(site.crawl.includePatterns ?? []), ...(site.crawl.excludePatterns ?? [])]) {
+    try { new RegExp(pat); } catch { throw new Error(`Bad regex: ${pat}`); }
+  }
+}
+```
+
+**Step 2: get/update/delete**
+
+`app/api/sites/[id]/route.ts`:
+
+```ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { deleteSite, getSite, saveSite } from "@/lib/site-manager";
+
+export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
+  const site = getSite(params.id);
+  if (!site) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+  return NextResponse.json({ success: true, data: site });
+}
+
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  const existing = getSite(params.id);
+  if (!existing) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+  const patch = await req.json();
+  const merged = { ...existing, ...patch, id: existing.id, updatedAt: new Date().toISOString() };
+  saveSite(merged);
+  return NextResponse.json({ success: true, data: merged });
+}
+
+export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+  return NextResponse.json({ success: deleteSite(params.id) });
+}
+```
+
+**Step 3: Manual smoke test**
+
+```bash
+npm run dev
+# in another shell
+curl -X POST http://localhost:3001/api/sites \
+  -H "Content-Type: application/json" \
+  -d '{"id":"demo","name":"demo","crawl":{"startUrls":["https://example.com/"],"maxDepth":1,"maxPages":3,"allowSubdomains":false},"visual":{"enabled":true,"maskSelectors":[],"threshold":0.1,"maxDiffRatio":0.01,"viewport":{"width":1280,"height":800}},"dom":{"enabled":true,"ignoreSelectors":[],"normalizeWhitespace":true},"createdAt":"","updatedAt":""}'
+curl http://localhost:3001/api/sites
+curl http://localhost:3001/api/sites/demo
+curl -X DELETE http://localhost:3001/api/sites/demo
+```
+
+Expected: 200 on each; files appear/disappear under `data/sites/`.
+
+**Step 4: Commit**
+
+```bash
+git add app/api/sites/route.ts app/api/sites/[id]/route.ts
+git commit -m "feat(site): add Site CRUD API routes"
+```
+
+---
+
+## Task 13 — API: storageState upload + run + run-status
+
+**Files:**
+- Create: `app/api/sites/[id]/storage-state/route.ts`
+- Create: `app/api/sites/[id]/run/route.ts`
+- Create: `app/api/sites/[id]/run-status/route.ts`
+
+**Step 1: storage-state upload**
+
+```ts
+import fs from "node:fs";
+import path from "node:path";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getSite, saveSite } from "@/lib/site-manager";
+
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const site = getSite(params.id);
+  if (!site) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+
+  const body = await req.json();
+  if (typeof body !== "object" || body === null) {
+    return NextResponse.json({ success: false, error: "Invalid storageState" }, { status: 400 });
+  }
+
+  const dir = path.join(process.cwd(), "data", "sites", params.id);
+  fs.mkdirSync(dir, { recursive: true });
+  const target = path.join(dir, "storage-state.json");
+  fs.writeFileSync(target, JSON.stringify(body, null, 2), "utf-8");
+
+  saveSite({
+    ...site,
+    storageStatePath: path.relative(process.cwd(), target),
+    updatedAt: new Date().toISOString(),
+  });
+
+  return NextResponse.json({ success: true });
+}
+```
+
+**Step 2: run trigger**
+
+```ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getSite } from "@/lib/site-manager";
+import { runSite } from "@/lib/site-runner";
+import { setSiteRunProgress } from "@/lib/site-run-progress";
+
+export async function POST(_: NextRequest, { params }: { params: { id: string } }) {
+  const site = getSite(params.id);
+  if (!site) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+
+  try {
+    const result = await runSite(site);
+    return NextResponse.json({ success: true, data: result });
+  } catch (error) {
+    setSiteRunProgress({
+      siteId: site.id, runId: "", status: "error",
+      startedAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      visited: 0, total: 0,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
+  }
+}
+```
+
+**Step 3: run-status poll**
+
+```ts
+import { NextResponse } from "next/server";
+import { getSiteRunProgress } from "@/lib/site-run-progress";
+
+export async function GET(_: Request, { params }: { params: { id: string } }) {
+  const progress = getSiteRunProgress(params.id);
+  return NextResponse.json({ success: true, data: progress });
+}
+```
+
+**Step 4: Commit**
+
+```bash
+git add app/api/sites/[id]/storage-state/route.ts app/api/sites/[id]/run/route.ts app/api/sites/[id]/run-status/route.ts
+git commit -m "feat(site): add storage-state upload, run trigger, run-status API"
+```
+
+---
+
+## Task 14 — API: baseline + compare + runs/report/screenshot
+
+**Files:**
+- Create: `app/api/sites/[id]/baseline/route.ts`
+- Create: `app/api/sites/[id]/compare/route.ts`
+- Create: `app/api/sites/[id]/runs/route.ts`
+- Create: `app/api/sites/[id]/runs/[runId]/route.ts`
+- Create: `app/api/sites/[id]/runs/[runId]/report/route.ts`
+- Create: `app/api/sites/[id]/runs/[runId]/screenshot/[fileName]/route.ts`
+- Create: `app/api/sites/[id]/baseline/screenshot/[fileName]/route.ts`
+
+**Step 1: baseline promote**
+
+`app/api/sites/[id]/baseline/route.ts`:
+
+```ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { promoteRunToBaseline } from "@/lib/site-baseline";
+
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { runId } = (await req.json()) as { runId: string };
+    if (!runId || !/^[\w-]+$/.test(runId)) throw new Error("Bad runId");
+    promoteRunToBaseline(params.id, runId);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : String(error) },
+      { status: 400 }
+    );
+  }
+}
+```
+
+**Step 2: compare** — also persists `report.json` alongside the run.
+
+`app/api/sites/[id]/compare/route.ts`:
+
+```ts
+import fs from "node:fs";
+import path from "node:path";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { loadBaseline } from "@/lib/site-baseline";
+import { compareImages } from "@/lib/visual-diff";
+import { getSite } from "@/lib/site-manager";
+import { runSite } from "@/lib/site-runner";
+import { diffSiteRuns, type VisualDiffFn } from "@/lib/site-diff-engine";
+
+export async function POST(_: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const site = getSite(params.id);
+    if (!site) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+
+    const baseline = loadBaseline(params.id);
+    if (!baseline) {
+      return NextResponse.json(
+        { success: false, error: "베이스라인을 먼저 채택하세요" },
+        { status: 400 }
+      );
+    }
+
+    const current = await runSite(site);
+
+    const visualDiff: VisualDiffFn = async (b, c, diffName) => {
+      if (!b.screenshotPath || !c.screenshotPath) {
+        return { diffPixels: 0, diffRatio: 0, diffImagePath: "" };
+      }
+      const diffDir = path.join("data", "sites", site.id, "runs", current.runId, "diff");
+      fs.mkdirSync(diffDir, { recursive: true });
+      const diffPath = path.join(diffDir, diffName);
+      return compareImages(b.screenshotPath, c.screenshotPath, {
+        threshold: site.visual.threshold,
+        diffImagePath: diffPath,
+      });
+    };
+
+    const report = await diffSiteRuns(site, baseline, current, visualDiff);
+
+    const runDir = path.join("data", "sites", site.id, "runs", current.runId);
+    fs.mkdirSync(runDir, { recursive: true });
+    fs.writeFileSync(path.join(runDir, "report.json"), JSON.stringify(report, null, 2), "utf-8");
+
+    return NextResponse.json({ success: true, data: { report, current } });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
+  }
+}
+```
+
+**Step 3: runs list + raw run + report**
+
+`app/api/sites/[id]/runs/route.ts`:
+
+```ts
+import fs from "node:fs";
+import path from "node:path";
+import { NextResponse } from "next/server";
+
+export async function GET(_: Request, { params }: { params: { id: string } }) {
+  if (!/^[\w-]+$/.test(params.id)) {
+    return NextResponse.json({ success: false, error: "Bad id" }, { status: 400 });
+  }
+  const dir = path.join(process.cwd(), "data", "sites", params.id, "runs");
+  if (!fs.existsSync(dir)) return NextResponse.json({ success: true, data: [] });
+  const entries = fs.readdirSync(dir).filter((e) => e.endsWith(".json")).sort().reverse();
+  return NextResponse.json({ success: true, data: entries.map((e) => e.replace(/\.json$/, "")) });
+}
+```
+
+`app/api/sites/[id]/runs/[runId]/route.ts`:
+
+```ts
+import fs from "node:fs";
+import path from "node:path";
+import { NextResponse } from "next/server";
+
+export async function GET(_: Request, { params }: { params: { id: string; runId: string } }) {
+  if (!/^[\w-]+$/.test(params.id) || !/^[\w-]+$/.test(params.runId)) {
+    return NextResponse.json({ success: false, error: "Bad id" }, { status: 400 });
+  }
+  const target = path.join(process.cwd(), "data", "sites", params.id, "runs", `${params.runId}.json`);
+  if (!fs.existsSync(target)) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+  return NextResponse.json({ success: true, data: JSON.parse(fs.readFileSync(target, "utf-8")) });
+}
+```
+
+`app/api/sites/[id]/runs/[runId]/report/route.ts`:
+
+```ts
+import fs from "node:fs";
+import path from "node:path";
+import { NextResponse } from "next/server";
+
+export async function GET(_: Request, { params }: { params: { id: string; runId: string } }) {
+  if (!/^[\w-]+$/.test(params.id) || !/^[\w-]+$/.test(params.runId)) {
+    return NextResponse.json({ success: false, error: "Bad id" }, { status: 400 });
+  }
+  const reportFile = path.join(
+    process.cwd(), "data", "sites", params.id, "runs", params.runId, "report.json"
+  );
+  if (!fs.existsSync(reportFile)) {
+    return NextResponse.json({ success: false, error: "Report not found — run /compare first" }, { status: 404 });
+  }
+  return NextResponse.json({
+    success: true,
+    data: JSON.parse(fs.readFileSync(reportFile, "utf-8")),
+  });
+}
+```
+
+**Step 4: screenshot streaming (current + baseline)**
+
+`app/api/sites/[id]/runs/[runId]/screenshot/[fileName]/route.ts`:
+
+```ts
+import fs from "node:fs";
+import path from "node:path";
+import { NextResponse } from "next/server";
+
+export async function GET(
+  _: Request,
+  { params }: { params: { id: string; runId: string; fileName: string } }
+) {
+  if (
+    !/^[\w-]+$/.test(params.id) ||
+    !/^[\w-]+$/.test(params.runId) ||
+    !/^[\w.-]+\.png$/.test(params.fileName)
+  ) {
+    return new NextResponse("Bad path", { status: 400 });
+  }
+  const target = path.join(
+    process.cwd(), "data", "sites", params.id, "runs", params.runId, params.fileName
+  );
+  if (!fs.existsSync(target)) return new NextResponse("Not found", { status: 404 });
+  const buf = fs.readFileSync(target);
+  return new NextResponse(buf, {
+    status: 200,
+    headers: { "Content-Type": "image/png", "Cache-Control": "no-store" },
+  });
+}
+```
+
+`app/api/sites/[id]/baseline/screenshot/[fileName]/route.ts` — same pattern, replace the path with:
+
+```ts
+const target = path.join(process.cwd(), "data", "sites", params.id, "baseline", params.fileName);
+```
+
+(omit `runId` from validation accordingly).
+
+**Step 5: Commit**
+
+```bash
+git add app/api/sites/[id]/baseline app/api/sites/[id]/compare app/api/sites/[id]/runs
+git commit -m "feat(site): add baseline, compare (persists report), runs, screenshots"
+```
+
+---
+
+## Task 15 — UI scaffold: header tab + sites list
+
+**Files:**
+- Modify: `app/layout.tsx`
+- Create: `app/sites/page.tsx`
+
+**Step 1: Header tab**
+
+Open `app/layout.tsx`. Find the existing header nav. Add a single `<Link href="/sites">Sites</Link>` next to the existing link(s). Do not refactor anything else.
+
+**Step 2: Sites list page**
+
+```tsx
+"use client";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import type { Site } from "@/lib/site-types";
+
+export default function SitesPage() {
+  const [sites, setSites] = useState<Site[]>([]);
+
+  async function load() {
+    const res = await fetch("/api/sites");
+    const payload = (await res.json()) as { success: boolean; data?: Site[] };
+    if (payload.success && payload.data) setSites(payload.data);
+  }
+
+  async function handleDelete(id: string) {
+    if (!window.confirm("삭제하시겠습니까?")) return;
+    await fetch(`/api/sites/${id}`, { method: "DELETE" });
+    await load();
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  return (
+    <main className="px-4 py-8">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">사이트 회귀 테스트</h1>
+          <p className="text-sm text-muted-foreground">
+            BFS 크롤링으로 페이지를 수집하고 DOM·시각 diff로 회귀를 감지합니다.
+          </p>
+        </div>
+        <Link href="/sites/new"><Button>+ 새 사이트</Button></Link>
+      </div>
+
+      {sites.length === 0 ? (
+        <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
+          등록된 사이트가 없습니다.
+        </div>
+      ) : (
+        <ul className="grid gap-3">
+          {sites.map((s) => (
+            <li key={s.id} className="rounded-xl border bg-card p-4 flex items-center gap-3">
+              <div className="flex-1">
+                <div className="font-semibold">{s.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {s.crawl.startUrls[0]} · depth {s.crawl.maxDepth} · maxPages {s.crawl.maxPages}
+                </div>
+              </div>
+              <Link href={`/sites/${s.id}/run`}><Button variant="secondary">실행</Button></Link>
+              <Link href={`/sites/${s.id}/edit`}><Button variant="outline">편집</Button></Link>
+              <Button variant="destructive" onClick={() => handleDelete(s.id)}>삭제</Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
+  );
+}
+```
+
+**Step 3: Smoke**
+
+`npm run dev`, visit `/sites`, see empty state + the new Sites tab.
+
+**Step 4: Commit**
+
+```bash
+git add app/layout.tsx app/sites/page.tsx
+git commit -m "feat(site): add Sites list page and header tab"
+```
+
+---
+
+## Task 16 — UI: new / edit pages
+
+**Files:**
+- Create: `components/site/SiteForm.tsx`
+- Create: `app/sites/new/page.tsx`
+- Create: `app/sites/[id]/edit/page.tsx`
+
+**Step 1: SiteForm component** — controlled form returning a `Site`. Fields: id, name, startUrls (textarea, one per line), maxDepth, maxPages, allowSubdomains, excludePatterns, maskSelectors, ignoreSelectors. storageState file input shown only on edit page.
+
+```tsx
+"use client";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import type { Site } from "@/lib/site-types";
+
+export function SiteForm({
+  initial, onSave, storageStateUploader,
+}: {
+  initial: Site;
+  onSave: (site: Site) => Promise<void>;
+  storageStateUploader?: (json: object) => Promise<void>;
+}) {
+  const [site, setSite] = useState<Site>(initial);
+
+  function setCrawl<K extends keyof Site["crawl"]>(key: K, value: Site["crawl"][K]) {
+    setSite((s) => ({ ...s, crawl: { ...s.crawl, [key]: value } }));
+  }
+
+  return (
+    <form
+      className="grid gap-4 max-w-2xl"
+      onSubmit={async (e) => { e.preventDefault(); await onSave(site); }}
+    >
+      <label className="grid gap-1">
+        <span>ID</span>
+        <input className="rounded border px-2 py-1"
+          value={site.id}
+          onChange={(e) => setSite((s) => ({ ...s, id: e.target.value }))}
+          required />
+      </label>
+
+      <label className="grid gap-1">
+        <span>이름</span>
+        <input className="rounded border px-2 py-1"
+          value={site.name}
+          onChange={(e) => setSite((s) => ({ ...s, name: e.target.value }))}
+          required />
+      </label>
+
+      <label className="grid gap-1">
+        <span>Start URLs (한 줄에 하나)</span>
+        <textarea className="rounded border px-2 py-1 font-mono text-sm" rows={3}
+          value={site.crawl.startUrls.join("\n")}
+          onChange={(e) => setCrawl("startUrls",
+            e.target.value.split("\n").map((s) => s.trim()).filter(Boolean))} />
+      </label>
+
+      <div className="grid grid-cols-3 gap-3">
+        <label className="grid gap-1">
+          <span>maxDepth</span>
+          <input type="number" min={0} className="rounded border px-2 py-1"
+            value={site.crawl.maxDepth}
+            onChange={(e) => setCrawl("maxDepth", Number(e.target.value))} />
+        </label>
+        <label className="grid gap-1">
+          <span>maxPages</span>
+          <input type="number" min={1} className="rounded border px-2 py-1"
+            value={site.crawl.maxPages}
+            onChange={(e) => setCrawl("maxPages", Number(e.target.value))} />
+        </label>
+        <label className="grid gap-1 items-end">
+          <span>서브도메인 허용</span>
+          <input type="checkbox"
+            checked={site.crawl.allowSubdomains}
+            onChange={(e) => setCrawl("allowSubdomains", e.target.checked)} />
+        </label>
+      </div>
+
+      <label className="grid gap-1">
+        <span>excludePatterns (정규식, 한 줄에 하나)</span>
+        <textarea className="rounded border px-2 py-1 font-mono text-sm" rows={2}
+          value={(site.crawl.excludePatterns ?? []).join("\n")}
+          onChange={(e) => setCrawl("excludePatterns",
+            e.target.value.split("\n").map((s) => s.trim()).filter(Boolean))} />
+      </label>
+
+      <label className="grid gap-1">
+        <span>maskSelectors (CSS, 한 줄에 하나)</span>
+        <textarea className="rounded border px-2 py-1 font-mono text-sm" rows={2}
+          value={site.visual.maskSelectors.join("\n")}
+          onChange={(e) => setSite((s) => ({
+            ...s, visual: {
+              ...s.visual,
+              maskSelectors: e.target.value.split("\n").map((v) => v.trim()).filter(Boolean),
+            },
+          }))} />
+      </label>
+
+      <label className="grid gap-1">
+        <span>ignoreSelectors (CSS, 한 줄에 하나)</span>
+        <textarea className="rounded border px-2 py-1 font-mono text-sm" rows={2}
+          value={site.dom.ignoreSelectors.join("\n")}
+          onChange={(e) => setSite((s) => ({
+            ...s, dom: {
+              ...s.dom,
+              ignoreSelectors: e.target.value.split("\n").map((v) => v.trim()).filter(Boolean),
+            },
+          }))} />
+      </label>
+
+      {storageStateUploader && (
+        <label className="grid gap-1">
+          <span>storageState (Playwright JSON)</span>
+          <input type="file" accept="application/json"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const text = await file.text();
+              await storageStateUploader(JSON.parse(text));
+            }} />
+        </label>
+      )}
+
+      <Button type="submit">저장</Button>
+    </form>
+  );
+}
+```
+
+**Step 2: new page**
+
+```tsx
+"use client";
+import { useRouter } from "next/navigation";
+import { SiteForm } from "@/components/site/SiteForm";
+import type { Site } from "@/lib/site-types";
+
+const empty: Site = {
+  id: "", name: "",
+  crawl: { startUrls: [""], maxDepth: 2, maxPages: 50, allowSubdomains: false },
+  visual: { enabled: true, maskSelectors: [], threshold: 0.1, maxDiffRatio: 0.01, viewport: { width: 1280, height: 800 } },
+  dom: { enabled: true, ignoreSelectors: [], normalizeWhitespace: true },
+  createdAt: "", updatedAt: "",
+};
+
+export default function NewSitePage() {
+  const router = useRouter();
+  async function handleSave(site: Site) {
+    const res = await fetch("/api/sites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(site),
+    });
+    const payload = await res.json();
+    if (payload.success) router.push(`/sites/${site.id}/edit`);
+    else alert(payload.error);
+  }
+  return (
+    <main className="px-4 py-8">
+      <h1 className="mb-4 text-2xl font-bold">새 사이트</h1>
+      <SiteForm initial={empty} onSave={handleSave} />
+    </main>
+  );
+}
+```
+
+**Step 3: edit page**
+
+```tsx
+"use client";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { SiteForm } from "@/components/site/SiteForm";
+import type { Site } from "@/lib/site-types";
+
+export default function EditSitePage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const [site, setSite] = useState<Site | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const res = await fetch(`/api/sites/${params.id}`);
+      const payload = await res.json();
+      if (payload.success) setSite(payload.data);
+    })();
+  }, [params.id]);
+
+  if (!site) return <main className="px-4 py-8">불러오는 중...</main>;
+
+  return (
+    <main className="px-4 py-8">
+      <h1 className="mb-4 text-2xl font-bold">사이트 편집</h1>
+      <SiteForm
+        initial={site}
+        onSave={async (next) => {
+          await fetch(`/api/sites/${site.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(next),
+          });
+          router.push("/sites");
+        }}
+        storageStateUploader={async (json) => {
+          await fetch(`/api/sites/${site.id}/storage-state`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(json),
+          });
+        }}
+      />
+    </main>
+  );
+}
+```
+
+**Step 4: Smoke test in browser**
+
+Create a site at `/sites/new` for `https://example.com/`, save, edit, optional storageState upload.
+
+**Step 5: Commit**
+
+```bash
+git add components/site/SiteForm.tsx app/sites/new app/sites/[id]/edit
+git commit -m "feat(site): add Site form, new and edit pages"
+```
+
+---
+
+## Task 17 — UI: run page
+
+**Files:**
+- Create: `app/sites/[id]/run/page.tsx`
+
+```tsx
+"use client";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import type { SiteRunProgress, SiteRunResult } from "@/lib/site-types";
+
+export default function RunPage() {
+  const params = useParams<{ id: string }>();
+  const [result, setResult] = useState<SiteRunResult | null>(null);
+  const [progress, setProgress] = useState<SiteRunProgress | null>(null);
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    if (!running) return;
+    const handle = setInterval(async () => {
+      const res = await fetch(`/api/sites/${params.id}/run-status`);
+      const payload = await res.json();
+      setProgress(payload.data);
+      if (payload.data?.status === "completed" || payload.data?.status === "error") {
+        setRunning(false);
+        clearInterval(handle);
+      }
+    }, 1000);
+    return () => clearInterval(handle);
+  }, [running, params.id]);
+
+  async function handleRun() {
+    setRunning(true);
+    setResult(null);
+    const res = await fetch(`/api/sites/${params.id}/run`, { method: "POST" });
+    const payload = await res.json();
+    if (payload.success) setResult(payload.data);
+    setRunning(false);
+  }
+
+  async function handleAdoptBaseline() {
+    if (!result) return;
+    if (!window.confirm("이 실행을 베이스라인으로 채택하시겠습니까?")) return;
+    const res = await fetch(`/api/sites/${params.id}/baseline`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ runId: result.runId }),
+    });
+    const payload = await res.json();
+    alert(payload.success ? "베이스라인 채택 완료" : `실패: ${payload.error}`);
+  }
+
+  async function handleCompare() {
+    const res = await fetch(`/api/sites/${params.id}/compare`, { method: "POST" });
+    const payload = await res.json();
+    if (!payload.success) return alert(payload.error);
+    window.location.href = `/sites/${params.id}/report/${payload.data.current.runId}`;
+  }
+
+  return (
+    <main className="px-4 py-8">
+      <h1 className="mb-4 text-2xl font-bold">사이트 실행</h1>
+      <div className="flex gap-3 mb-6">
+        <Button onClick={handleRun} disabled={running}>
+          {running ? "실행 중..." : "실행"}
+        </Button>
+        <Button variant="secondary" onClick={handleAdoptBaseline} disabled={!result}>
+          베이스라인으로 채택
+        </Button>
+        <Button variant="secondary" onClick={handleCompare}>
+          베이스라인과 비교
+        </Button>
+      </div>
+
+      {progress && (
+        <div className="mb-6 rounded border p-3 text-sm">
+          상태: {progress.status} · 방문: {progress.visited}/{progress.total}
+          {progress.currentUrl && <div className="text-muted-foreground">{progress.currentUrl}</div>}
+          {progress.error && <div className="text-red-600">{progress.error}</div>}
+        </div>
+      )}
+
+      {result && (
+        <div className="rounded border p-3">
+          <div>RunId: {result.runId}</div>
+          <div>방문 페이지: {result.pages.length}</div>
+          <div>에러: {result.errors.length}</div>
+        </div>
+      )}
+    </main>
+  );
+}
+```
+
+**Step 2: Commit**
+
+```bash
+git add app/sites/[id]/run/page.tsx
+git commit -m "feat(site): add run page with progress and baseline controls"
+```
+
+---
+
+## Task 18 — UI: report viewer
+
+**Files:**
+- Create: `components/site/VisualDiffViewer.tsx`
+- Create: `components/site/PageDiffCard.tsx`
+- Create: `app/sites/[id]/report/[runId]/page.tsx`
+
+**Step 1: VisualDiffViewer**
+
+```tsx
+"use client";
+import { useState } from "react";
+
+export function VisualDiffViewer({
+  baselineSrc, currentSrc, diffSrc,
+}: {
+  baselineSrc: string;
+  currentSrc: string;
+  diffSrc: string;
+}) {
+  const [mode, setMode] = useState<"side" | "diff">("side");
+  return (
+    <div className="grid gap-2">
+      <div className="flex gap-2">
+        <button
+          className={`text-xs px-2 py-1 rounded ${mode === "side" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+          onClick={() => setMode("side")}
+        >좌우 비교</button>
+        <button
+          className={`text-xs px-2 py-1 rounded ${mode === "diff" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+          onClick={() => setMode("diff")}
+        >diff 보기</button>
+      </div>
+      {mode === "side" ? (
+        <div className="grid grid-cols-2 gap-2">
+          <img src={baselineSrc} className="w-full border" alt="baseline" />
+          <img src={currentSrc} className="w-full border" alt="current" />
+        </div>
+      ) : (
+        <img src={diffSrc} className="w-full border" alt="diff" />
+      )}
+    </div>
+  );
+}
+```
+
+**Step 2: PageDiffCard**
+
+```tsx
+import type { PageDiff } from "@/lib/site-types";
+import { VisualDiffViewer } from "./VisualDiffViewer";
+
+export function PageDiffCard({
+  diff, baselineSrc, currentSrc,
+}: {
+  diff: PageDiff;
+  baselineSrc?: string;
+  currentSrc?: string;
+}) {
+  const color =
+    diff.severity === "critical" ? "border-red-500" :
+    diff.severity === "warning" ? "border-amber-500" : "border-emerald-500";
+  return (
+    <article className={`rounded border-l-4 ${color} bg-card p-4`}>
+      <header className="flex items-center justify-between mb-2">
+        <div>
+          <div className="font-mono text-sm">{diff.url}</div>
+          <div className="text-xs text-muted-foreground">
+            status={diff.status} · severity={diff.severity}
+          </div>
+        </div>
+        {diff.visualDiff && (
+          <div className="text-xs">
+            diffRatio: {(diff.visualDiff.diffRatio * 100).toFixed(2)}%
+          </div>
+        )}
+      </header>
+      {diff.status !== "identical" && diff.status !== "missing" && baselineSrc && currentSrc && diff.visualDiff && (
+        <VisualDiffViewer
+          baselineSrc={baselineSrc}
+          currentSrc={currentSrc}
+          diffSrc={diff.visualDiff.diffImagePath}
+        />
+      )}
+    </article>
+  );
+}
+```
+
+**Step 3: Report page** — fetches the report + the current run JSON to map URLs → screenshot files.
+
+```tsx
+"use client";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { PageDiffCard } from "@/components/site/PageDiffCard";
+import type { SiteReport, SiteRunResult } from "@/lib/site-types";
+import path from "path-browserify";
+
+export default function ReportPage() {
+  const params = useParams<{ id: string; runId: string }>();
+  const [report, setReport] = useState<SiteReport | null>(null);
+  const [current, setCurrent] = useState<SiteRunResult | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const [r1, r2] = await Promise.all([
+        fetch(`/api/sites/${params.id}/runs/${params.runId}/report`).then((r) => r.json()),
+        fetch(`/api/sites/${params.id}/runs/${params.runId}`).then((r) => r.json()),
+      ]);
+      if (r1.success) setReport(r1.data);
+      if (r2.success) setCurrent(r2.data);
+    })();
+  }, [params.id, params.runId]);
+
+  if (!report) return <main className="px-4 py-8">불러오는 중...</main>;
+
+  const fileByUrl = new Map(
+    (current?.pages ?? []).map((p) => [
+      p.url,
+      p.screenshotPath ? path.basename(p.screenshotPath) : undefined,
+    ])
+  );
+
+  return (
+    <main className="px-4 py-8 grid gap-3">
+      <header className="mb-4">
+        <h1 className="text-2xl font-bold">회귀 리포트</h1>
+        <div className="text-sm text-muted-foreground">
+          overall: {report.overall} · baseline {report.baselineRunId} → current {report.currentRunId}
+        </div>
+      </header>
+      {report.pageDiffs.map((d) => {
+        const file = fileByUrl.get(d.url);
+        return (
+          <PageDiffCard
+            key={d.url}
+            diff={d}
+            baselineSrc={file ? `/api/sites/${params.id}/baseline/screenshot/${file}` : undefined}
+            currentSrc={file ? `/api/sites/${params.id}/runs/${params.runId}/screenshot/${file}` : undefined}
+          />
+        );
+      })}
+    </main>
+  );
+}
+```
+
+Add `path-browserify` to dependencies if not already present:
+
+```bash
+npm install path-browserify
+npm install -D @types/path-browserify
+```
+
+**Step 4: Commit**
+
+```bash
+git add components/site/VisualDiffViewer.tsx components/site/PageDiffCard.tsx app/sites/[id]/report package.json package-lock.json
+git commit -m "feat(site): add report page with PageDiffCard and VisualDiffViewer"
+```
+
+---
+
+## Task 19 — Manual end-to-end shakeout
+
+No new files. Verify the full UI flow before the e2e test in Task 20.
+
+**Step 1: Run dev server**
+
+```bash
+npm run dev
+```
+
+**Step 2: Walkthrough**
+
+1. Header → **Sites** tab present.
+2. `/sites` shows empty state.
+3. `/sites/new` → create a site for `https://example.com/`, maxDepth 1, maxPages 3.
+4. `/sites/<id>/edit` loads with prefilled fields.
+5. `/sites/<id>/run` → "실행" completes; results show pages count > 0.
+6. Click "베이스라인으로 채택" — alert "베이스라인 채택 완료".
+7. Click "베이스라인과 비교" — redirected to report page; overall is `identical`.
+8. Modify Site `dom.ignoreSelectors` to a value that excludes part of the page; run + adopt + run + compare again; overall is still `identical` (or `different` per real changes).
+9. Visit `/scenarios` (existing flow) — works unchanged.
+
+**Step 3: Diagnose any failure** before proceeding to Task 20.
+
+---
+
+## Task 20 — e2e test
+
+**Files:**
+- Create: `tests/site-run.spec.ts`
+
+This Phase-1 e2e verifies the API pipeline end-to-end against a stable external URL (`https://example.com`). Visual + DOM comparison against fixture sites that swap v1↔v2 would require a local fixture server — that's a follow-up.
+
+**Step 1: Spec**
+
+```ts
+import { test, expect } from "@playwright/test";
+
+test("site regression pipeline end-to-end", async ({ request }) => {
+  const id = `e2e-${Date.now()}`;
+
+  let res = await request.post("/api/sites", {
+    data: {
+      id, name: id,
+      crawl: { startUrls: ["https://example.com/"], maxDepth: 0, maxPages: 1, allowSubdomains: false },
+      visual: {
+        enabled: true, maskSelectors: [], threshold: 0.1, maxDiffRatio: 0.0,
+        viewport: { width: 800, height: 600 },
+      },
+      dom: { enabled: true, ignoreSelectors: [], normalizeWhitespace: true },
+      createdAt: "", updatedAt: "",
+    },
+  });
+  expect((await res.json()).success).toBe(true);
+
+  res = await request.post(`/api/sites/${id}/run`);
+  expect((await res.json()).success).toBe(true);
+
+  const runs = (await (await request.get(`/api/sites/${id}/runs`)).json()) as { data: string[] };
+  expect(runs.data.length).toBeGreaterThan(0);
+  const runId = runs.data[0];
+
+  res = await request.post(`/api/sites/${id}/baseline`, { data: { runId } });
+  expect((await res.json()).success).toBe(true);
+
+  res = await request.post(`/api/sites/${id}/compare`);
+  const compare = await res.json();
+  expect(compare.success).toBe(true);
+  expect(["identical", "different"]).toContain(compare.data.report.overall);
+
+  await request.delete(`/api/sites/${id}`);
+});
+```
+
+**Step 2: Run**
+
+```bash
+npm test -- tests/site-run.spec.ts
+```
+
+Expected: PASS. If the live `example.com` changes between baseline and compare in CI, `overall` may be `different` — the assertion accepts both.
+
+**Step 3: Commit**
+
+```bash
+git add tests/site-run.spec.ts
+git commit -m "test(site): add e2e pipeline test against external URL"
+```
+
+---
+
+## Task 21 — Documentation
+
+**Files:**
+- Modify: `README.md`
+- Create: `docs/design/02_사이트회귀.md` (mirror the existing design doc style)
+
+**Step 1: README section**
+
+Append to `README.md`:
+
+```markdown
+
+## 🌐 Site 회귀 테스트
+
+임의의 사이트에 대해 BFS 크롤링 + DOM/시각 diff 기반 회귀 테스트를 수행합니다.
+
+### 빠른 시작
+
+1. 헤더 → **Sites** → "새 사이트"
+2. start URL, depth, maxPages 입력
+3. 필요 시 storageState JSON 업로드 (Playwright `context.storageState()` 결과)
+4. "실행" 후 "베이스라인으로 채택"
+5. 이후 시점에 "베이스라인과 비교" → 리포트에서 페이지별 DOM/시각 diff 확인
+
+자세한 설계는 [`docs/design/02_사이트회귀.md`](docs/design/02_사이트회귀.md), 구현 계획은 [`docs/plans/2026-06-04-universal-regression-test.md`](docs/plans/2026-06-04-universal-regression-test.md) 참고.
+```
+
+**Step 2: Companion design doc**
+
+Create `docs/design/02_사이트회귀.md` in the existing concise table style:
+
+```markdown
+# 02. 사이트 회귀 (Site)
+
+**작성일**: 2026-06-04
+**범위**: 임의 웹사이트의 BFS 크롤링 + 시점 기반 회귀
+
+---
+
+## 1. 아키텍처 개요
+
+```
+브라우저(UI)
+    │
+Next.js (App Router)
+    ├── API Routes (/api/sites/*)
+    │       ├── site-manager        →  data/sites/<id>.json
+    │       ├── site-runner         →  data/sites/<id>/runs/<runId>.json
+    │       ├── site-baseline       →  data/sites/<id>/baseline.json
+    │       ├── site-crawler        →  BFS, same-origin
+    │       ├── dom-normalizer      →  정규화 HTML + SHA-256
+    │       ├── visual-diff         →  pixelmatch
+    │       └── site-diff-engine    →  URL outer-join + severity
+    └── Pages (/sites/*)
+```
+
+## 2. 데이터 모델 (요약)
+
+| 타입 | 필드 |
+|---|---|
+| `Site` | id, name, crawl, visual, dom, storageStatePath?, createdAt, updatedAt |
+| `SiteCrawlConfig` | startUrls, maxDepth, maxPages, includePatterns?, excludePatterns?, allowSubdomains |
+| `VisualConfig` | enabled, maskSelectors, threshold, maxDiffRatio, viewport |
+| `DomConfig` | enabled, ignoreSelectors, normalizeWhitespace |
+| `SitePageCapture` | url, finalUrl, httpStatus, domHash, domSerialized, screenshotPath?, capturedAt |
+| `SiteRunResult` | runId, siteId, startedAt, finishedAt, status, pages[], errors[] |
+| `PageDiff` | url, status, domDiff?, visualDiff?, severity |
+| `SiteReport` | siteId, baselineRunId, currentRunId, comparedAt, overall, pageDiffs[] |
+
+## 3. 파일 저장 구조
+
+```
+data/
+  sites/
+    {id}.json
+    {id}/
+      storage-state.json
+      baseline.json
+      baseline/page-NNN.png
+      runs/
+        {runId}.json
+        {runId}/
+          page-NNN.png
+          report.json
+          diff/page-NNN.diff.png
+```
+
+## 4. API
+
+| Method | Path | 설명 |
+|---|---|---|
+| GET | /api/sites | 목록 |
+| POST | /api/sites | 생성 |
+| GET | /api/sites/:id | 단건 |
+| PUT | /api/sites/:id | 수정 |
+| DELETE | /api/sites/:id | 삭제 |
+| POST | /api/sites/:id/storage-state | storageState 업로드 |
+| POST | /api/sites/:id/run | 실행 |
+| GET | /api/sites/:id/run-status | 진행률 |
+| POST | /api/sites/:id/baseline | 베이스라인 채택 |
+| POST | /api/sites/:id/compare | 비교 (report.json 저장) |
+| GET | /api/sites/:id/runs | 실행 이력 |
+| GET | /api/sites/:id/runs/:runId | 실행 결과 |
+| GET | /api/sites/:id/runs/:runId/report | 비교 리포트 |
+| GET | /api/sites/:id/runs/:runId/screenshot/:file | PNG |
+| GET | /api/sites/:id/baseline/screenshot/:file | 베이스라인 PNG |
+
+## 5. UI 라우팅
+
+| 경로 | 설명 |
+|---|---|
+| /sites | 사이트 목록 |
+| /sites/new | 새 사이트 |
+| /sites/:id/edit | 편집 |
+| /sites/:id/run | 실행 + 베이스라인 |
+| /sites/:id/report/:runId | 리포트 |
+
+## 6. 핵심 모듈
+
+| 파일 | 역할 |
+|---|---|
+| lib/site-types.ts | 타입 정의 |
+| lib/url-normalizer.ts | URL 정규화 + same-origin |
+| lib/browser-bootstrap.ts | Playwright launch/context |
+| lib/dom-normalizer.ts | jsdom 기반 정규화 (오프라인) |
+| lib/visual-diff.ts | pixelmatch wrapper |
+| lib/site-manager.ts | Site JSON CRUD |
+| lib/site-crawler.ts | BFS 크롤러 |
+| lib/site-runner.ts | crawl + capture + persist |
+| lib/site-baseline.ts | promote/load/archive |
+| lib/site-diff-engine.ts | URL outer-join + severity |
+| lib/site-run-progress.ts | in-memory 진행률 |
+
+## 7. 범위 외
+
+콘솔/네트워크/Web Vitals, 인터랙션 시뮬레이션, CLI/CI, stg↔prod 환경 비교, 접근성 트리 비교, 자동 로그인, robots.txt 준수.
+```
+
+**Step 3: Commit**
+
+```bash
+git add README.md docs/design/02_사이트회귀.md
+git commit -m "docs(site): document Site regression flow in README and design doc"
+```
+
+---
+
+## Out of scope (deferred to v2)
+
+The following items are explicitly out of scope per the brainstorming decisions and **must not be added** during this plan's execution:
+
+- 콘솔/네트워크/Web Vitals 수집
+- 인터랙션 시뮬레이션(폼 제출, 클릭 흐름)
+- CLI/CI 진입점
+- 스테이징↔프로덕션 환경 비교
+- 접근성 트리 비교
+- 자동 로그인 시퀀스
+- robots.txt 준수
+- self-healing locator (Scenario 도메인 영역)
+
+If a reviewer asks for any of these, point them at the design doc's "범위 외 / Future" section.
+
+---
+
+## Done criteria
+
+- All unit tests PASS:
+  - `tests/unit/url-normalizer.test.ts`
+  - `tests/unit/dom-normalizer.test.ts`
+  - `tests/unit/visual-diff.test.ts`
+  - `tests/unit/site-manager.test.ts`
+  - `tests/unit/site-crawler.test.ts`
+  - `tests/unit/site-diff-engine.test.ts`
+  - `tests/unit/site-baseline.test.ts`
+- `npx tsc --noEmit` clean.
+- Manual flow works at `/sites`: create → run → adopt baseline → re-run → compare → view report with visual + DOM diff.
+- `tests/site-run.spec.ts` PASS.
+- All 21 task commits land on the branch (atomic, in order).
+- Existing `Scenario` flow at `/scenarios` unchanged — verified by running an existing scenario successfully.
+
+---
+
+## Execution Handoff
+
+Plan complete and saved to `docs/plans/2026-06-04-universal-regression-test.md`. Two execution options:
+
+1. **Subagent-Driven (this session)** — I dispatch a fresh subagent per task, review between tasks, fast iteration.
+2. **Parallel Session (separate)** — Open a new session with `superpowers:executing-plans`, batch execution with checkpoints.
+
+Which approach?

@@ -1,0 +1,39 @@
+import 'server-only'
+import { prisma } from '@/lib/prisma'
+import type { InspectionSearchInput } from './schema'
+
+export async function getInspections(params: InspectionSearchInput) {
+    const where = {
+        ...(params.targetType && { targetType: params.targetType }),
+        ...(params.status && { status: params.status }),
+    }
+
+    const [items, total] = await prisma.$transaction([
+        prisma.inspection.findMany({
+            where,
+            select: {
+                id: true,
+                targetType: true,
+                targetId: true,
+                status: true,
+                comment: true,
+                inspectorId: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+            skip: params.page * params.size,
+            take: params.size,
+            orderBy: { createdAt: 'desc' },
+        }),
+        prisma.inspection.count({ where }),
+    ])
+
+    return {
+        items: items.map((item) => ({
+            ...item,
+            createdAt: item.createdAt.toISOString(),
+            updatedAt: item.updatedAt.toISOString(),
+        })),
+        total,
+    }
+}

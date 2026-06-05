@@ -1,0 +1,46 @@
+package com.devwogns.trmdict.module.word.vo;
+
+import com.devwogns.trmdict.module.word.entity.WordEntity;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class WordDtlVo {
+
+    private Long id;
+    private String stdWordNm;
+    private String stdWordEngAbbrNm;
+    private String stdWordEngNm;
+    private String stdWordExpln;
+    private String frmWordYn;
+    private String stdDmnClsfNm;
+    private String synmListCn;
+    private String phwrdListCn;
+    private String enctCycl;
+    private String rvsnSeNm;
+    private String rvsnArtclNm;
+    private String rvsnRsn;
+    private String useYn;
+    private String rmrkCn;
+
+    public static WordDtlVo fromEntity(WordEntity entity) {
+        WordDtlVo vo = new WordDtlVo();
+        vo.setId(entity.getId());
+        vo.setStdWordNm(entity.getStdWordNm());
+        vo.setStdWordEngAbbrNm(entity.getStdWordEngAbbrNm());
+        vo.setStdWordEngNm(entity.getStdWordEngNm());
+        vo.setStdWordExpln(entity.getStdWordExpln());
+        vo.setFrmWordYn(entity.getFrmWordYn());
+        vo.setStdDmnClsfNm(entity.getStdDmnClsfNm());
+        vo.setSynmListCn(entity.getSynmListCn());
+        vo.setPhwrdListCn(entity.getPhwrdListCn());
+        vo.setEnctCycl(entity.getEnctCycl());
+        vo.setRvsnSeNm(entity.getRvsnSeNm());
+        vo.setRvsnArtclNm(entity.getRvsnArtclNm());
+        vo.setRvsnRsn(entity.getRvsnRsn());
+        vo.setUseYn(entity.getUseYn());
+        vo.setRmrkCn(entity.getRmrkCn());
+        return vo;
+    }
+}

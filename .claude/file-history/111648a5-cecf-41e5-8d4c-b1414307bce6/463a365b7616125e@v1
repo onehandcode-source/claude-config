@@ -1,0 +1,98 @@
+import { AndroidExecutor } from "./android-executor";
+import { PlaywrightExecutor } from "./playwright-executor";
+import type {
+  Scenario,
+  ScenarioResult,
+  Step,
+  StepResult,
+  TestCase,
+  TestCaseResult,
+  TiberoConfig,
+} from "./types.js";
+
+interface RunScenarioOptions {
+  onTestCaseStart?: (
+    testCase: TestCase,
+    testCaseIndex: number,
+    totalTestCases: number
+  ) => void | Promise<void>;
+  onStepStart?: (
+    testCase: TestCase,
+    testCaseIndex: number,
+    step: Step,
+    stepIndex: number
+  ) => void | Promise<void>;
+  onStepComplete?: (
+    testCase: TestCase,
+    testCaseIndex: number,
+    result: StepResult,
+    stepIndex: number,
+    executedStepCount: number
+  ) => void | Promise<void>;
+  onTestCaseComplete?: (
+    testCase: TestCase,
+    testCaseIndex: number,
+    result: TestCaseResult
+  ) => void | Promise<void>;
+}
+
+async function runTestCase(
+  testCase: TestCase,
+  executor: PlaywrightExecutor | AndroidExecutor,
+  scenarioDbConfig?: TiberoConfig,
+  options: Omit<RunScenarioOptions, "onTestCaseStart" | "onTestCaseComplete"> = {},
+  testCaseIndex = 0
+): Promise<TestCaseResult> {
+  const dbConfig = testCase.dbConfig ?? scenarioDbConfig;
+  const startedAt = Date.now();
+
+  const stepResults = await executor.executeSteps(
+    testCase.steps,
+    dbConfig,
+    {
+      onStepStart: (step, stepIndex) =>
+        options.onStepStart?.(testCase, testCaseIndex, step, stepIndex),
+      onStepComplete: (result, stepIndex, executedStepCount) =>
+        options.onStepComplete?.(testCase, testCaseIndex, result, stepIndex, executedStepCount),
+    },
+    testCase.baseUrl || undefined
+  );
+  const hasError = stepResults.some((result) => result.status === "error");
+
+  return {
+    testCaseId: testCase.id,
+    testCaseName: testCase.name,
+    status: hasError ? "error" : "passed",
+    executionTime: Date.now() - startedAt,
+    stepResults,
+  };
+}
+
+export async function runScenario(
+  scenario: Scenario,
+  options: RunScenarioOptions = {}
+): Promise<ScenarioResult> {
+  const testCaseResults: TestCaseResult[] = [];
+  const executor =
+    scenario.platform === "android" ? new AndroidExecutor() : new PlaywrightExecutor();
+
+  try {
+    await executor.initialize();
+
+    for (const [testCaseIndex, testCase] of scenario.testCases.entries()) {
+      await options.onTestCaseStart?.(testCase, testCaseIndex, scenario.testCases.length);
+      const result = await runTestCase(testCase, executor, scenario.dbConfig, options, testCaseIndex);
+      testCaseResults.push(result);
+      await options.onTestCaseComplete?.(testCase, testCaseIndex, result);
+    }
+  } finally {
+    await executor.close();
+  }
+
+  return {
+    scenarioId: scenario.id,
+    scenarioName: scenario.name,
+    executedAt: new Date().toISOString(),
+    testCaseResults,
+  };
+}

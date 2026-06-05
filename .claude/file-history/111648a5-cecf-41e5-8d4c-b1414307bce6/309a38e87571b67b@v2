@@ -1,0 +1,15 @@
+{
+  "id": "macro-login",
+  "name": "로그인",
+  "description": "로그인 페이지 이동 → ID/PW 입력 → 로그인 버튼 클릭",
+  "steps": [
+    { "type": "navigate", "url": "http://localhost:8080/#/main/login/login", "description": "로그인 페이지 이동" },
+    { "type": "wait", "milliseconds": 500, "description": "페이지 로드 대기" },
+    { "type": "fill", "locator": { "role": "textbox", "name": "아이디" }, "text": "silver1875", "description": "아이디 입력" },
+    { "type": "fill", "locator": { "role": "textbox", "name": "비밀번호" }, "text": "younggun22@@", "description": "비밀번호 입력" },
+    { "type": "click", "locator": { "selector": "button[onclick*='LoginUtil.login(1)']" }, "description": "로그인 버튼 클릭" },
+    { "type": "wait", "milliseconds": 1000, "description": "로그인 처리 대기" }
+  ],
+  "createdAt": "2026-05-19T00:00:00.000Z",
+  "updatedAt": "2026-05-19T00:00:00.000Z"
+}

@@ -1,0 +1,13 @@
+{
+  "pid": 36208,
+  "version": "2.1.140",
+  "jsonPath": "C:\\Users\\ygkim\\.claude\\daemon.json",
+  "logPath": "C:\\Users\\ygkim\\.claude\\daemon.log",
+  "startedAt": 1779944001401,
+  "origin": "transient",
+  "spawnedBy": {
+    "label": "claude",
+    "cwd": "D:\\20. POC",
+    "pid": 35824
+  }
+}

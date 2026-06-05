@@ -1,0 +1,62 @@
+﻿import { Upload } from 'lucide-react';
+import { Button } from '../ui/button';
+
+function matchesAccept(accept, fileName) {
+    const lowerName = fileName.toLowerCase();
+
+    return accept
+        .split(',')
+        .map((item) => item.trim().toLowerCase())
+        .some((extension) => lowerName.endsWith(extension));
+}
+
+export function FileUpload({
+    accept = '.csv',
+    maxSizeMB = 50,
+    label = '?뚯씪 ?좏깮',
+    onFileSelected,
+    onFileRejected,
+}) {
+    const handleFile = (file) => {
+        if (!matchesAccept(accept, file.name)) {
+            onFileRejected?.({
+                reason: 'TYPE',
+                message: `?덉슜?섏? ?딅뒗 ?뚯씪 ?뺤떇?낅땲?? (${accept}留??덉슜)`,
+            });
+            return;
+        }
+
+        if (file.size > maxSizeMB * 1024 * 1024) {
+            onFileRejected?.({
+                reason: 'SIZE',
+                message: `?뚯씪 ?ш린媛 ${maxSizeMB}MB瑜?珥덇낵?덉뒿?덈떎.`,
+            });
+            return;
+        }
+
+        onFileSelected?.(file);
+    };
+
+    return (
+        <label className='inline-flex cursor-pointer items-center gap-2'>
+            <input
+                type='file'
+                aria-label={label}
+                className='sr-only'
+                onChange={(event) => {
+                    const file = event.target.files?.[0];
+
+                    if (file) {
+                        handleFile(file);
+                    }
+
+                    event.target.value = '';
+                }}
+            />
+            <Button variant='outline'>
+                <Upload className='h-4 w-4' />
+                <span>{label}</span>
+            </Button>
+        </label>
+    );
+}

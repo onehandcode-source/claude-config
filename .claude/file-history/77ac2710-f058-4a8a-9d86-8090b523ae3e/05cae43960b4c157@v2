@@ -1,0 +1,11 @@
+import { axiosInstance, unwrapResponse } from '@/core/api/axiosInstance';
+
+export async function searchDomains(payload) {
+    const response = await axiosInstance.post('/domains/search', payload);
+    return unwrapResponse(response);
+}
+
+export async function getDomainById(id) {
+    const response = await axiosInstance.get(`/domains/${id}`);
+    return unwrapResponse(response);
+}

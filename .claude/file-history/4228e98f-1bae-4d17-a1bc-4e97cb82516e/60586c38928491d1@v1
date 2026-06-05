@@ -1,0 +1,37 @@
+import 'server-only'
+import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
+import type { WordSearchInput } from './schema'
+
+export async function searchWords(params: WordSearchInput) {
+  const where: Prisma.WordWhereInput = {
+    ...(params.keyword && {
+      OR: [
+        { wordKor: { contains: params.keyword } },
+        { wordEng: { contains: params.keyword, mode: 'insensitive' } },
+        { wordAbbr: { contains: params.keyword, mode: 'insensitive' } },
+      ],
+    }),
+    ...(params.domainId && { domainId: params.domainId }),
+  }
+
+  const [items, total] = await prisma.$transaction([
+    prisma.word.findMany({
+      where,
+      include: { domain: { select: { code: true, name: true } } },
+      skip: params.page * params.size,
+      take: params.size,
+      orderBy: { wordKor: 'asc' },
+    }),
+    prisma.word.count({ where }),
+  ])
+
+  return { items, total }
+}
+
+export async function getWordById(id: number) {
+  return prisma.word.findUnique({
+    where: { id },
+    include: { domain: { select: { code: true, name: true } } },
+  })
+}

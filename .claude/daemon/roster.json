@@ -1,0 +1,97 @@
+{
+  "proto": 1,
+  "supervisorPid": 36208,
+  "updatedAt": 1779947604485,
+  "workers": {
+    "efe6b9ef": {
+      "pid": 24712,
+      "sessionId": "efe6b9ef-4ef3-4ab7-bd1b-5a63930e3d23",
+      "rendezvousSock": "\\\\.\\pipe\\cc-daemon-783243e51cababda-rv-efe6b9ef",
+      "ptySock": "\\\\.\\pipe\\cc-daemon-783243e51cababda-pty-efe6b9ef",
+      "cliVersion": "2.1.140",
+      "startedAt": 1779944002987,
+      "attempt": 1,
+      "cwd": "D:\\20. POC",
+      "dispatch": {
+        "proto": 1,
+        "short": "efe6b9ef",
+        "nonce": "3d3e10c1",
+        "sessionId": "efe6b9ef-4ef3-4ab7-bd1b-5a63930e3d23",
+        "createdAt": 1779943998496,
+        "source": "slash",
+        "cwd": "D:\\20. POC",
+        "launch": {
+          "mode": "resume",
+          "sessionId": "C:\\Users\\ygkim\\.claude\\projects\\D--20--POC\\b11c228d-d10b-4d1e-95a1-2409cf797cdf.jsonl",
+          "fork": true,
+          "flagArgs": []
+        },
+        "env": {},
+        "isolation": "none",
+        "respawnFlags": [],
+        "seed": {
+          "intent": "질문.\n\n1. alloy는 각 서버별로 rpm으로 직접 설치하는수밖에 없어?"
+        },
+        "cols": 276,
+        "rows": 39
+      },
+      "decModes": [
+        1004,
+        1000,
+        1002,
+        1003,
+        1006,
+        2004,
+        2031
+      ]
+    },
+    "cfcb8994": {
+      "pid": 30472,
+      "sessionId": "cfcb8994-65d3-4063-ae8a-ff2a9d40efa3",
+      "rendezvousSock": "\\\\.\\pipe\\cc-daemon-783243e51cababda-rv-cfcb8994",
+      "ptySock": "\\\\.\\pipe\\cc-daemon-783243e51cababda-pty-cfcb8994",
+      "cliVersion": "2.1.140",
+      "startedAt": 1779944023564,
+      "attempt": 1,
+      "cwd": "D:\\20. POC\\TrmWordDict",
+      "dispatch": {
+        "proto": 1,
+        "short": "cfcb8994",
+        "nonce": "f2fc6cd0",
+        "sessionId": "cfcb8994-65d3-4063-ae8a-ff2a9d40efa3",
+        "createdAt": 1779944022749,
+        "source": "fleet",
+        "cwd": "D:\\20. POC\\TrmWordDict",
+        "launch": {
+          "mode": "resume",
+          "sessionId": "cfcb8994-65d3-4063-ae8a-ff2a9d40efa3",
+          "fork": false,
+          "flagArgs": [
+            "--permission-mode",
+            "acceptEdits"
+          ]
+        },
+        "env": {},
+        "isolation": "none",
+        "respawnFlags": [
+          "--permission-mode",
+          "acceptEdits"
+        ],
+        "seed": {
+          "intent": ""
+        },
+        "cols": 276,
+        "rows": 39
+      },
+      "decModes": [
+        1004,
+        1000,
+        1002,
+        1003,
+        1006,
+        2004,
+        2031
+      ]
+    }
+  }
+}

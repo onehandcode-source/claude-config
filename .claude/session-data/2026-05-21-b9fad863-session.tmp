@@ -1,0 +1,59 @@
+# Session: 2026-05-21
+**Date:** 2026-05-21
+**Started:** 14:36
+**Last Updated:** 16:40
+**Project:** TrmWordDict
+**Branch:** master
+**Worktree:** D:\20. POC\TrmWordDict\backend
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- <command-name>/clear</command-name>             <command-message>clear</command-message>             <command-args></command-args>
+- 지금 테스트코드에만 .set 패턴 사용중인건지. 전체에서 사용중인건지 확인 필요. @builder패턴으로 변경해야함.
+- 설계문서에서는 어떤식으로 되어있는지 확인
+- 설계문서에 되어있는데 왜 이렇게 만든거야?
+- <command-name>/goal</command-name>             <command-message>goal</command-message>             <command-args>문서 및 관련 코드 병렬로 수정해. 그리고 문서에 규격에 맞지 않는것들이 또 어떤게 있는지 확인해</command-args>
+- <local-command-stdout>Goal set: 문서 및 관련 코드 병렬로 수정해. 그리고 문서에 규격에 맞지 않는것들이 또 어떤게 있는지 확인해</local-command-stdout>
+- A session-scoped Stop hook is now active with condition: "문서 및 관련 코드 병렬로 수정해. 그리고 문서에 규격에 맞지 않는것들이 또 어떤게 있는지 확인해". Briefly acknowledge the goal, then immediately start (or continue) working toward it 
+- [Request interrupted by user for tool use]
+- 다음작업 실행
+- Stop hook feedback: [문서 및 관련 코드 병렬로 수정해. 그리고 문서에 규격에 맞지 않는것들이 또 어떤게 있는지 확인해]: The condition requires: (1) parallel modification of documents AND related code, and (2) confirmation of what additional s
+
+### Files Modified
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\domain\entity\DomainEntity.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\word\entity\WordEntity.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\forbidden\entity\ForbiddenEntity.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\auth\entity\AuthUserEntity.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\importjob\entity\ImportJobEntity.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\importjob\entity\ImportErrorEntity.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\domain\vo\DomainDtlVo.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\domain\vo\DomainListVo.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\word\vo\WordDtlVo.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\word\vo\WordListVo.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\forbidden\vo\ForbiddenDtlVo.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\forbidden\vo\ForbiddenListVo.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\auth\vo\AuthUserVo.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\importjob\vo\ImportHistoryVo.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\importjob\vo\ImportErrorVo.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\auth\service\AuthService.java
+- D:\20. POC\TrmWordDict\backend\src\main\java\com\devwogns\trmdict\module\importjob\service\ImportJobService.java
+- D:\20. POC\TrmWordDict\docs\worklog.md
+- D:\20. POC\TrmWordDict\docs\handoff.md
+
+### Tools Used
+Grep, Read, Bash, Write, Edit, PowerShell
+
+### Stats
+- Total user messages: 11
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

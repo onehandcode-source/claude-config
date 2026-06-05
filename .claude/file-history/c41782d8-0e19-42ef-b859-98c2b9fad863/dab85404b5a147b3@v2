@@ -1,0 +1,92 @@
+package com.devwogns.trmdict.module.forbidden.entity;
+
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Check;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.PrePersist;
+import javax.persistence.SequenceGenerator;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
+
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(
+        name = "TB_TRM_FORBIDDEN_WORD",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "UQ_TB_TRM_FORBIDDEN_WORD_NK", columnNames = {"PHWRD_NM", "ENCT_CYCL"})
+        }
+)
+@Check(constraints = "USE_YN IN ('Y','N')")
+public class ForbiddenEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tbTrmForbiddenWordSeq")
+    @SequenceGenerator(name = "tbTrmForbiddenWordSeq", sequenceName = "TB_TRM_FORBIDDEN_WORD_SEQ", allocationSize = 1)
+    @Column(name = "PHWRD_SN", nullable = false)
+    private Long id;
+
+    @Column(name = "PHWRD_NM", nullable = false, length = 100)
+    private String phwrdNm;
+
+    @Column(name = "RCMDTN_WORD_NM", length = 200)
+    private String rcmdtnWordNm;
+
+    @Column(name = "ENCT_CYCL", nullable = false, length = 50)
+    private String enctCycl;
+
+    @Column(name = "RVSN_SE_NM", length = 50)
+    private String rvsnSeNm;
+
+    @Column(name = "RVSN_ARTCL_NM", length = 500)
+    private String rvsnArtclNm;
+
+    @Column(name = "RVSN_RSN", length = 2000)
+    private String rvsnRsn;
+
+    @Column(name = "USE_YN", nullable = false, length = 1)
+    private String useYn;
+
+    @Column(name = "RMRK_CN", length = 500)
+    private String rmrkCn;
+
+    @Column(name = "RGTR_ID", nullable = false, length = 50)
+    private String rgtrId;
+
+    @Column(name = "REG_IP_ADDR", length = 45)
+    private String regIpAddr;
+
+    @Column(name = "REG_DT", nullable = false)
+    private LocalDateTime regDt;
+
+    @Column(name = "MDFR_ID", length = 50)
+    private String mdfrId;
+
+    @Column(name = "MDFCN_IP_ADDR", length = 45)
+    private String mdfcnIpAddr;
+
+    @Column(name = "MDFCN_DT")
+    private LocalDateTime mdfcnDt;
+
+    @PrePersist
+    private void applyDefaults() {
+        if (useYn == null) {
+            useYn = "Y";
+        }
+        if (regDt == null) {
+            regDt = LocalDateTime.now();
+        }
+    }
+}

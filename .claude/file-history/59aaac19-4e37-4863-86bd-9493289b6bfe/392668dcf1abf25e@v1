@@ -1,0 +1,268 @@
+"use client";
+
+import { normalizeLocator } from "@/lib/locator-utils";
+import type { Step, StepLocator } from "@/lib/types";
+
+interface StepEditorProps {
+  step: Step;
+  onChange: (step: Step) => void;
+  onRemove: () => void;
+}
+
+const STEP_TYPES = [
+  "navigate",
+  "click",
+  "mapClick",
+  "fill",
+  "select",
+  "wait",
+  "screenshot",
+  "evaluate",
+  "dbQuery",
+] as const;
+
+const STEP_TYPE_LABELS: Record<(typeof STEP_TYPES)[number], string> = {
+  navigate: "페이지 이동",
+  click: "클릭",
+  mapClick: "지도 클릭",
+  fill: "입력",
+  select: "선택",
+  wait: "대기",
+  screenshot: "스크린샷",
+  evaluate: "스크립트 실행",
+  dbQuery: "DB 조회",
+};
+
+function coerceStep(type: Step["type"]): Step {
+  switch (type) {
+    case "navigate":
+      return { type, url: "", description: "" };
+    case "click":
+      return { type, locator: {}, description: "" };
+    case "mapClick":
+      return { type, locator: {}, x: 0, y: 0, description: "" };
+    case "fill":
+      return { type, locator: {}, text: "", description: "" };
+    case "select":
+      return { type, locator: {}, text: "", description: "" };
+    case "wait":
+      return { type, milliseconds: 1000, description: "" };
+    case "screenshot":
+      return { type, description: "" };
+    case "evaluate":
+      return { type, script: "", description: "" };
+    case "dbQuery":
+      return { type, queryId: "", query: "", description: "" };
+  }
+}
+
+function isLocatorStep(
+  step: Step
+): step is Extract<Step, { type: "click" | "mapClick" | "fill" | "select" }> {
+  return (
+    step.type === "click" ||
+    step.type === "mapClick" ||
+    step.type === "fill" ||
+    step.type === "select"
+  );
+}
+
+function getEditorLocator(step: Step): StepLocator {
+  if (!isLocatorStep(step)) {
+    return {};
+  }
+
+  return normalizeLocator(step.locator, step.selector) ?? {};
+}
+
+export function StepEditor({ step, onChange, onRemove }: StepEditorProps) {
+  function update(patch: Partial<Step>) {
+    onChange({ ...step, ...patch } as Step);
+  }
+
+  function updateLocator(patch: Partial<StepLocator>) {
+    if (!isLocatorStep(step)) {
+      return;
+    }
+
+    const currentLocator = getEditorLocator(step);
+    onChange({
+      ...step,
+      locator: { ...currentLocator, ...patch },
+      selector: undefined,
+    } as Step);
+  }
+
+  return (
+    <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          className="rounded border px-2 py-1 text-sm"
+          value={step.type}
+          onChange={(event) => onChange(coerceStep(event.target.value as Step["type"]))}
+        >
+          {STEP_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {STEP_TYPE_LABELS[type]}
+            </option>
+          ))}
+        </select>
+        <input
+          className="flex-1 rounded border px-2 py-1 text-sm"
+          placeholder="설명"
+          value={step.description ?? ""}
+          onChange={(event) => update({ description: event.target.value })}
+        />
+        <button className="text-sm text-red-600" type="button" onClick={onRemove}>
+          삭제
+        </button>
+      </div>
+
+      {step.type === "navigate" && (
+        <input
+          className="w-full rounded border px-2 py-1 text-sm"
+          placeholder="URL"
+          value={step.url}
+          onChange={(event) => update({ url: event.target.value } as Partial<Step>)}
+        />
+      )}
+
+      {isLocatorStep(step) && (
+        <div className="space-y-3 rounded-lg border bg-background p-3">
+          <div>
+            <p className="text-sm font-medium">Locator 우선순위</p>
+            <p className="text-xs text-muted-foreground">
+              1. getByRole() 2. getByLabel() 3. getByPlaceholder() 4. getByText() 5. getByTestId()
+            </p>
+          </div>
+
+          <div className="grid gap-2 md:grid-cols-2">
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Role 예: button, checkbox, textbox"
+              value={getEditorLocator(step).role ?? ""}
+              onChange={(event) => updateLocator({ role: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Accessible Name 예: 로그인"
+              value={getEditorLocator(step).name ?? ""}
+              onChange={(event) => updateLocator({ name: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Label 텍스트"
+              value={getEditorLocator(step).label ?? ""}
+              onChange={(event) => updateLocator({ label: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Placeholder 텍스트"
+              value={getEditorLocator(step).placeholder ?? ""}
+              onChange={(event) => updateLocator({ placeholder: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="화면 텍스트"
+              value={getEditorLocator(step).text ?? ""}
+              onChange={(event) => updateLocator({ text: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="data-testid 값"
+              value={getEditorLocator(step).testId ?? ""}
+              onChange={(event) => updateLocator({ testId: event.target.value })}
+            />
+          </div>
+
+          <details className="rounded border border-dashed p-2">
+            <summary className="cursor-pointer text-xs text-muted-foreground">
+              기존 selector fallback
+            </summary>
+            <input
+              className="mt-2 w-full rounded border px-2 py-1 text-sm"
+              placeholder="기존 CSS selector"
+              value={getEditorLocator(step).selector ?? ""}
+              onChange={(event) => updateLocator({ selector: event.target.value })}
+            />
+          </details>
+
+          {(step.type === "fill" || step.type === "select") && (
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder={step.type === "fill" ? "입력값" : "선택값"}
+              value={step.text}
+              onChange={(event) => update({ text: event.target.value } as Partial<Step>)}
+            />
+          )}
+
+          {step.type === "mapClick" && (
+            <div className="grid gap-2 md:grid-cols-3">
+              <input
+                className="rounded border px-2 py-1 text-sm"
+                placeholder="X 좌표"
+                type="number"
+                value={step.x}
+                onChange={(event) =>
+                  update({ x: Number(event.target.value || "0") } as Partial<Step>)
+                }
+              />
+              <input
+                className="rounded border px-2 py-1 text-sm"
+                placeholder="Y 좌표"
+                type="number"
+                value={step.y}
+                onChange={(event) =>
+                  update({ y: Number(event.target.value || "0") } as Partial<Step>)
+                }
+              />
+              <div className="flex items-center text-xs text-muted-foreground">
+                locator 대상 요소 기준 상대 좌표
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {step.type === "wait" && (
+        <input
+          className="w-full rounded border px-2 py-1 text-sm"
+          type="number"
+          min={0}
+          value={step.milliseconds}
+          onChange={(event) =>
+            update({ milliseconds: Number(event.target.value || "0") } as Partial<Step>)
+          }
+        />
+      )}
+
+      {step.type === "evaluate" && (
+        <textarea
+          className="w-full rounded border px-2 py-1 font-mono text-sm"
+          rows={3}
+          placeholder="JavaScript"
+          value={step.script}
+          onChange={(event) => update({ script: event.target.value } as Partial<Step>)}
+        />
+      )}
+
+      {step.type === "dbQuery" && (
+        <div className="space-y-2">
+          <input
+            className="w-full rounded border px-2 py-1 text-sm"
+            placeholder="Query ID"
+            value={step.queryId}
+            onChange={(event) => update({ queryId: event.target.value } as Partial<Step>)}
+          />
+          <textarea
+            className="w-full rounded border px-2 py-1 font-mono text-sm"
+            rows={4}
+            placeholder="SELECT * FROM ..."
+            value={step.query}
+            onChange={(event) => update({ query: event.target.value } as Partial<Step>)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}

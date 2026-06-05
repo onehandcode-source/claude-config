@@ -1,0 +1,98 @@
+# 반드시 지켜야 할 규칙 (Critical)
+
+- CLAUDE.md와 docs/*를 먼저 읽을 것
+- 작업 내용은 worklog.md와 handoff.md에 반영할 것
+- 설계 변경은 decisions.md에 기록할 것
+
+---
+
+# 문서 역할
+
+- `docs/handoff.md`: 다음 세션이 바로 이어받아야 할 인수인계
+- `docs/worklog.md`: 현재 상태 snapshot
+- `docs/decisions.md`: 설계/운영 선택의 누적 기록
+- `docs/tips.md`: 운영 루틴과 개인 참고 명령
+
+---
+
+# Automation Rules
+
+- 작업 후 worklog.md 업데이트
+- 세션 종료 전 handoff.md 작성
+- 설계 변경 시 decisions.md 기록
+
+---
+
+# Project Overview
+
+행정표준용어를 기반으로 테이블, 프로그램에서 사용할 수 있는 용어, 단어를 관리하는 SpringBoot 기반 용어 사전 시스템입니다.
+
+## Goal
+
+-
+
+## Tech Stack
+
+- Java 1.8 (`C:\Bin\Java\jdk1.8.0_202`)
+- SpringBoot 2.7.18 / Gradle
+- DB: Tibero7 (`jdbc:tibero:thin:@172.21.10.27:8629:tibero`, user: `trmdict`)
+- ORM: Spring Data JPA (Hibernate) / Tibero7 커스텀 Dialect 필요
+- Security: Spring Security 5.7.x + jjwt 0.11.5 (stateless JWT)
+- Frontend: Angular 15.x + Angular Material 15.x
+- Lombok (VO 보일러플레이트 제거)
+- Apache POI 5.2.5 (XLSX 파싱) + OpenCSV 5.9 (CSV 파싱)
+- Base Package: `com.devwogns.trmdict`
+
+---
+
+# Development Rules
+
+## Code Style
+
+-
+
+## Naming
+
+-
+
+## Architecture Principles
+
+-
+
+---
+
+# Commands
+
+## Dev
+
+java -jar build/libs/trmdict-1.0.0-SNAPSHOT.jar --spring.profiles.active=local
+
+### 프론트엔드 개발 서버
+
+cd frontend && npm start  # <http://localhost:4200> → 8080 프록시
+
+## Test
+
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 gradlew.bat test
+
+## Build
+
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 gradlew.bat build -x test
+
+---
+
+# Constraints
+
+-
+
+---
+
+# Common Paths
+
+-
+
+---
+
+# Review Checklist
+
+- [ ]

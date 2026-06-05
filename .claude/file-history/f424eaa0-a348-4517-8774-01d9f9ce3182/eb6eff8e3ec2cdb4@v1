@@ -1,0 +1,189 @@
+'use client';
+
+import { useState, useRef } from 'react';
+import { TestScenario, TestResult, ComparisonResult } from '@/lib/types';
+import ResultViewer from './ResultViewer';
+import axios from 'axios';
+
+interface TestExecutorProps {
+  scenario: TestScenario;
+  onAsIsComplete: (result: TestResult) => void;
+  onToBeComplete: (result: TestResult) => void;
+  onCompare: (result: ComparisonResult) => void;
+  asIsResult: TestResult | null;
+  toBeResult: TestResult | null;
+}
+
+export default function TestExecutor({
+  scenario,
+  onAsIsComplete,
+  onToBeComplete,
+  onCompare,
+  asIsResult,
+  toBeResult,
+}: TestExecutorProps) {
+  const [loading, setLoading] = useState<'as-is' | 'to-be' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const asIsRef = useRef<HTMLDivElement>(null);
+  const toBeRef = useRef<HTMLDivElement>(null);
+
+  const executeTest = async (version: 'as-is' | 'to-be') => {
+    setLoading(version);
+    setError(null);
+
+    try {
+      const response = await axios.post('/api/execute', {
+        scenario,
+        version,
+      });
+
+      if (response.data.success) {
+        const result = response.data.data;
+        if (version === 'as-is') {
+          onAsIsComplete(result);
+        } else {
+          onToBeComplete(result);
+        }
+      } else {
+        setError(response.data.error || 'Test execution failed');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleCompare = async () => {
+    if (!asIsResult || !toBeResult) {
+      alert('Both as-is and to-be tests must be completed first');
+      return;
+    }
+
+    try {
+      const response = await axios.post('/api/compare', {
+        asIsResult,
+        toBeResult,
+      });
+
+      if (response.data.success) {
+        onCompare(response.data.data);
+      } else {
+        setError(response.data.error || 'Comparison failed');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto">
+      {/* 시나리오 정보 */}
+      <div className="card mb-6">
+        <h2 className="text-2xl font-bold mb-2">{scenario.name}</h2>
+        <p className="text-gray-600 mb-4">{scenario.description}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <span className="text-sm font-semibold text-gray-600">Base URL:</span>
+            <p className="text-blue-600 break-all">{scenario.baseUrl}</p>
+          </div>
+          <div>
+            <span className="text-sm font-semibold text-gray-600">Total Actions:</span>
+            <p className="text-gray-900">{scenario.actions.length}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 에러 메시지 */}
+      {error && (
+        <div className="card bg-red-50 border border-red-200 mb-6">
+          <div className="text-red-800">
+            <span className="font-bold">❌ Error: </span>
+            {error}
+          </div>
+        </div>
+      )}
+
+      {/* 테스트 실행 섹션 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* AS-IS 테스트 */}
+        <div className="card border-2 border-gray-200">
+          <h3 className="text-xl font-bold mb-4 flex items-center">
+            <span className="text-2xl mr-2">📋</span> AS-IS Version
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Run tests on the current (AS-IS) version of your application
+          </p>
+
+          <button
+            onClick={() => executeTest('as-is')}
+            disabled={loading === 'as-is'}
+            className={`w-full py-2 rounded-lg font-semibold transition-colors mb-4 ${
+              loading === 'as-is'
+                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            {loading === 'as-is' ? '⏳ Running...' : '▶️ Run AS-IS Test'}
+          </button>
+
+          {asIsResult && (
+            <div ref={asIsRef}>
+              <ResultViewer result={asIsResult} />
+            </div>
+          )}
+        </div>
+
+        {/* TO-BE 테스트 */}
+        <div className="card border-2 border-gray-200">
+          <h3 className="text-xl font-bold mb-4 flex items-center">
+            <span className="text-2xl mr-2">🚀</span> TO-BE Version
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Run tests on the new (TO-BE) version of your application
+          </p>
+
+          <button
+            onClick={() => executeTest('to-be')}
+            disabled={loading === 'to-be'}
+            className={`w-full py-2 rounded-lg font-semibold transition-colors mb-4 ${
+              loading === 'to-be'
+                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+          >
+            {loading === 'to-be' ? '⏳ Running...' : '▶️ Run TO-BE Test'}
+          </button>
+
+          {toBeResult && (
+            <div ref={toBeRef}>
+              <ResultViewer result={toBeResult} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 비교 버튼 */}
+      {asIsResult && toBeResult && (
+        <div className="card bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                ✨ Ready to Compare Results?
+              </h3>
+              <p className="text-gray-600">
+                Both versions have been tested. Click the button below to compare detailed results.
+              </p>
+            </div>
+            <button
+              onClick={handleCompare}
+              className="btn-primary px-6 py-3 text-lg whitespace-nowrap ml-4"
+            >
+              🔍 Compare
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

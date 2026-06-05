@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "config": {
+    "stopReviewGate": false
+  },
+  "jobs": [
+    {
+      "createdAt": "2026-05-20T03:37:04.518Z",
+      "updatedAt": "2026-05-20T03:39:47.267Z",
+      "id": "review-mpdigcg6-c7k5j9",
+      "kind": "adversarial-review",
+      "kindLabel": "adversarial-review",
+      "title": "Codex Adversarial Review",
+      "workspaceRoot": "D:/20. POC/TrmWordDict",
+      "jobClass": "review",
+      "summary": "No-ship: the cookie/JWT migration has a real auth regression on refresh and still trusts stale JWT claims after account changes.",
+      "write": false,
+      "sessionId": "77ac2710-f058-4a8a-9d86-8090b523ae3e",
+      "status": "completed",
+      "startedAt": "2026-05-20T03:37:04.894Z",
+      "phase": "done",
+      "pid": null,
+      "logFile": "C:\\Users\\ygkim\\.claude\\plugins\\data\\codex-openai-codex\\state\\TrmWordDict-3aa4a3dc6cde981f\\jobs\\review-mpdigcg6-c7k5j9.log",
+      "threadId": "019e4375-90fc-7a30-9e76-0779bddec0e2",
+      "turnId": "019e4375-9849-7fa1-9828-297fa69c1f74",
+      "completedAt": "2026-05-20T03:39:46.309Z"
+    }
+  ]
+}

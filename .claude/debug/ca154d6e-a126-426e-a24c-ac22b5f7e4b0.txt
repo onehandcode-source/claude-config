@@ -1,0 +1,592 @@
+2026-05-13T04:19:05.589Z [DEBUG] Watching for changes in setting files C:\Users\ygkim\.claude...
+2026-05-13T04:19:05.688Z [DEBUG] Using bash path: "C:\Program Files\Git\bin\bash.exe"
+2026-05-13T04:19:05.735Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-05-13T04:19:05.735Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-05-13T04:19:05.735Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 1)
+2026-05-13T04:19:05.740Z [DEBUG] [STARTUP] Loading MCP configs...
+2026-05-13T04:19:05.779Z [DEBUG] Found 0 plugins (0 enabled, 0 disabled)
+2026-05-13T04:19:05.779Z [DEBUG] Total LSP servers loaded: 0
+2026-05-13T04:19:05.779Z [DEBUG] [LSP SERVER MANAGER] getAllLspServers returned 0 server(s)
+2026-05-13T04:19:05.779Z [DEBUG] LSP manager initialized with 0 servers
+2026-05-13T04:19:05.780Z [DEBUG] LSP server manager initialized successfully
+2026-05-13T04:19:05.780Z [DEBUG] LSP notification handlers registered successfully for all 0 server(s)
+2026-05-13T04:19:05.780Z [DEBUG] [STARTUP] MCP configs loaded in 40ms
+2026-05-13T04:19:05.783Z [DEBUG] [STARTUP] Running setup()...
+2026-05-13T04:19:05.798Z [DEBUG] Stats cache stale (2026-05-11), processing 2026-05-12 to 2026-05-12 in background
+2026-05-13T04:19:05.800Z [DEBUG] Plugin autoupdate: skipped (auto-updater disabled)
+2026-05-13T04:19:05.810Z [DEBUG] Loading skills from: managed=C:\ProgramData\ClaudeCode\.claude\skills, user=C:\Users\ygkim\.claude\skills, project=[]
+2026-05-13T04:19:05.830Z [DEBUG] Loaded 17 installed plugins from C:\Users\ygkim\.claude\plugins\installed_plugins.json
+2026-05-13T04:19:05.871Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude\todos\ca154d6e-a126-426e-a24c-ac22b5f7e4b0-agent-ca154d6e-a126-426e-a24c-ac22b5f7e4b0.json.tmp.80440.1778645945871
+2026-05-13T04:19:05.872Z [DEBUG] Temp file written successfully, size: 2 bytes
+2026-05-13T04:19:05.872Z [DEBUG] Renaming C:\Users\ygkim\.claude\todos\ca154d6e-a126-426e-a24c-ac22b5f7e4b0-agent-ca154d6e-a126-426e-a24c-ac22b5f7e4b0.json.tmp.80440.1778645945871 to C:\Users\ygkim\.claude\todos\ca154d6e-a126-426e-a24c-ac22b5f7e4b0-agent-ca154d6e-a126-426e-a24c-ac22b5f7e4b0.json
+2026-05-13T04:19:05.875Z [DEBUG] File C:\Users\ygkim\.claude\todos\ca154d6e-a126-426e-a24c-ac22b5f7e4b0-agent-ca154d6e-a126-426e-a24c-ac22b5f7e4b0.json written atomically
+2026-05-13T04:19:05.885Z [DEBUG] getPluginSkills: Processing 0 enabled plugins
+2026-05-13T04:19:05.885Z [DEBUG] Total plugin skills loaded: 0
+2026-05-13T04:19:05.885Z [DEBUG] Total plugin commands loaded: 0
+2026-05-13T04:19:05.887Z [DEBUG] Registered 0 hooks from 0 plugins
+2026-05-13T04:19:05.965Z [DEBUG] [STARTUP] setup() completed in 182ms
+2026-05-13T04:19:05.965Z [DEBUG] [STARTUP] Loading commands and agents...
+2026-05-13T04:19:05.990Z [DEBUG] Total plugin agents loaded: 0
+2026-05-13T04:19:05.991Z [DEBUG] Loaded 0 unique skills (managed: 0, user: 0, project: 0, legacy commands: 0)
+2026-05-13T04:19:05.995Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills
+2026-05-13T04:19:05.998Z [DEBUG] [STARTUP] Commands and agents loaded in 33ms
+2026-05-13T04:19:06.114Z [DEBUG] Initialized versioned plugins system with 17 plugins
+2026-05-13T04:19:06.252Z [DEBUG] Getting matching hook commands for SessionStart with query: startup
+2026-05-13T04:19:06.252Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:06.252Z [DEBUG] Matched 0 unique hooks for query "startup" (0 before deduplication)
+2026-05-13T04:19:06.326Z [DEBUG] Total plugin output styles loaded: 0
+2026-05-13T04:19:06.344Z [DEBUG] Git remote URL: http://172.21.10.28:9099/devwogns/trmdict.git
+2026-05-13T04:19:06.345Z [DEBUG] Could not parse repository from: http://172.21.10.28:9099/devwogns/trmdict.git
+2026-05-13T04:19:06.345Z [DEBUG] Parsed repository: null from URL: http://172.21.10.28:9099/devwogns/trmdict.git
+2026-05-13T04:19:06.345Z [DEBUG] Not in a GitHub repository, skipping path mapping update
+2026-05-13T04:19:06.397Z [DEBUG] Ripgrep first use test: PASSED (mode=builtin, path=C:\Users\ygkim\.claude\plugins\cache\superpowers-marketplace\episodic-memory\1.0.15\node_modules\@anthropic-ai\claude-agent-sdk\vendor\ripgrep\x64-win32\rg.exe)
+2026-05-13T04:19:06.399Z [DEBUG] Creating shell snapshot for bash (C:\Program Files\Git\bin\bash.exe)
+2026-05-13T04:19:06.399Z [DEBUG] Looking for shell config file: C:\Users\ygkim\.bashrc
+2026-05-13T04:19:06.400Z [DEBUG] Shell config file not found: C:\Users\ygkim\.bashrc, creating snapshot with Claude Code defaults only
+2026-05-13T04:19:06.400Z [DEBUG] Snapshots directory: C:\Users\ygkim\.claude\shell-snapshots
+2026-05-13T04:19:06.431Z [ERROR] "Error: Error: EPERM: operation not permitted, symlink 'C:\\Users\\ygkim\\.claude\\projects\\D--20--POC-trmdict\\agent-aa8f992.jsonl' -> 'C:\\Users\\ygkim\\AppData\\Local\\Temp\\claude\\D--20--POC-trmdict\\tasks\\aa8f992.output'\n    at symlinkSync (node:fs:1890:11)\n    at oWA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1672:9724)\n    at L22 (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1829:1191)\n    at file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21577\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)\n    at esA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:237:14363)\n    at Object.call (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21300)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"
+2026-05-13T04:19:06.439Z [ERROR] "Error: Error: EPERM: operation not permitted, symlink 'C:\\Users\\ygkim\\.claude\\projects\\D--20--POC-trmdict\\agent-a6818ea.jsonl' -> 'C:\\Users\\ygkim\\AppData\\Local\\Temp\\claude\\D--20--POC-trmdict\\tasks\\a6818ea.output'\n    at symlinkSync (node:fs:1890:11)\n    at oWA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1672:9724)\n    at L22 (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1829:1191)\n    at file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21577\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)\n    at esA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:237:14363)\n    at Object.call (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21300)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"
+2026-05-13T04:19:06.442Z [ERROR] "Error: Error: EPERM: operation not permitted, symlink 'C:\\Users\\ygkim\\.claude\\projects\\D--20--POC-trmdict\\agent-ac26b7c.jsonl' -> 'C:\\Users\\ygkim\\AppData\\Local\\Temp\\claude\\D--20--POC-trmdict\\tasks\\ac26b7c.output'\n    at symlinkSync (node:fs:1890:11)\n    at oWA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1672:9724)\n    at L22 (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1829:1191)\n    at file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21577\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)\n    at esA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:237:14363)\n    at Object.call (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21300)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"
+2026-05-13T04:19:06.448Z [DEBUG] Watching for changes in skill directories: C:\Users\ygkim\.claude\skills...
+2026-05-13T04:19:06.513Z [DEBUG] Creating snapshot at: C:\Users\ygkim\.claude\shell-snapshots\snapshot-bash-1778645946400-7r0d45.sh
+2026-05-13T04:19:06.513Z [DEBUG] Shell binary exists: true
+2026-05-13T04:19:06.513Z [DEBUG] Execution timeout: 10000ms
+2026-05-13T04:19:07.176Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-13T04:19:07.176Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-13T04:19:07.176Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-13T04:19:07.176Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-13T04:19:07.180Z [DEBUG] Getting matching hook commands for UserPromptSubmit with query: undefined
+2026-05-13T04:19:07.180Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:07.180Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-05-13T04:19:07.188Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:07.195Z [DEBUG] Skills and commands included in Skill tool:
+2026-05-13T04:19:07.210Z [DEBUG] Getting matching hook commands for SubagentStart with query: Explore
+2026-05-13T04:19:07.210Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:07.210Z [DEBUG] Matched 0 unique hooks for query "Explore" (0 before deduplication)
+2026-05-13T04:19:07.211Z [DEBUG] Getting matching hook commands for SubagentStart with query: Plan
+2026-05-13T04:19:07.211Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:07.211Z [DEBUG] Matched 0 unique hooks for query "Plan" (0 before deduplication)
+2026-05-13T04:19:07.211Z [DEBUG] Getting matching hook commands for SubagentStart with query: Bash
+2026-05-13T04:19:07.211Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:07.211Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:07.320Z [DEBUG] Stats cache saved successfully (lastComputedDate: 2026-05-12)
+2026-05-13T04:19:07.321Z [DEBUG] Stats cache updated with 4 new sessions
+2026-05-13T04:19:07.342Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.80440.1778645947342
+2026-05-13T04:19:07.343Z [DEBUG] Preserving file permissions: 100666
+2026-05-13T04:19:07.344Z [DEBUG] Temp file written successfully, size: 49862 bytes
+2026-05-13T04:19:07.344Z [DEBUG] Applied original permissions to temp file
+2026-05-13T04:19:07.344Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.80440.1778645947342 to C:\Users\ygkim\.claude.json
+2026-05-13T04:19:07.345Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-13T04:19:07.361Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:07.392Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:07.405Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:07.427Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.80440.1778645947426
+2026-05-13T04:19:07.427Z [DEBUG] Preserving file permissions: 100666
+2026-05-13T04:19:07.428Z [DEBUG] Temp file written successfully, size: 49898 bytes
+2026-05-13T04:19:07.428Z [DEBUG] Applied original permissions to temp file
+2026-05-13T04:19:07.428Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.80440.1778645947426 to C:\Users\ygkim\.claude.json
+2026-05-13T04:19:07.429Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-13T04:19:07.443Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.80440.1778645947443
+2026-05-13T04:19:07.443Z [DEBUG] Preserving file permissions: 100666
+2026-05-13T04:19:07.445Z [DEBUG] Temp file written successfully, size: 49936 bytes
+2026-05-13T04:19:07.445Z [DEBUG] Applied original permissions to temp file
+2026-05-13T04:19:07.445Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.80440.1778645947443 to C:\Users\ygkim\.claude.json
+2026-05-13T04:19:07.446Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-13T04:19:07.475Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.80440.1778645947475
+2026-05-13T04:19:07.475Z [DEBUG] Preserving file permissions: 100666
+2026-05-13T04:19:07.476Z [DEBUG] Temp file written successfully, size: 49972 bytes
+2026-05-13T04:19:07.476Z [DEBUG] Applied original permissions to temp file
+2026-05-13T04:19:07.476Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.80440.1778645947475 to C:\Users\ygkim\.claude.json
+2026-05-13T04:19:07.478Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-13T04:19:07.501Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.80440.1778645947501
+2026-05-13T04:19:07.501Z [DEBUG] Preserving file permissions: 100666
+2026-05-13T04:19:07.502Z [DEBUG] Temp file written successfully, size: 50002 bytes
+2026-05-13T04:19:07.502Z [DEBUG] Applied original permissions to temp file
+2026-05-13T04:19:07.502Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.80440.1778645947501 to C:\Users\ygkim\.claude.json
+2026-05-13T04:19:07.503Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-13T04:19:07.514Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.80440.1778645947514
+2026-05-13T04:19:07.514Z [DEBUG] Preserving file permissions: 100666
+2026-05-13T04:19:07.515Z [DEBUG] Temp file written successfully, size: 50049 bytes
+2026-05-13T04:19:07.516Z [DEBUG] Applied original permissions to temp file
+2026-05-13T04:19:07.516Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.80440.1778645947514 to C:\Users\ygkim\.claude.json
+2026-05-13T04:19:07.518Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-13T04:19:07.634Z [DEBUG] Shell snapshot created successfully (396 bytes)
+2026-05-13T04:19:08.175Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:08.365Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:08.986Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:09.046Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:09.334Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-13T04:19:09.334Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-13T04:19:09.334Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-13T04:19:09.334Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-13T04:19:09.336Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:09.353Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.80440.1778645949353
+2026-05-13T04:19:09.353Z [DEBUG] Preserving file permissions: 100666
+2026-05-13T04:19:09.355Z [DEBUG] Temp file written successfully, size: 50049 bytes
+2026-05-13T04:19:09.355Z [DEBUG] Applied original permissions to temp file
+2026-05-13T04:19:09.355Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.80440.1778645949353 to C:\Users\ygkim\.claude.json
+2026-05-13T04:19:09.356Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-13T04:19:09.845Z [DEBUG] Getting matching hook commands for SubagentStop with query: undefined
+2026-05-13T04:19:09.845Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:09.845Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-05-13T04:19:10.635Z [DEBUG] Getting matching hook commands for SubagentStop with query: undefined
+2026-05-13T04:19:10.635Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:10.635Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-05-13T04:19:10.984Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-05-13T04:19:10.986Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-05-13T04:19:10.986Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:10.986Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-05-13T04:19:10.987Z [DEBUG] executePreToolHooks called for tool: Read
+2026-05-13T04:19:10.990Z [DEBUG] Getting matching hook commands for PreToolUse with query: Read
+2026-05-13T04:19:10.990Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:10.990Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:19:11.257Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:12.327Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:12.720Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:13.325Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:13.327Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:13.327Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:13.327Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:13.407Z [DEBUG] tree-sitter: loaded from disk
+2026-05-13T04:19:13.711Z [DEBUG] "Permission suggestions for Bash: [\n  {\n    \"type\": \"addRules\",\n    \"rules\": [\n      {\n        \"toolName\": \"Read\",\n        \"ruleContent\": \"//d/20. POC/trmdict/**\"\n      }\n    ],\n    \"behavior\": \"allow\",\n    \"destination\": \"session\"\n  }\n]"
+2026-05-13T04:19:13.815Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-13T04:19:13.815Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-13T04:19:13.815Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-13T04:19:13.815Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-13T04:19:13.822Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:14.779Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:14.780Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:14.782Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:14.782Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:14.782Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:14.783Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:14.783Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:14.783Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:14.952Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:15.445Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:15.996Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:15.997Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:15.997Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:15.997Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:16.004Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:16.658Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:16.693Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:16.768Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:17.304Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:17.495Z [DEBUG] "Permission suggestions for Bash: [\n  {\n    \"type\": \"addRules\",\n    \"rules\": [\n      {\n        \"toolName\": \"Bash\",\n        \"ruleContent\": \"dir \\\"%APPDATA%\\\\.claude\\\" /s /b *.json\"\n      }\n    ],\n    \"behavior\": \"allow\",\n    \"destination\": \"localSettings\"\n  },\n  {\n    \"type\": \"addRules\",\n    \"rules\": [\n      {\n        \"toolName\": \"Bash\",\n        \"ruleContent\": \"findstr:*\"\n      }\n    ],\n    \"behavior\": \"allow\",\n    \"destination\": \"localSettings\"\n  }\n]"
+2026-05-13T04:19:17.582Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-13T04:19:17.582Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-13T04:19:17.582Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-13T04:19:17.582Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-13T04:19:17.590Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:17.706Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-05-13T04:19:17.706Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-05-13T04:19:17.706Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:17.706Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-05-13T04:19:17.787Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:18.703Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:18.949Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:18.950Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:18.950Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:18.950Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:18.953Z [DEBUG] Permission suggestions for Bash: []
+2026-05-13T04:19:19.029Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-13T04:19:19.029Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-13T04:19:19.029Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-13T04:19:19.029Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-13T04:19:19.039Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:19.736Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:19.968Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:19.970Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:19.970Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:19.970Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:20.073Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:20.188Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:20.526Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:20.527Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:20.527Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:20.527Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:22.063Z [DEBUG] "Permission suggestions for Bash: [\n  {\n    \"type\": \"addRules\",\n    \"rules\": [\n      {\n        \"toolName\": \"Read\",\n        \"ruleContent\": \"//c/Users/ygkim/.claude/**\"\n      }\n    ],\n    \"behavior\": \"allow\",\n    \"destination\": \"session\"\n  }\n]"
+2026-05-13T04:19:22.194Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-13T04:19:22.194Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-13T04:19:22.194Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-13T04:19:22.194Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-13T04:19:22.201Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:22.971Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:23.005Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:23.207Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:23.209Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:23.209Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:23.209Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:23.289Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:25.375Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:25.793Z [DEBUG] executePreToolHooks called for tool: Write
+2026-05-13T04:19:25.794Z [DEBUG] Getting matching hook commands for PreToolUse with query: Write
+2026-05-13T04:19:25.794Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:25.794Z [DEBUG] Matched 0 unique hooks for query "Write" (0 before deduplication)
+2026-05-13T04:19:27.575Z [DEBUG] "Permission suggestions for Write: [\n  {\n    \"type\": \"setMode\",\n    \"mode\": \"acceptEdits\",\n    \"destination\": \"session\"\n  }\n]"
+2026-05-13T04:19:27.643Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:27.665Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-13T04:19:27.665Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-13T04:19:27.665Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-13T04:19:27.665Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-13T04:19:27.669Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:28.501Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:30.004Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:30.246Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-05-13T04:19:30.248Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-05-13T04:19:30.248Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:30.248Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-05-13T04:19:30.338Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:31.008Z [DEBUG] executePreToolHooks called for tool: Task
+2026-05-13T04:19:31.009Z [DEBUG] Getting matching hook commands for PreToolUse with query: Task
+2026-05-13T04:19:31.009Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:31.009Z [DEBUG] Matched 0 unique hooks for query "Task" (0 before deduplication)
+2026-05-13T04:19:31.100Z [ERROR] "Error: Error: EPERM: operation not permitted, symlink 'C:\\Users\\ygkim\\.claude\\projects\\D--20--POC-trmdict\\agent-a3a291b.jsonl' -> 'C:\\Users\\ygkim\\AppData\\Local\\Temp\\claude\\D--20--POC-trmdict\\tasks\\a3a291b.output'\n    at symlinkSync (node:fs:1890:11)\n    at oWA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1672:9724)\n    at L22 (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1829:1191)\n    at file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21577\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)\n    at esA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:237:14363)\n    at Object.call (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21300)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async LG7 (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3438:26187)"
+2026-05-13T04:19:31.102Z [DEBUG] Getting matching hook commands for SubagentStart with query: general-purpose
+2026-05-13T04:19:31.102Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:31.102Z [DEBUG] Matched 0 unique hooks for query "general-purpose" (0 before deduplication)
+2026-05-13T04:19:31.163Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:31.970Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:32.424Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:32.785Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:32.787Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:32.787Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:32.787Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:32.867Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:33.296Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:33.297Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:33.297Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:33.297Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:34.446Z [DEBUG] Permission suggestions for Bash: []
+2026-05-13T04:19:34.539Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:35.175Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:35.250Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-05-13T04:19:35.252Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-05-13T04:19:35.252Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:35.252Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-05-13T04:19:35.337Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:35.389Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:37.014Z [DEBUG] executePreToolHooks called for tool: Read
+2026-05-13T04:19:37.014Z [DEBUG] Getting matching hook commands for PreToolUse with query: Read
+2026-05-13T04:19:37.014Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:37.014Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:19:40.180Z [ERROR] "Error: Error: EISDIR: illegal operation on a directory, read\n    at Module.readFileSync (node:fs:442:20)\n    at file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:9:457\n    at QK (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:8:33658)\n    at Object.readFileSync (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:9:426)\n    at UsB (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:4876:23151)\n    at Object.call (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1681:942)\n    at LG7 (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3438:26195)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"
+2026-05-13T04:19:40.182Z [DEBUG] Getting matching hook commands for PostToolUseFailure with query: Read
+2026-05-13T04:19:40.182Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:40.182Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:19:40.342Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:40.355Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:40.497Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:40.499Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:40.499Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:40.499Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:40.606Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:41.124Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:42.055Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:42.056Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:42.056Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:42.056Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:43.696Z [DEBUG] Session environment not yet supported on Windows
+2026-05-13T04:19:43.728Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:43.841Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:43.843Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:43.843Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:43.843Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:43.941Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:44.932Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:44.943Z [DEBUG] Getting matching hook commands for PostToolUse with query: Bash
+2026-05-13T04:19:44.943Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:44.943Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:45.050Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:45.614Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:46.086Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:46.209Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:46.211Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:46.211Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:46.211Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:46.335Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:48.525Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:48.663Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:48.743Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:48.745Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:48.745Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:48.745Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:48.834Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:50.171Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:50.172Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:50.172Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:50.172Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:51.674Z [DEBUG] Session environment not yet supported on Windows
+2026-05-13T04:19:51.780Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:51.899Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:51.901Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:51.901Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:51.901Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:52.007Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:54.137Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:54.284Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:54.286Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:54.286Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:54.286Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:54.422Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:55.570Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:55.580Z [DEBUG] Getting matching hook commands for PostToolUse with query: Bash
+2026-05-13T04:19:55.580Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:55.580Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:55.664Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:19:56.311Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:56.410Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:56.450Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:19:56.710Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:56.712Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:56.712Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:56.712Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:56.799Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:19:57.459Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:19:57.461Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:19:57.461Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:19:57.461Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:19:59.807Z [DEBUG] Session environment not yet supported on Windows
+2026-05-13T04:19:59.900Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:00.031Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:00.033Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:00.033Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:00.033Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:00.139Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:00.844Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:00.851Z [DEBUG] Getting matching hook commands for PostToolUse with query: Bash
+2026-05-13T04:20:00.851Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:00.851Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:00.947Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:01.725Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:01.895Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:02.476Z [DEBUG] executePreToolHooks called for tool: Read
+2026-05-13T04:20:02.476Z [DEBUG] Getting matching hook commands for PreToolUse with query: Read
+2026-05-13T04:20:02.476Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:02.476Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:05.246Z [DEBUG] Getting matching hook commands for PostToolUse with query: Read
+2026-05-13T04:20:05.246Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:05.246Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:05.394Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:05.732Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:05.839Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:05.841Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:05.841Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:05.841Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:05.940Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:06.802Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:07.380Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-05-13T04:20:07.381Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-05-13T04:20:07.381Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:07.381Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-05-13T04:20:10.012Z [DEBUG] Getting matching hook commands for PostToolUse with query: Glob
+2026-05-13T04:20:10.012Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:10.012Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-05-13T04:20:10.034Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:10.105Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:10.131Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:10.131Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:10.131Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:10.131Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:10.209Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:10.923Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:12.371Z [DEBUG] executePreToolHooks called for tool: Read
+2026-05-13T04:20:12.371Z [DEBUG] executePreToolHooks called for tool: Read
+2026-05-13T04:20:12.371Z [DEBUG] executePreToolHooks called for tool: Read
+2026-05-13T04:20:12.372Z [DEBUG] Getting matching hook commands for PreToolUse with query: Read
+2026-05-13T04:20:12.372Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:12.372Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:12.372Z [DEBUG] Getting matching hook commands for PreToolUse with query: Read
+2026-05-13T04:20:12.372Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:12.372Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:12.372Z [DEBUG] Getting matching hook commands for PreToolUse with query: Read
+2026-05-13T04:20:12.372Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:12.372Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:18.788Z [DEBUG] Getting matching hook commands for PostToolUse with query: Read
+2026-05-13T04:20:18.788Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:18.788Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:18.789Z [DEBUG] Getting matching hook commands for PostToolUse with query: Read
+2026-05-13T04:20:18.789Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:18.789Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:18.789Z [DEBUG] Getting matching hook commands for PostToolUse with query: Read
+2026-05-13T04:20:18.789Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:18.789Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:18.935Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:19.073Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:19.074Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:19.074Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:19.074Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:19.891Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:19.939Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:20.943Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:22.124Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:22.449Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:22.453Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:22.453Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:22.453Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:22.873Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:22.874Z [DEBUG] executePreToolHooks called for tool: Read
+2026-05-13T04:20:22.874Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:22.874Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:22.874Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:22.875Z [DEBUG] Getting matching hook commands for PreToolUse with query: Read
+2026-05-13T04:20:22.875Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:22.875Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:26.666Z [DEBUG] Getting matching hook commands for PostToolUse with query: Read
+2026-05-13T04:20:26.666Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:26.666Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:26.911Z [DEBUG] Session environment not yet supported on Windows
+2026-05-13T04:20:27.089Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:27.785Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:27.792Z [DEBUG] Getting matching hook commands for PostToolUse with query: Bash
+2026-05-13T04:20:27.792Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:27.792Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:28.049Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:28.560Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:29.368Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:29.520Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:29.523Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:29.523Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:29.523Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:29.621Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:29.786Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:30.622Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:30.623Z [DEBUG] executePreToolHooks called for tool: Read
+2026-05-13T04:20:30.623Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:30.623Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:30.623Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:30.623Z [DEBUG] Getting matching hook commands for PreToolUse with query: Read
+2026-05-13T04:20:30.623Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:30.623Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:34.845Z [DEBUG] Getting matching hook commands for PostToolUse with query: Read
+2026-05-13T04:20:34.846Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:34.846Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:35.148Z [DEBUG] Session environment not yet supported on Windows
+2026-05-13T04:20:35.392Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:35.609Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:35.611Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:35.611Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:35.611Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:35.730Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:36.469Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:36.482Z [DEBUG] Getting matching hook commands for PostToolUse with query: Bash
+2026-05-13T04:20:36.482Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:36.482Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:36.891Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:37.697Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:37.956Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:38.079Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:38.375Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:38.378Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:38.378Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:38.378Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:38.591Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:39.054Z [DEBUG] executePreToolHooks called for tool: Grep
+2026-05-13T04:20:39.055Z [DEBUG] Getting matching hook commands for PreToolUse with query: Grep
+2026-05-13T04:20:39.055Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:39.055Z [DEBUG] Matched 0 unique hooks for query "Grep" (0 before deduplication)
+2026-05-13T04:20:41.330Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:41.374Z [DEBUG] Getting matching hook commands for PostToolUse with query: Grep
+2026-05-13T04:20:41.374Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:41.374Z [DEBUG] Matched 0 unique hooks for query "Grep" (0 before deduplication)
+2026-05-13T04:20:41.417Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:41.418Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:41.418Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:41.418Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:41.452Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:41.499Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:42.405Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:43.451Z [DEBUG] executePreToolHooks called for tool: Read
+2026-05-13T04:20:43.451Z [DEBUG] Getting matching hook commands for PreToolUse with query: Read
+2026-05-13T04:20:43.451Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:43.451Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:45.483Z [DEBUG] Getting matching hook commands for PostToolUse with query: Read
+2026-05-13T04:20:45.483Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:45.483Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-13T04:20:45.523Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:45.843Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:45.872Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:45.873Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:45.873Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:45.873Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:45.958Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:46.693Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:48.508Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:48.510Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:48.510Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:48.510Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:48.512Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:48.523Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:48.878Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:48.879Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:48.879Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:48.879Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:48.981Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:49.102Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:49.209Z [DEBUG] "Permission suggestions for Bash: [\n  {\n    \"type\": \"addRules\",\n    \"rules\": [\n      {\n        \"toolName\": \"Bash\",\n        \"ruleContent\": \"netstat:*\"\n      }\n    ],\n    \"behavior\": \"allow\",\n    \"destination\": \"localSettings\"\n  }\n]"
+2026-05-13T04:20:49.284Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:50.359Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:50.717Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:50.718Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:50.718Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:50.718Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:50.720Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:51.265Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:51.403Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:51.441Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:51.444Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:51.444Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:51.444Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:51.485Z [DEBUG] "Permission suggestions for Bash: [\n  {\n    \"type\": \"addRules\",\n    \"rules\": [\n      {\n        \"toolName\": \"Bash\",\n        \"ruleContent\": \"curl:*\"\n      }\n    ],\n    \"behavior\": \"allow\",\n    \"destination\": \"localSettings\"\n  }\n]"
+2026-05-13T04:20:51.597Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:51.642Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:20:53.377Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:53.720Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:53.946Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:53.947Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:53.947Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:53.947Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:54.043Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:56.529Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:56.708Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:56.709Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:56.709Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:56.709Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:56.817Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:20:58.840Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:20:59.036Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:20:59.037Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:20:59.037Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:20:59.037Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:20:59.136Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:21:01.754Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:21:01.835Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:21:01.836Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:21:01.836Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:21:01.836Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:21:01.910Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:21:02.239Z [DEBUG] Getting matching hook commands for SubagentStop with query: undefined
+2026-05-13T04:21:02.239Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:21:02.239Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-05-13T04:21:02.243Z [DEBUG] Getting matching hook commands for PostToolUse with query: Task
+2026-05-13T04:21:02.243Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:21:02.243Z [DEBUG] Matched 0 unique hooks for query "Task" (0 before deduplication)
+2026-05-13T04:21:02.334Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-13T04:21:02.335Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-13T04:21:02.335Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-13T04:21:02.335Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-13T04:21:02.341Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-13T04:21:03.128Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:21:04.307Z [DEBUG] Stream started - received first chunk
+2026-05-13T04:21:04.430Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-13T04:21:04.431Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-13T04:21:04.431Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:21:04.431Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-13T04:21:04.529Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-13T04:21:04.754Z [DEBUG] Getting matching hook commands for Stop with query: undefined
+2026-05-13T04:21:04.754Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:21:04.754Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-05-13T04:21:04.761Z [DEBUG] Getting matching hook commands for SessionEnd with query: other
+2026-05-13T04:21:04.761Z [DEBUG] Found 0 hook matchers in settings
+2026-05-13T04:21:04.761Z [DEBUG] Matched 0 unique hooks for query "other" (0 before deduplication)

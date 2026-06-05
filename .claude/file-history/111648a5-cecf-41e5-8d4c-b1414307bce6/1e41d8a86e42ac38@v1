@@ -1,0 +1,103 @@
+import type { Step, StepLocator } from "./types.js";
+
+function trimOrUndefined(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+export function normalizeLocator(
+  locator?: StepLocator,
+  legacySelector?: string
+): StepLocator | undefined {
+  const entries = [
+    ["role", trimOrUndefined(locator?.role)],
+    ["name", trimOrUndefined(locator?.name)],
+    ["label", trimOrUndefined(locator?.label)],
+    ["placeholder", trimOrUndefined(locator?.placeholder)],
+    ["text", trimOrUndefined(locator?.text)],
+    ["testId", trimOrUndefined(locator?.testId)],
+    ["selector", trimOrUndefined(locator?.selector) ?? trimOrUndefined(legacySelector)],
+    ["frame", trimOrUndefined(locator?.frame)],
+  ].filter((entry): entry is [keyof StepLocator, string] => entry[1] !== undefined);
+
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  return Object.fromEntries(entries) as StepLocator;
+}
+
+export function getLocatorSummary(locator?: StepLocator, legacySelector?: string): string {
+  const normalized = normalizeLocator(locator, legacySelector);
+
+  if (!normalized) {
+    return "locator 없음";
+  }
+
+  if (normalized.role) {
+    return normalized.name
+      ? `role=${normalized.role}, name=${normalized.name}`
+      : `role=${normalized.role}`;
+  }
+
+  if (normalized.label) {
+    return `label=${normalized.label}`;
+  }
+
+  if (normalized.placeholder) {
+    return `placeholder=${normalized.placeholder}`;
+  }
+
+  if (normalized.text) {
+    return `text=${normalized.text}`;
+  }
+
+  if (normalized.testId) {
+    return `testId=${normalized.testId}`;
+  }
+
+  if (normalized.selector) {
+    return `legacy selector=${normalized.selector}`;
+  }
+
+  return "locator 없음";
+}
+
+export function normalizeStepForSave(step: Step): Step {
+  switch (step.type) {
+    case "click":
+      return {
+        type: "click",
+        locator: normalizeLocator(step.locator, step.selector),
+        description: step.description,
+      };
+    case "mapClick":
+      return {
+        type: "mapClick",
+        locator: normalizeLocator(step.locator, step.selector),
+        x: step.x,
+        y: step.y,
+        description: step.description,
+      };
+    case "fill":
+      return {
+        type: "fill",
+        locator: normalizeLocator(step.locator, step.selector),
+        text: step.text,
+        description: step.description,
+      };
+    case "select":
+      return {
+        type: "select",
+        locator: normalizeLocator(step.locator, step.selector),
+        text: step.text,
+        description: step.description,
+      };
+    default:
+      return step;
+  }
+}

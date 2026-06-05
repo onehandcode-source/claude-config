@@ -1,0 +1,98 @@
+{
+  "superpowers-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "obra/superpowers-marketplace"
+    },
+    "installLocation": "C:\\Users\\ygkim\\.claude\\plugins\\marketplaces\\superpowers-marketplace",
+    "lastUpdated": "2026-02-26T00:46:40.387Z"
+  },
+  "claude-hud": {
+    "source": {
+      "source": "github",
+      "repo": "jarrodwatts/claude-hud"
+    },
+    "installLocation": "C:\\Users\\ygkim\\.claude\\plugins\\marketplaces\\claude-hud",
+    "lastUpdated": "2026-03-20T01:02:41.101Z"
+  },
+  "claude-plugins-official": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    },
+    "installLocation": "C:\\Users\\ygkim\\.claude\\plugins\\marketplaces\\claude-plugins-official",
+    "lastUpdated": "2026-03-30T01:22:57.020Z"
+  },
+  "claude-code-plugins": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/claude-code"
+    },
+    "installLocation": "C:\\Users\\ygkim\\.claude\\plugins\\marketplaces\\claude-code-plugins",
+    "lastUpdated": "2026-04-22T04:17:45.306Z"
+  },
+  "claude-dashboard": {
+    "source": {
+      "source": "github",
+      "repo": "uppinote20/claude-dashboard"
+    },
+    "installLocation": "C:\\Users\\ygkim\\.claude\\plugins\\marketplaces\\claude-dashboard",
+    "lastUpdated": "2026-04-22T04:20:48.158Z"
+  },
+  "openai-codex": {
+    "source": {
+      "source": "github",
+      "repo": "openai/codex-plugin-cc"
+    },
+    "installLocation": "C:\\Users\\ygkim\\.claude\\plugins\\marketplaces\\openai-codex",
+    "lastUpdated": "2026-04-30T01:36:24.758Z"
+  },
+  "everything-claude-code": {
+    "source": {
+      "source": "github",
+      "repo": "affaan-m/everything-claude-code"
+    },
+    "installLocation": "C:\\Users\\ygkim\\.claude\\plugins\\marketplaces\\everything-claude-code",
+    "lastUpdated": "2026-04-30T02:08:13.933Z"
+  },
+  "fe-review-agents": {
+    "source": {
+      "source": "github",
+      "repo": "huurray/fe-review-agents"
+    },
+    "installLocation": "C:\\Users\\ygkim\\.claude\\plugins\\marketplaces\\fe-review-agents",
+    "lastUpdated": "2026-05-15T00:34:56.816Z"
+  },
+  "omc": {
+    "source": {
+      "source": "git",
+      "url": "https://github.com/Yeachan-Heo/oh-my-claudecode.git"
+    },
+    "installLocation": "C:\\Users\\ygkim\\.claude\\plugins\\marketplaces\\omc",
+    "lastUpdated": "2026-05-15T02:12:18.484Z"
+  },
+  "understand-anything": {
+    "source": {
+      "source": "github",
+      "repo": "Lum1104/Understand-Anything"
+    },
+    "installLocation": "C:\\Users\\ygkim\\.claude\\plugins\\marketplaces\\understand-anything",
+    "lastUpdated": "2026-05-28T08:40:36.145Z"
+  },
+  "karpathy-skills": {
+    "source": {
+      "source": "github",
+      "repo": "forrestchang/andrej-karpathy-skills"
+    },
+    "installLocation": "C:\\Users\\ygkim\\.claude\\plugins\\marketplaces\\karpathy-skills",
+    "lastUpdated": "2026-06-04T07:11:29.720Z"
+  },
+  "last30days-skill": {
+    "source": {
+      "source": "github",
+      "repo": "mvanhorn/last30days-skill"
+    },
+    "installLocation": "C:\\Users\\ygkim\\.claude\\plugins\\marketplaces\\last30days-skill",
+    "lastUpdated": "2026-06-05T06:42:10.959Z"
+  }
+}

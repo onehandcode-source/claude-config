@@ -1,0 +1,193 @@
+export interface StepLocator {
+  role?: string;
+  name?: string;
+  label?: string;
+  placeholder?: string;
+  text?: string;
+  testId?: string;
+  selector?: string;
+  frame?: string;
+}
+
+export type Step =
+  | { type: "navigate"; url: string; description?: string }
+  | { type: "click"; locator?: StepLocator; selector?: string; description?: string }
+  | {
+      type: "mapClick";
+      locator?: StepLocator;
+      selector?: string;
+      x: number;
+      y: number;
+      description?: string;
+    }
+  | {
+      type: "fill";
+      locator?: StepLocator;
+      selector?: string;
+      text: string;
+      description?: string;
+    }
+  | {
+      type: "select";
+      locator?: StepLocator;
+      selector?: string;
+      text: string;
+      description?: string;
+    }
+  | { type: "wait"; milliseconds: number; description?: string }
+  | { type: "screenshot"; description?: string }
+  | { type: "evaluate"; script: string; description?: string }
+  | { type: "dbQuery"; queryId: string; query: string; description?: string }
+  | { type: "switchTab"; index: number; description?: string };
+
+export type AndroidStep =
+  | { type: "navigate"; url: string; description?: string }
+  | { type: "tap"; locator?: StepLocator; selector?: string; description?: string }
+  | {
+      type: "fill";
+      locator?: StepLocator;
+      selector?: string;
+      text: string;
+      description?: string;
+    }
+  | {
+      type: "select";
+      locator?: StepLocator;
+      selector?: string;
+      text: string;
+      description?: string;
+    }
+  | {
+      type: "swipe";
+      direction: "up" | "down" | "left" | "right";
+      distance?: number;
+      description?: string;
+    }
+  | { type: "pressBack"; description?: string }
+  | { type: "wait"; milliseconds: number; description?: string }
+  | { type: "screenshot"; description?: string }
+  | { type: "switchTab"; index: number; description?: string };
+
+export type AnyStep = Step | AndroidStep;
+
+export interface TiberoConfig {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  serviceName: string;
+}
+
+export interface GlobalSettings {
+  tiberoConfig?: TiberoConfig;
+}
+
+export interface TestCase {
+  id: string;
+  name: string;
+  description?: string;
+  baseUrl: string;
+  steps: AnyStep[];
+  dbConfig?: TiberoConfig;
+}
+
+export interface Scenario {
+  id: string;
+  name: string;
+  description: string;
+  platform?: "web" | "android";
+  dbConfig?: TiberoConfig;
+  testCases: TestCase[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StepResult {
+  step: AnyStep;
+  status: "passed" | "failed" | "error";
+  output?: unknown;
+  screenshot?: string;
+  error?: string;
+}
+
+export interface TestCaseResult {
+  testCaseId: string;
+  testCaseName: string;
+  status: "passed" | "failed" | "error";
+  executionTime: number;
+  stepResults: StepResult[];
+}
+
+export interface ScenarioResult {
+  scenarioId: string;
+  scenarioName: string;
+  executedAt: string;
+  testCaseResults: TestCaseResult[];
+}
+
+export interface StepDiff {
+  stepIndex: number;
+  description?: string;
+  snapshotOutput: unknown;
+  currentOutput: unknown;
+  isDifferent: boolean;
+  severity: "critical" | "warning" | "info";
+}
+
+export interface TestCaseDiff {
+  testCaseId: string;
+  testCaseName: string;
+  status: "identical" | "different" | "error";
+  stepDiffs: StepDiff[];
+}
+
+export interface ComparisonReport {
+  scenarioId: string;
+  snapshotCapturedAt: string;
+  comparedAt: string;
+  status: "identical" | "different" | "error";
+  testCaseDiffs: TestCaseDiff[];
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+export interface Macro {
+  id: string;
+  name: string;
+  description: string;
+  steps: AnyStep[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RunHistory {
+  id: string;
+  scenarioId: string;
+  scenarioName: string;
+  executedAt: string;
+  isGolden: boolean;
+  status: "passed" | "failed" | "error";
+  testCaseResults: TestCaseResult[];
+}
+
+export interface RunProgress {
+  scenarioId: string;
+  scenarioName: string;
+  status: "idle" | "running" | "savingSnapshot" | "completed" | "error";
+  startedAt: string;
+  updatedAt: string;
+  totalTestCases: number;
+  currentTestCaseIndex: number;
+  currentTestCaseName?: string;
+  totalStepsOverall: number;
+  completedStepsOverall: number;
+  currentStepIndex: number;
+  currentStepDescription?: string;
+  currentTestCaseTotalSteps: number;
+  message?: string;
+  error?: string;
+}

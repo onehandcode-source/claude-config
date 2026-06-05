@@ -1,0 +1,45 @@
+# Session: 2026-06-04
+**Date:** 2026-06-04
+**Started:** 13:00
+**Last Updated:** 13:43
+**Project:** sia
+**Branch:** release/260604-1
+**Worktree:** C:\Dev\dev_safetyreport\workspace\sia
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- @src/main/resources/sia/sqlmap/mappers/FileRestoreMng_SQL.xml selectRestoreSingoFileTotalCnt, selectRestoreSingoListCnt 실제 운영에서 조회시 조회속도가 느림. ​COUNT() OVER() 사용해서 list에서 한번에 가져올수 있게 가능한지 확인
+- 1. 기존으로 다시 원복. 2. 총 건수, 파일 총 개 수는 삭제
+- 제일 처음상태로 복원해줘 원인은 현재 C_DATE만 인덱싱이 되어있어서 조회할때 C_DATE를 먼저 조건을 태우고 시작하도록 변경하면 될거같음
+- AND EXISTS (                 SELECT 1 FROM SAFEIDB.TBL_FILEQ FQ WHERE FQ.C_SINGO_NO = S.C_NO             )  이 조건문이 문제가 되고있음.
+- TBL_SINGO 테이블에는 C_SINGO_NO 인덱스가 없음
+- 인덱스 추가는 어려운 상황, 다른방법 있어?
+- TBL_FILEQ 데이터는 대략 1.5억개 정도
+- 조건문은 제거 했어  추가 확인 내용  그럼 파일 복원 요청시, TBL_FILEQ에 데이터가 없는경우에는 복원처리가 어떻게 진행되는지 확인
+
+### Files Modified
+- C:\Dev\dev_safetyreport\workspace\sia\src\main\resources\sia\sqlmap\mappers\FileRestoreMng_SQL.xml
+- C:\Dev\dev_safetyreport\workspace\sia\src\main\java\egov\sia\fileSyncMng\vo\FileSyncMngVO.java
+- C:\Dev\dev_safetyreport\workspace\sia\src\main\java\egov\sia\fileRestoreMng\mapper\FileRestoreMngMapper.java
+- C:\Dev\dev_safetyreport\workspace\sia\src\main\java\egov\sia\fileRestoreMng\service\FileRestoreMngService.java
+- C:\Dev\dev_safetyreport\workspace\sia\src\main\java\egov\sia\fileRestoreMng\service\impl\FileRestoreMngServiceImpl.java
+- C:\Dev\dev_safetyreport\workspace\sia\src\main\java\egov\sia\fileRestoreMng\web\FileRestoreMngController.java
+- C:\Dev\dev_safetyreport\workspace\sia\src\main\webapp\WEB-INF\jsp\sia\web\fileSync\fileRestoreMng.jsp
+
+### Tools Used
+Grep, Read, Edit, Bash
+
+### Stats
+- Total user messages: 8
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

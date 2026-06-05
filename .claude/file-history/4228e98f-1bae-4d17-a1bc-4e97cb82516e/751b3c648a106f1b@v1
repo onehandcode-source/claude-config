@@ -1,0 +1,9 @@
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  // Disable standalone output on Windows to avoid EPERM symlink errors during pnpm builds.
+  // It remains enabled for Linux/Docker production builds.
+  output: process.platform === 'win32' ? undefined : 'standalone',
+}
+
+export default nextConfig

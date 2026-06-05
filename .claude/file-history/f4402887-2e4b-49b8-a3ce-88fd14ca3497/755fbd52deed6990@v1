@@ -1,0 +1,21 @@
+import 'server-only'
+import { prisma } from '@/lib/prisma'
+import type { ForbiddenSearchInput } from './schema'
+
+export async function getForbiddenWords(params: ForbiddenSearchInput) {
+  const where = params.keyword
+    ? { wordKor: { contains: params.keyword } }
+    : {}
+
+  const [items, total] = await prisma.$transaction([
+    prisma.forbiddenWord.findMany({
+      where,
+      skip: params.page * params.size,
+      take: params.size,
+      orderBy: { wordKor: 'asc' },
+    }),
+    prisma.forbiddenWord.count({ where }),
+  ])
+
+  return { items, total }
+}

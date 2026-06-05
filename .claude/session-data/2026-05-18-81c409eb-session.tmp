@@ -1,0 +1,38 @@
+# Session: 2026-05-18
+**Date:** 2026-05-18
+**Started:** 13:12
+**Last Updated:** 13:12
+**Project:** TrmWordDict
+**Branch:** master
+**Worktree:** D:\20. POC\TrmWordDict
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- <local-command-stdout>Goal set: @"docs/superpowers/ygKim/01. system.md"  1. 해당 문서 기반으로 하여 Anguler --> react convert 작업을 진행한다. 2. Component 항목을 먼저 만든다. 3. Component가 완성되면 관리자에게 확인 요청을 보낸다.</local-comma
+- A session-scoped Stop hook is now active with condition: "@"docs/superpowers/ygKim/01. system.md"  1. 해당 문서 기반으로 하여 Anguler --> react convert 작업을 진행한다. 2. Component 항목을 먼저 만든다. 3. Component가 완성되면 관리자에
+- [Request interrupted by user]
+- <command-name>/goal</command-name>             <command-message>goal</command-message>             <command-args>@"docs/superpowers/ygKim/01. system.md" 해당 문서 기준으로 작업 시작.  1. Anguler --> react로 conver
+- <local-command-stdout>Goal set: @"docs/superpowers/ygKim/01. system.md" 해당 문서 기준으로 작업 시작.  1. Anguler --> react로 convert 작업 2. 공통 Component부터 먼저 생성한다. 3. 생성 후 관리자에게 승인 확인 후 다음 진행</local-command-stdout
+- A session-scoped Stop hook is now active with condition: "@"docs/superpowers/ygKim/01. system.md" 해당 문서 기준으로 작업 시작.  1. Anguler --> react로 convert 작업 2. 공통 Component부터 먼저 생성한다. 3. 생성 후 관리자에게 승인 확인 후 다
+- [Request interrupted by user]
+- 백엔드는 현재 Springboot으로 되어있는데 전체적인 규칙이라던지 내용 확인 후 요약해
+- [Request interrupted by user]
+- 백엔드는 현재 Springboot으로 되어있는데 전체적인 규칙이라던지 내용 확인 후 요약해
+
+### Tools Used
+Read, Glob
+
+### Stats
+- Total user messages: 13
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

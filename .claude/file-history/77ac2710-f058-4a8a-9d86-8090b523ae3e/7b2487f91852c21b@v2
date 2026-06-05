@@ -1,0 +1,283 @@
+# Handoff
+
+## 다음 세션 시작 가이드
+1. **첫 작업**: `CLAUDE.md` → `docs/handoff.md`(이 파일) → `docs/worklog.md` → `docs/decisions.md` 순으로 읽기.
+2. **C0/C1/C2/I0/Cycle05/I1/M-D-R 사이클 결과 참조** (모두 완료, master 머지 완료):
+   - C0 머지 commit: `1b7d233 Merge branch 'cycles/01-c0-backend-core' — C0 사이클 완료`
+   - C1 머지 commit: `5d471c4 Merge branch 'cycles/02-c1-async-infra' — C1 사이클 완료`
+   - C2 머지 commit: `2486c6b` (T23 완료 후 정정 commit으로 박힘)
+   - I0 머지 commit: `2194fff Merge branch 'cycles/04-i0-import-backend' — I0 사이클 완료` + 정정 commit `598ee03`
+   - Cycle05 머지 commit: `f424402 Merge branch 'cycles/05-rename-naming-alignment' — Cycle05 사이클 완료` + 정정 commit `09f8ca0`
+   - I1 머지 commit: `f947ff8 Merge branch 'cycles/06-i1-import-frontend' — I1 사이클 완료` + 정정 commit `7364c45`
+   - **M-D-R 머지 commit: `1538e94 Merge branch 'cycles/07-m-d-r-domain-read' — M-D-R 사이클 완료` (2026-05-08, 29 files / +5015 / -44)**
+   - `docs/cycles/01-c0-backend-core/{spec,plan,status}.md` — C0 spec/plan/status 보존
+   - `docs/cycles/02-c1-async-infra/{spec,plan,status}.md` — C1 spec/plan/status 보존
+   - `docs/cycles/03-c2-frontend-core/{spec,plan,status}.md` — C2 spec/plan/status 보존
+   - `docs/cycles/04-i0-import-backend/{spec,plan,status}.md` — I0 spec/plan/status 보존
+   - `docs/cycles/05-rename-naming-alignment/{spec,plan,status}.md` — Cycle05 spec/plan/status 보존
+   - `docs/cycles/06-i1-import-frontend/{spec,plan,status}.md` — I1 spec/plan/status 보존
+   - `cycles/01-c0-backend-core` / `cycles/02-c1-async-infra` / `cycles/03-c2-frontend-core` / `cycles/04-i0-import-backend` / `cycles/05-rename-naming-alignment` / `cycles/06-i1-import-frontend` 브랜치 모두 보존 중 (참고용)
+3. **세 핵심 spec을 입력으로 사용**:
+   - `docs/superpowers/specs/2026-05-03-cycle-decomposition-design.md` (사이클 분해 방법론)
+   - `docs/superpowers/specs/2026-05-03-code-structure-design.md` (코드 구조 표준 + D2 수동 SQL 정책 반영됨)
+   - `docs/superpowers/specs/2026-05-06-naming-standards-alignment-design.md` (DB 명명 표준 — Cycle05 적용 완료)
+4. **`docs/decisions.md` 누적 결정 모두 적용 상태**:
+   - 2026-05-02 1차 설계 (상태값 5종 등)
+   - 2026-05-03 메타 결정: 사이클 분해 / 코드 구조 / Frontend 그리드 / Flyway 도입 → 번복(D2 최종)
+   - 2026-05-03 C1 결정: **비동기 작업 인프라 정책** / **`TRM_*_HISTORY` 공통 컬럼 컨벤션** / **운영 환경 비밀 외부화 정책**
+   - 2026-05-03 C2 결정: **Frontend 인증 흐름 정책** / **자동 E2E 도구 채택 — Playwright (chromium 단일)** / **Material prebuilt theme — indigo-pink**
+   - 2026-05-05 I0 결정: **Import 백엔드 사이클 — staging + master DDL + normalization 모두 책임** (단일 endpoint + type query, temp 파일 + @Async, MERGE 화이트리스트, 5 SQL 분리, raw text 컬럼, 영문 snake_case 컬럼명)
+   - 2026-05-06 I0 결정: **Tibero MyBatis null 바인딩 — `jdbcTypeForNull=NULL` 강제** (JDBC-590704 우회, MyBatisConfig.ConfigurationCustomizer)
+   - 2026-05-06 Cycle05 결정 3건: **DB 명명 표준 정렬 — TB_TRM_*/TB_STD_* prefix + 행정안전부 공통표준 약어 컬럼** / **VO 필드명 풀네임 유지 + Mapper SELECT alias 패턴** / **Drop & Re-create 마이그레이션 + drop_legacy.sql 게이트**
+   - 2026-05-06 I1 결정 5건: **Import 단건 추적 정책** (`/import/{historyId}` URL, backend list endpoint 비범위) / **상태 폴링 정책** (interval 2s + terminal/unmount 자동 stop + timeout 없음) / **AdminGuard 신설** (C2 미생성 항목 첫 사용처) / **Import 권한 가시성 정책** (메뉴 ADMIN 한정 + `/import` AdminGuard + `/import/{id}` AuthGuard만) / **multipart 한도 표준 50MB** (frontend FileUpload + backend yml)
+   - `docs/dev-guide/conventions.md` §11 응답 직렬화 규칙 + §12 DB 명명 표준 신규 등재 (M-* 진입 전 필수 준수)
+   - 2026-05-08 M-D-R hotfix 정책 4건: **Tibero MyBatis LIKE 검색 패턴 — `<bind>` 강제** (`||` concat / CONCAT() 모두 JDBC-8007 거부) / **DataGrid sortChange — camelCase → snake_case 변환** (1줄 toSnakeCase 변환기) / **SearchForm 데이터타입 옵션 — 행정안전부 표준 논리 타입** (Tibero physical과 다름) / **Domain 통합 테스트 부재 — 알려진 부채** (M-* 후속은 @SpringBootTest 1건 강제)
+5. **다음 액션 — Task 13 master 머지 게이트** (사용자 명시 승인 필수):
+   - 브랜치: `cycles/07-m-d-r-domain-read` (HEAD = 본 docs commit 후, status/handoff/worklog/decisions append).
+   - 사용자 결정: agent 머지 위임 vs 사용자 직접 머지.
+   - 머지 후 정정 commit으로 status/handoff/worklog에 머지 hash 박음 + master 위에서 부트 smoke 1회.
+6. **알려진 부채 (보강 사이클 후보)**:
+   - **Domain 통합 테스트 부재** (M-D-R 부채): backend mapper SQL을 단위 mock으로만 검증 → Tibero LIKE 호환성 + DataGrid sort 화이트리스트 매핑 등 2건 hotfix가 단위에서 안 잡힘. M-* 후속 모듈은 `@SpringBootTest` + `@Sql`로 mapper 1건 실 DB 실증 필수 (I0 ImportJobIntegrationTest 패턴 인용).
+   - **Plan/spec 데이터 적재 가정 결함** (M-D-R 발견): "I0/Cycle05가 적재한 표준 도메인 12K행"은 부정확 — I0는 import 기능 빌드만. M-* spec/plan 작성 시 데이터 시드 책임 명시.
+   - **샘플 시스템 도메인관리 화면 정합 차이** (M-D-R 발견): 데이터 모델/페이지 레이아웃/CRUD 모드 모두 다름. 시각 요소(상태/체크박스/순번 컬럼, breadcrumb, 우상단 버튼 배치) 일부 차용 보강 사이클 후보.
+   - **Subagent-Driven 모드 spec test fixture 결함 위험** (M-D-R 발견): sortChange snake_case input fixture가 실 DataGrid emit과 어긋난 가짜 그린. 후속 사이클 spec test fixture가 실 컴포넌트 Output 시그니처와 일치하는지 한 번 더 검증 필요.
+   - **AuthGuard/AdminGuard sync me$ 평가 vs hard navigation race**: `page.goto`로 hard navigation 시 AppComponent rebuild → me$ initial null → guard sync `getCurrentUser()` null → 잘못된 redirect race. 본질 fix는 가드의 비동기 me$ 복원 await + AppComponent loadMe() 동기 await. 1차에는 e2e helper SPA navigation으로 우회.
+   - **frontend 누적 prettier issue ~72 파일**: line ending CRLF/LF 부채. 본 사이클 신규/변경 파일은 LF 정규화 완료. 별도 정리 사이클 검토.
+   - **Import history 목록 endpoint** (I1 비범위): backend `GET /api/v1/imports?page=N&size=N` + frontend 목록 페이지 — 풀스택 보강 사이클 신설 후보.
+   - **`@AuthenticationPrincipal` 패턴**: I1 hotfix 1차 적용 사례. 후속 M-*-W가 인증 사용자 정보 INSERT 시 `@AuthenticationPrincipal AuthPrincipal` 주입 + `getUsername()` 추출 필수.
+7. C0 이월 minor 항목은 모두 C1 Stage 4에서 처리 완료 (UserDetails exclude / nested DTO 컨벤션 / dead AuthMapper / 비밀 외부화).
+
+---
+
+## Current Goal
+- **Frontend React 마이그레이션 완료** (2026-05-18): Angular 15 → React 18 + Vite 5 + shadcn/ui + Zustand + TanStack Query v5 + Vitest.
+- **라우터 수정 완료**: `router.jsx`에 `/domain` / `/import` / `/import/:historyId` 추가, `providers.jsx`에 `RouterProvider` 추가.
+- 브라우저에서 좌측 메뉴 동작 확인 후 다음 사이클 진입.
+- 다음 사이클 후보: **M-D-W (Domain 보강 풀스택)** 또는 **Backend JPA 전환** (git status 상 backend 파일 다수 수정/삭제 상태 — 확인 필요).
+
+---
+
+## 핵심 결정 한눈에
+
+| 영역 | 결정 |
+|---|---|
+| 사이클 모델 | 18개 사이클 (C0/C1/C2 → I0/Cycle05/I1 → M-{D,W,T,F}-{R,W} 8개 → N0/N1/N2 → Z0), 1차 직렬 진행 |
+| 분할 축 | B-4 혼합 (공통기반/Import/Inspection 백→프론트 분리, 4개 기준 모듈은 풀스택) |
+| 모듈 분할 | D-2 (모듈당 조회 + 보강 2개 사이클) |
+| 절차 정렬 | C-2 (api-dev-rule [1][2] → 사이클 spec/plan으로 흡수) |
+| 빌드 | Maven, `pom.xml` |
+| 패키지 | `com.devwogns.trmdict` |
+| 프로파일 | `local` (`application-local.yml`) |
+| Backend 객체 | E3 — `dto`/`vo` 2분리, entity 없음 |
+| Mapper XML | M1 — `src/main/resources/mapper/{module}/` |
+| Frontend 골격 | F1+ — `core/shared/layouts/auth/features` + 임계치 layered |
+| 모듈명 | 영문 풀네임 (Backend: `import` → `importjob`) |
+| API URL | `/api/v1/{module}` |
+| DDL | `db-ddl/{NN}_{module}.sql` 누적식 |
+| Frontend 그리드 | Angular Material Table + 자체 컬럼 리사이즈 디렉티브 |
+| 산출물 생성 시점 | 모두 사이클 시점 생성 (사전 골격 생성 안 함) |
+| 비동기 풀(C1) | 단일 `taskExecutor` (core 2 / max 4 / queue 20·local·50·prod / Abort / shutdown 30s) |
+| 작업 상태(C1) | `JobStatus` 5종(`PENDING`/`RUNNING`/`COMPLETED`/`PARTIAL_SUCCESS`/`FAILED`) at `common/async/` |
+| 운영 비밀(C1) | env-var `TRMDICT_*` 4종 강제(prod), local은 fallback 허용 |
+| 이력 테이블(C1) | `TRM_*_HISTORY` 공통 11컬럼 베이스 (실 SQL은 I0/N1) |
+| 재시작 stale(C1) | 모듈 자율 — `ApplicationReadyEvent` 리스너로 `RUNNING`/`PENDING` → `FAILED` (I0/N1 작성) |
+| 응답 직렬화(C1) | `@JsonInclude(NON_NULL)` + nested 정적 inner class + `Map<String,Object>` 응답 금지 (M-* 진입 전 필수) |
+| Frontend 인증(C2) | `localStorage['trmdict_token']` + ErrorInterceptor 단일(401→logout+redirect, 403→toast, 그외→toast+throw). refresh 비범위. AuthGuard canActivate+canLoad |
+| 자동 E2E(C2) | Playwright (chromium 단일), 4 시나리오, 로컬 `npm run e2e` 수동 실행 (CI 미도입) |
+| Material 테마(C2) | indigo-pink prebuilt (`@angular/material/prebuilt-themes/indigo-pink.css`) — 다크/커스텀 토큰 비범위 |
+| Import API(I0) | 단일 endpoint + type query, multipart temp 파일 + @Async, MERGE 화이트리스트 운영 보강 보존, ImportJobRecoveryListener (C1 stale 정책 첫 실증) |
+| Tibero null 바인딩(I0) | MyBatisConfig.ConfigurationCustomizer로 jdbcTypeForNull=NULL 강제 (JDBC-590704 우회). 이후 모든 모듈 자동 적용 |
+| DB 명명 표준(Cycle05) | 모든 테이블/컬럼/시퀀스/제약/인덱스를 행정안전부 공통표준 약어로 정렬. TB_TRM_*/TB_STD_* prefix, TV_* 뷰 prefix 예약. VO 필드명 풀네임 유지 + Mapper SELECT alias 패턴. M-* 진입 전 필수 준수 |
+| Import 프론트(I1) | 단건 추적(`/import/{historyId}` URL, list endpoint 비범위) + 폴링 2s 고정(terminal/unmount auto stop, timeout 없음) + AdminGuard 신설(C2 미생성 항목 첫 사용처) + 메뉴 ADMIN 한정 + multipart 50MB 표준 |
+| 인증 사용자 INSERT(I1 hotfix) | controller에서 `req.getUserPrincipal().getName()` 금지 (AuthPrincipal.toString 반환) → `@AuthenticationPrincipal AuthPrincipal` 주입 후 `getUsername()` 추출 필수. 후속 모듈(M-*-W) 인용 |
+| 모듈 폴더 패턴(M-D-R) | Backend `module/{name}/{controller,service,mapper,dto,vo}` + Frontend `features/{name}/{pages/{page}/, services/, models/}` |
+| VO 분리(M-D-R) | 모듈 read는 `*ListVo`(그리드 set) + `*DtlVo`(전 필드 flat). 둘 다 `@JsonInclude(NON_NULL)` |
+| DetailPanel(M-D-R) | 모듈 read = 단일 ListPage(SearchForm+DataGrid+DetailPanel 우측 슬라이드 통합). 별도 detail URL 미생성. C2 컴포넌트 첫 사용처 |
+| read 모듈 권한(M-D-R) | `AuthGuard` only / 메뉴 `requiredRole` 미지정 / SecurityConfig 분기 0. write 모듈(M-*-W)에서 ADMIN 차등 |
+| Mapper alias 최소화(M-D-R) | underscore-to-camel 자동 변환 우선. PK(`*_SN` → `id`) 1개만 명시 alias |
+| Tibero LIKE 검색 패턴(M-D-R hotfix) | MyBatis `<bind>`로 SQL 빌드 단계에서 `'%'+x+'%'` 패턴 완성 + `LIKE #{xLike}`. `\|\|` concat / CONCAT() 모두 Tibero JDBC-8007 거부. 후속 모듈 LIKE 인용 |
+| DataGrid sortChange 변환(M-D-R hotfix) | ColumnDef.key(camelCase)를 `toSnakeCase()` 1줄 변환 후 backend `sortBy`로 전송. backend SORTABLE_COLUMNS는 snake_case (Cycle05 §12 정합). 후속 7개 모듈 ListPage 인용 |
+| Domain SearchForm 데이터타입(M-D-R hotfix) | 행정안전부 표준 논리 타입 4종(VARCHAR/CHAR/NUMERIC/DATETIME). Tibero physical type과 다름. 정적 배열, 추가시 append, 동적 fetch 비범위 |
+
+---
+
+## Done (2026-05-03 ~ 2026-05-07)
+- `docs/superpowers/specs/2026-05-03-cycle-decomposition-design.md` 작성 + 셀프리뷰 보완 + §6에 코드 구조 spec 선행 조건 명시
+- `docs/superpowers/specs/2026-05-03-code-structure-design.md` 작성 + 셀프리뷰 보완 + 사전 골격 생성 항목 제거 + 그리드 결정 반영(§1·§4.1)
+- `.claude/rules/api-dev-rule.md` 개정 (단발 API 폴백 위치 명확화, Architecture 트리/패키지/빌드툴/객체 분리/Mapper 위치/프로파일/[4]단계 명칭 정렬)
+- `docs/dev-guide/conventions.md` 갱신 (패키지 구조 본 프로젝트 값으로 구체화, ErrorCode 경로 정확화, Service 인터페이스 미분리 명시, 본 spec 참조 링크) + §11 응답 직렬화 규칙 신규
+- `docs/decisions.md`에 2026-05-03 9건 누적 기록: 메타 3 (사이클 분해 / 코드 구조 / Frontend 그리드) + C1 3 (비동기 인프라 / TRM_*_HISTORY 공통 11컬럼 / 운영 비밀 외부화) + C2 3 (Frontend 인증 흐름 / Playwright / Material indigo-pink)
+- C0 사이클 9 Stage / 22 Task 완료 — 49/49 그린, master 머지 `1b7d233` (--no-ff). `cycles/c0-backend-core` 브랜치 보존.
+- C1 사이클 6 Stage / 11 Task 완료 — `mvn test` 52/52 그린, master 머지 `5d471c4` (--no-ff). `cycles/02-c1-async-infra` 브랜치 보존. C0 이월 minor 4건 처리 완료.
+- C2 사이클 9 Stage / 23 Task 완료 (2026-05-04) — `npm test` **56/56** 그린, `npm run lint` 0 error, `npm run build` 성공, `npm run format:check` 그린, frontend `npm start` smoke OK, 정적 점검 6항목 전부 정합, **Playwright E2E 4/4 그린** (사용자 측 실 실행으로 검증 완료).
+- E2E 첫 실행에서 발견된 ErrorInterceptor 결함 fix(`6c55a8a`): Angular HttpClient가 4xx를 HttpErrorResponse로 던지는데 기존 map 분기는 200 OK + body만 처리해서 위조 token(AUTH_1002) redirect 누락. catchError에 `err.error` 본문 파싱 추가로 해결. 단위 테스트 +2(누적 54→56).
+- frontend/ 신규 골격 (Angular 15.2 + Material 15.2 indigo-pink + ESLint 8 / @angular-eslint v15 + Prettier 3.8 + Playwright 1.59 chromium)
+- core/ 인터셉터 2 (Jwt + Error) + 가드 1 (Auth) + 서비스 3 (Loading + Api + Auth) + 모델 3 (ApiResponse + PageResponse + User) / shared/components/ 5종 (SearchForm + DataGrid + FileUpload + DetailPanel + EditDrawer) + ColumnResizeDirective + MaterialModule (17 모듈 re-export) / layouts/{main,blank} / auth/login + AuthModule (lazy) / features/home placeholder + HomeModule (lazy)
+- AppModule HTTP_INTERCEPTORS 등록 (Jwt → Error 순) + AppRoutingModule (lazy /login + AuthGuard 보호 / + lazy /home + ** redirect) + AppComponent 글로벌 mat-progress-bar + bootstrap auth.loadMe
+- Playwright `frontend/e2e/auth.spec.ts` 4 시나리오 작성 완료
+- master 머지: `2486c6b` (T23 완료 후 정정), `cycles/03-c2-frontend-core` 브랜치 보존 예정.
+- **I0 사이클** 11 Stage / 21 Task 완료 (Task 21 master 머지 게이트 잔존, 2026-05-06) — `mvn test` **75/75** 그린 (52 + 23 신규), `mvn package` 성공, OpenCSV 5.9 포함, 5 SQL 운영자 수동 적용 완료, 부트 smoke 클린.
+- I0 신규: ImportType + 3 VO + CsvImportParser + ImportJobMapper(interface+XML) + ImportJobService(@Async) + ImportJobRecoveryListener + ImportJobController(3 endpoint) + 5 DDL.
+- I0 인프라: OpenCSV 5.9 dep, ErrorCode IMPORT_3001~3007, import.temp-dir yml, SecurityConfig POST /api/v1/imports ADMIN 분기.
+- I0 부수 수정 (commit `bcc6769`): `MyBatisConfig.ConfigurationCustomizer` — Tibero JDBC null 바인딩 거부 우회 (jdbcTypeForNull=NULL). decisions.md 2026-05-06 등재.
+- master 머지: `2194fff` (`--no-ff`, 2026-05-06).
+- **Cycle05 사이클** 5 Stage / 22 Task 완료 (2026-05-06) — DB 명명 표준 정렬. drop_legacy.sql 신규 + DDL 5파일 재작성(`TB_TRM_*`/`TB_STD_*` prefix + 표준 약어 컬럼) + AuthMapper.xml/ImportJobMapper.xml SELECT alias 패턴 정착 + Java 주석 정렬 + SchemaVerifyTest/AuthIntegrationTest 직접 SQL 갱신 + conventions.md §12 + decisions.md 3건. 운영자 수동 SQL 재실행(drop_legacy + 0~5) 후 mvn test 75/75 + npm test 56/56 그린. master 머지: `f424402` (`--no-ff`, 2026-05-06).
+- **I1 사이클** 8 Stage / 13 Task 완료 (2026-05-07) — Import 프론트. frontend test **74/74 그린** (56 + 17 신규: AdminGuard 4 + ImportService 4 + UploadPage 4 + DetailPage 5). backend test **75/75 그린** (회귀 + hotfix 후). **Playwright e2e 8/8 그린** (auth 4 + import 4, 12.7s). decisions.md 5건 등재.
+- I1 신규: `core/guards/admin.guard.ts` (C2 미생성 항목 첫 사용처) + `features/import/{import.module, import-routing.module, services/import.service, models/import-summary.model, pages/upload/upload-page, pages/detail/detail-page}` + `e2e/import.spec.ts` 4 시나리오 + `e2e/fixtures/word-{valid,invalid-header,duplicate-key}.csv` 3 fixtures.
+- I1 수정: `app-routing.module.ts` (/import lazy + canLoad: [AuthGuard]), `menu-items.ts` (MENU_ITEMS '데이터 가져오기' 1줄), `auth.service.ts` (`getCurrentUser()` sync getter 1줄), `material.module.ts` (MatRadioModule 추가), `application-{local,prod}.yml` (multipart 50MB), `main-layout.component.spec.ts` (Router spy → RouterTestingModule + ADMIN/USER 가시성 케이스).
+- I1 hotfix (commit `5799b68`): `ImportJobController` `@AuthenticationPrincipal AuthPrincipal authPrincipal` 적용. I0 사이클 bug — `req.getUserPrincipal().getName()`이 AuthPrincipal(UserDetails 미구현 + toString override 없음).toString() 59자를 RQSTR_ID VARCHAR2(50) 컬럼에 INSERT하려다 JDBC-11048. ImportJobControllerTest는 @WebMvcTest mock principal로 string username 직접 넘겨 본 흐름 미실증. I1 e2e import #1·#2·#4 fail로 표면화. cycle 경계 위반(I1=frontend)이지만 운영 가능을 위해 본 사이클 안 hotfix.
+- I1 e2e helper (commit `182a721`): `gotoImportPage` SPA navigation 사용. `page.goto` hard navigation은 AppComponent rebuild로 me$ initial null → AdminGuard sync `getCurrentUser()` null → /home redirect race 유발.
+- master 머지: `f947ff8` (`--no-ff`, 2026-05-07, 33 files / +4346 / -45) + 정정 commit `7364c45` (handoff/worklog/status hash 반영).
+- **M-D-R 사이클 완료 (2026-05-08)** — Subagent-Driven Development 모드로 T09→T10→T11 자동 dispatch + 2-stage 리뷰(spec + code quality) 통과 후 G2-g 검증 게이트 (T12) 통과. Subagent-Driven 모드 첫 실증 사이클.
+- M-D-R 신규 코드: backend `module/domain/{controller,service,mapper,dto,vo}` (DomainController 2 endpoint + DomainService + DomainMapper interface/XML + DomainSearchDto + DomainListVo + DomainDtlVo + ErrorCode DOMAIN_2001 1건) + frontend `features/domain/{domain.module, domain-routing.module, services/domain.service, models/domain.model, pages/list/domain-list-page}` (lazy 모듈 + 단일 ListPage에 SearchForm 5필드 + DataGrid 8컬럼 + DetailPanel 24필드 우측 슬라이드 통합) + e2e `domain.spec.ts` 4 시나리오 + fixture `domain-valid.csv` 30행. DDL 변경 0건(read-only).
+- M-D-R 검증: backend mvn test **85/85 그린** (75 → 85, +10), frontend npm test **86/86 그린** (74 → 86, +12), Playwright e2e **12/12 그린** (auth 4 + import 4 + domain 4), 정적 점검 8/8, 통합 시나리오 6/6 정상.
+- M-D-R 진행 중 발견된 4건 hotfix:
+  - `d3cdfbe` FE — DomainListPage sort 버그 (DataGrid camelCase ColumnDef.key vs backend SORTABLE_COLUMNS snake_case 화이트리스트 mismatch) → onSortChange에 `toSnakeCase` 1줄 변환기 추가
+  - `5be91a3` BE — DomainMapper LIKE `||` concat → CONCAT() 변환 (1차, Tibero 거부 — 불충분)
+  - `c5c9805` BE — DomainMapper LIKE CONCAT() → MyBatis `<bind>` 패턴 (Tibero JDBC-8007 회피, 최종 — 후속 모듈 LIKE 검색 인용)
+  - `186ee9a` FE — SearchForm 데이터타입 옵션 Tibero physical → 행정안전부 논리 4종(VARCHAR/CHAR/NUMERIC/DATETIME)
+- decisions.md 신규 9건 (M-D-R 5건 + 2026-05-08 hotfix 정책 4건) — 모듈 폴더 패턴 / VO 분리 NON_NULL / DetailPanel SPA / read 권한 / Mapper alias 최소화 / Tibero LIKE bind / DataGrid sortChange 변환 / SearchForm 데이터타입 / 통합 테스트 부재 부채.
+
+---
+
+## In Progress
+- 없음 — React 마이그레이션 + 라우터 수정 완료 (2026-05-18). 브라우저에서 메뉴 동작 확인 후 다음 사이클 진입.
+
+---
+
+## Next Steps
+1. **다음 작업 — Task 13 master 머지 게이트** (사용자 명시 승인 필수):
+   - 사용자 결정: agent 머지 위임 vs 사용자 직접 머지.
+   - 머지 명령: `git checkout master && git merge --no-ff cycles/07-m-d-r-domain-read -m "Merge branch 'cycles/07-m-d-r-domain-read' — M-D-R 사이클 완료"`
+   - 머지 후 정정 commit으로 status/handoff/worklog에 머지 hash 박음.
+2. **다음 사이클 — M-D-W (Domain 보강 풀스택, 08/18)**:
+   - 브랜치: master → `cycles/08-m-d-w-domain-write` 분기.
+   - 입력 자료: M-D-R spec/plan + I1 spec(`@AuthenticationPrincipal AuthPrincipal` 패턴 인용) + cycle-decomposition §4.1 행 7.
+   - 인증 사용자 INSERT 시 I1 hotfix 패턴 강제: `@AuthenticationPrincipal AuthPrincipal authPrincipal` → `getUsername()`.
+   - Tibero LIKE 검색 시 본 사이클 hotfix 패턴 강제: MyBatis `<bind>`.
+3. **알려진 부채 (보강 사이클 후보)**:
+   - **Domain 통합 테스트 부재** (M-D-R 부채) — M-* 후속 모듈은 `@SpringBootTest` + `@Sql`로 mapper SQL 1건 실 DB 실증 강제. M-D-R hotfix 2건이 단위 mock으로 안 잡힌 것이 근거.
+   - **Plan/spec 데이터 적재 가정 결함** (M-D-R 발견) — "I0/Cycle05가 적재한 표준 도메인 12K행"은 부정확. M-* 모듈 spec/plan 작성 시 데이터 시드 책임을 명시 (사용자 측 1회 import 또는 DDL seed).
+   - **샘플 시스템 도메인관리 화면 정합 차이** (M-D-R 발견) — 시각 요소(상태/체크박스/순번 컬럼, breadcrumb, 우상단 버튼 배치) 일부 차용 보강 사이클 후보.
+   - **Subagent-Driven 모드 spec test fixture 결함 위험** (M-D-R 발견) — sortChange snake_case fixture가 실 DataGrid emit과 어긋난 가짜 그린. 후속 사이클은 spec test fixture가 실 컴포넌트 Output 시그니처와 일치하는지 한 번 더 검증.
+   - AuthGuard/AdminGuard sync me$ vs hard navigation race (I1 발견) — e2e helper SPA navigation으로 우회. 본질 fix는 가드 비동기 me$ 복원 await + AppComponent loadMe() 동기 await.
+   - frontend 누적 prettier issue ~72 파일 (line ending 부채).
+   - Import history 목록 endpoint (I1 비범위) — 풀스택 보강 사이클 신설 후보.
+4. 이후 사이클 순서 (직렬, 18사이클): C0~I1(완료) → **M-D-R(완료, 07)** → **M-D-W(08, 다음)** → M-W-R(09) → M-W-W(10) → M-T-R(11) → M-T-W(12) → M-F-R(13) → M-F-W(14) → N0(15) → N1(16) → N2(17) → Z0(18).
+4. (참고) 원격 push: cycle 브랜치 모두 로컬 only. master push는 사용자 결정 시 `git push origin master`.
+
+---
+
+## Key Files
+- [docs/plan.md](docs/plan.md) — 1차 확정 설계 (2026-05-02)
+- [docs/superpowers/specs/2026-05-03-cycle-decomposition-design.md](docs/superpowers/specs/2026-05-03-cycle-decomposition-design.md) — 사이클 분해 방법론
+- [docs/superpowers/specs/2026-05-03-code-structure-design.md](docs/superpowers/specs/2026-05-03-code-structure-design.md) — 코드 구조 표준 (그리드 결정 포함)
+- [docs/decisions.md](docs/decisions.md) — 누적 결정 기록 (메타 3 + C1 3 + C2 3 + I0 2 + Cycle05 3 + I1 5 + M-D-R 9 = 28건)
+- [docs/worklog.md](docs/worklog.md) — 현재 상태 snapshot
+- [docs/dev-guide/conventions.md](docs/dev-guide/conventions.md) — 코딩 컨벤션 (§11 응답 직렬화 + §12 DB 명명 표준 포함)
+- [.claude/rules/api-dev-rule.md](.claude/rules/api-dev-rule.md) — 단발 API 폴백 절차 (개정 완료, 사이클 작업 시 비활성)
+- [docs/cycles/01-c0-backend-core/](docs/cycles/01-c0-backend-core/) — C0 사이클 spec/plan/status (완료, 머지 `1b7d233`)
+- [docs/cycles/02-c1-async-infra/](docs/cycles/02-c1-async-infra/) — C1 사이클 spec/plan/status (완료, 머지 `5d471c4`)
+- [docs/cycles/03-c2-frontend-core/spec.md](docs/cycles/03-c2-frontend-core/spec.md) — C2 spec (master `bb74e30`)
+- [docs/cycles/03-c2-frontend-core/plan.md](docs/cycles/03-c2-frontend-core/plan.md) — C2 plan 9 Stage / 23 Task (master `841c159`)
+- [docs/cycles/03-c2-frontend-core/status.md](docs/cycles/03-c2-frontend-core/status.md) — C2 사이클 진행 상태 (완료, 머지 `2486c6b`)
+- [docs/cycles/04-i0-import-backend/spec.md](docs/cycles/04-i0-import-backend/spec.md) — I0 spec (commit `094bca1`, 662 lines)
+- [docs/cycles/04-i0-import-backend/plan.md](docs/cycles/04-i0-import-backend/plan.md) — I0 plan 11 Stage / 21 Task (commit `f1ae03e`, 3140 lines, 모든 코드/SQL/XML/테스트 본문 embedded)
+- [docs/cycles/04-i0-import-backend/status.md](docs/cycles/04-i0-import-backend/status.md) — I0 사이클 진행 상태 (완료, 머지 `2194fff`)
+- [docs/superpowers/specs/2026-05-06-naming-standards-alignment-design.md](docs/superpowers/specs/2026-05-06-naming-standards-alignment-design.md) — Cycle05 design doc (DB 명명 표준 + 매핑표)
+- [docs/cycles/05-rename-naming-alignment/spec.md](docs/cycles/05-rename-naming-alignment/spec.md) — Cycle05 spec (commit `3e8660a`)
+- [docs/cycles/05-rename-naming-alignment/plan.md](docs/cycles/05-rename-naming-alignment/plan.md) — Cycle05 plan 5 Stage / 22 Task (commit `3e8660a`)
+- [docs/cycles/05-rename-naming-alignment/status.md](docs/cycles/05-rename-naming-alignment/status.md) — Cycle05 사이클 진행 상태 (완료, 머지 `f424402`)
+- [docs/cycles/06-i1-import-frontend/spec.md](docs/cycles/06-i1-import-frontend/spec.md) — I1 spec (commit `c2428ee`, 525 lines)
+- [docs/cycles/06-i1-import-frontend/plan.md](docs/cycles/06-i1-import-frontend/plan.md) — I1 plan 8 Stage / 13 Task (commit `bb2a173`, 2379 lines, 모든 TS/HTML/SCSS/spec 본문 embedded)
+- [docs/cycles/06-i1-import-frontend/status.md](docs/cycles/06-i1-import-frontend/status.md) — I1 사이클 진행 상태 (완료, 머지 `f947ff8`)
+- [docs/cycles/07-m-d-r-domain-read/spec.md](docs/cycles/07-m-d-r-domain-read/spec.md) — M-D-R spec (commit `d102fef`, 665 lines, 결정 10건)
+- [docs/cycles/07-m-d-r-domain-read/plan.md](docs/cycles/07-m-d-r-domain-read/plan.md) — M-D-R plan 8 Stage / 13 Task (commit `afb8ccc`, 2491 lines, 모든 코드 embedded)
+- [docs/cycles/07-m-d-r-domain-read/status.md](docs/cycles/07-m-d-r-domain-read/status.md) — M-D-R 사이클 진행 상태 (완료, 머지 `1538e94`)
+
+---
+
+## Commands
+- backend test: `JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 C:\Dev\dev_codeDaemon\bin\apache-maven-3.3.9\bin\mvn.cmd -f backend/pom.xml test`
+- backend package: `JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 C:\Dev\dev_codeDaemon\bin\apache-maven-3.3.9\bin\mvn.cmd -f backend/pom.xml package -DskipTests`
+- backend 부트: `java -jar backend/target/trmdict-1.0.0-SNAPSHOT.jar --spring.profiles.active=local` (application.yml의 default `local` 적용)
+- frontend dev: `cd frontend && npm start` (4200, /api → 8080 proxy)
+- frontend test: `cd frontend && npm test -- --watch=false --browsers=ChromeHeadless`
+- frontend lint+format+build: `cd frontend && npm run lint && npm run format:check && npm run build`
+- frontend E2E (manual, requires backend+frontend up): `cd frontend && npm run e2e`
+
+---
+
+## Issues / Risks
+- **frontend bundle 초기 크기 980kB** (default budget 500kB 초과 480kB) — Material 15 + lazy 모듈 4개. 기능 영향 없음. 추후 prod 배포 사이클에서 `angular.json` budgets 조정 또는 main bundle 분할 추가 검토.
+- **DataGrid 템플릿 trackBy 마이크로신택스 제거** — Angular Material 15에서 NG0303 발생으로 우회. @Input은 보존. 100행 미만 케이스에선 영향 없음, 대용량 케이스 도래 시 `[trackBy]` 결합 패턴 검토.
+- **@angular-eslint v21 잔여 패키지** — `ng add` 자동 해석이 v21로 분기되어 v15 수동 핀했으나 v21 패키지가 devDependencies에 inert 잔존. 추후 정리 사이클에서 제거 검토 (현재 lint 동작 영향 없음).
+- **AuthGuard/AdminGuard sync me$ vs hard navigation race (I1 발견)**: `page.goto`로 hard navigation 시 AppComponent rebuild → me$ initial null → guard sync `getCurrentUser()` null → 잘못된 redirect. e2e helper SPA navigation으로 우회. 운영 사용자가 `/import/{id}` 직접 새로고침 시 동일 race 가능. 본질 fix는 가드 비동기 me$ 복원 await + AppComponent loadMe() 동기 await — 보강 사이클 검토.
+- **frontend 누적 prettier issue ~72 파일 (I1 발견)**: line ending CRLF/LF 부채. `npm run format:check` 시 다수 fail. 본 사이클 신규/변경 파일은 LF 정규화 완료. 별도 정리 사이클 또는 `prettier --write` 일괄 적용 후 commit으로 해소 검토.
+- **인증 사용자 INSERT 패턴 강제 (I1 hotfix)**: controller에서 `req.getUserPrincipal().getName()`은 AuthPrincipal.toString을 반환하므로 INSERT에 절대 사용 금지. `@AuthenticationPrincipal AuthPrincipal authPrincipal` 주입 후 `getUsername()` 추출 패턴이 표준. 후속 모듈(M-*-W) 운영 보강 INSERT 시 본 패턴 인용 필수.
+- **Domain 통합 테스트 부재 (M-D-R 발견)**: backend mapper SQL 단위 mock 검증만 보유 → Tibero LIKE 호환성 + DataGrid sort 화이트리스트 매핑 등 2건 hotfix가 단위에서 안 잡힘. M-* 후속은 `@SpringBootTest` + `@Sql`로 mapper 1건 실 DB 실증 필수 (I0 `ImportJobIntegrationTest` 패턴 인용).
+- **Plan/spec 데이터 적재 가정 결함 (M-D-R 발견)**: "I0/Cycle05가 적재한 표준 도메인 12K행"은 부정확 — I0는 import 기능 빌드만, 실 데이터는 운영자/사용자 import 책임. M-* spec/plan 작성 시 데이터 시드 책임 명시 필수.
+- **샘플 시스템 도메인관리 화면 정합 차이 (M-D-R 발견)**: 데이터 모델/페이지 레이아웃/CRUD 모드 모두 다름. (B) 시각 요소(상태/체크박스/순번 컬럼, breadcrumb, 우상단 버튼 배치) 일부 차용 보강 사이클 후보로 등재. 후속 모듈에서도 유사 차이 발생 가능성 — N0/N1 진입 전 다른 sample_system/capture/ 화면들도 사전 검토 권장.
+- **Subagent-Driven 모드 spec test fixture 결함 위험 (M-D-R 발견)**: sortChange snake_case input fixture가 실 DataGrid emit과 어긋나 가짜 그린(d3cdfbe). 후속 사이클 spec test fixture가 실 컴포넌트 Output 시그니처(예: ColumnDef.key emit 값, mat-sort-header 형태)와 일치하는지 한 번 더 검증.
+- **Tibero JDBC LIKE 호환성 (M-D-R 발견)**: `||` concat과 CONCAT() 함수 모두 LIKE 우변에서 JDBC-8007 거부. 후속 모듈 LIKE 검색 mapper는 MyBatis `<bind>` + `LIKE #{}` 패턴 강제(decisions.md 2026-05-08 등재).
+
+---
+
+## Working Tree (M-D-R 완료, 다음 세션 시작 시점)
+- 현재 활성 브랜치: **`master`** (HEAD = `c357a49` 정정 commit, 직전 = `1538e94` M-D-R 머지). origin/master 대비 `c357a49` + `1538e94` + `1ce36d4`(cycle 브랜치에서 fast-forward) 등 본 사이클 분량 ahead — push는 사용자 결정.
+- 직전 master HEAD = `7003ef3` (I1 세션 마감 정리, 본 세션 이전). M-D-R 사이클 분기 = `7003ef3`.
+- M-D-R cycle commits (총 18, 시간순):
+  - `d102fef` spec 초안 (665 lines, 10 섹션, 결정 10건)
+  - `afb8ccc` plan 8 Stage / 13 Task (2491 lines, 모든 코드 embedded)
+  - `d61e7b1` T01 decisions 5건 + handoff/worklog/status
+  - `43a949f` T01 fix handoff.md Next Steps 중복 정리
+  - `f06e08b` 세션 마감 docs (이전 세션 종료)
+  - `5aee327` T01 fix handoff staleness — HEAD SHA + 시작 가이드 갱신
+  - `2855530` T02 ErrorCode DOMAIN_2001 + 3 VO/DTO
+  - `5d41593` T03 DomainMapper interface + XML
+  - `14c3e7c` T04 DomainService TDD (5 단위 케이스)
+  - `495fa03` T05 DomainController TDD (5 @WebMvcTest 케이스)
+  - `94655fb` docs T05 완료 반영
+  - `e571966` T07 domain.model.ts (TS 타입 5종)
+  - `e9d9074` T08 DomainService TDD (frontend 4 케이스)
+  - `c1d4383` docs status/handoff stale 정리 — T06/T07/T08 done 반영
+  - `2bb8e2c` T09 DomainModule + lazy routing + MENU_ITEMS (Subagent-Driven)
+  - `712859f` T10 DomainListPageComponent SearchForm+DataGrid+DetailPanel (Subagent-Driven, 7 spec 케이스)
+  - `6359dc2` T11 Playwright e2e domain.spec.ts (4 시나리오, Subagent-Driven)
+  - `9a3035e` docs status T09/T10/T11 완료 반영
+  - `3022a3c` test fixture domain-valid.csv (e2e 데이터 시드)
+  - `d3cdfbe` hotfix1 FE — DomainListPage sort camelCase → snake_case 변환
+  - `5be91a3` hotfix2 BE — DomainMapper LIKE `||` → CONCAT() (불충분)
+  - `c5c9805` hotfix3 BE — DomainMapper LIKE CONCAT() → MyBatis `<bind>` (Tibero 호환 최종)
+  - `186ee9a` hotfix4 FE — SearchForm 데이터타입 옵션 행정안전부 논리 4종
+  - `1ce36d4` 사이클 마감 docs — status 완료 + decisions 4건 + handoff/worklog 갱신
+  - `1538e94` Merge `cycles/07-m-d-r-domain-read` (`--no-ff`, 29 files / +5015 / -44) ← master에 fast-forward
+  - `c357a49` 정정 commit (handoff/worklog/status에 머지 hash 박음)
+- master 최근 commit 체인 (top 6):
+  - `c357a49` docs(M-D-R): handoff/worklog/status — master 머지 commit hash 반영 (1538e94)
+  - `1538e94` Merge branch 'cycles/07-m-d-r-domain-read' — M-D-R 사이클 완료
+  - `1ce36d4` docs(M-D-R): 사이클 마감 — status 완료 + decisions 4건 + handoff/worklog 갱신
+  - `186ee9a` fix(M-D-R): SearchForm 데이터타입 옵션 — Tibero physical → 행정안전부 논리
+  - `c5c9805` fix(M-D-R): DomainMapper LIKE — CONCAT() → MyBatis `<bind>`로 변경
+  - `5be91a3` fix(M-D-R): DomainMapper LIKE — `||` concat → CONCAT() 변환
+- Unstaged 변경: `frontend/angular.json` 1줄 (`"analytics": false`, ng CLI 자동 추가, 본 사이클 무관 — **여전히 미처리**, 다음 세션 사용자 의도 확인 후 commit 또는 revert).
+- Untracked: `.claude/settings.local.json`, `docs/prompt.md` (모두 무관, 이전 세션부터 보존).
+- 보존 사이클 브랜치 (참고용, 삭제 안 함): `cycles/01-c0-backend-core` / `cycles/02-c1-async-infra` / `cycles/03-c2-frontend-core` / `cycles/04-i0-import-backend` / `cycles/05-rename-naming-alignment` / `cycles/06-i1-import-frontend` / **`cycles/07-m-d-r-domain-read`** (신규 보존).
+- **다음 세션 첫 명령**: `git checkout master && git pull` (선택, 원격 push 안 했으면 불필요) → `git checkout -b cycles/08-m-d-w-domain-write` 분기 → M-D-W 사이클 spec/plan 작성 진입.
+- 사용자 측 보유 상태:
+  - DB: `TB_TRM_DOMAIN` 129행 (행정안전부 표준 도메인 csv import 완료)
+  - Backend: `1538e94` 시점 jar 부트 가능 (마지막 hotfix `c5c9805` 반영 완료)
+  - Frontend: `c357a49` 시점 정합 (`186ee9a` 데이터타입 옵션 + `d3cdfbe` sort 변환 모두 반영)
+
+---
+
+## Notes
+- `backend/pom.xml` 생성 완료 (C0 T07, commit `fbf251c`). dependency:tree BUILD SUCCESS.
+- `frontend/` 폴더는 C2 사이클에서 Angular CLI 산출물 기준으로 채워짐 — 28+ files at T03 + 후속 누적 (총 80+ files at C2 cycle close).
+- 모듈 간 진행은 1차 직렬(병렬 불허). 첫 모듈 사이클(M-D-R/M-D-W)에서 굳힌 패턴을 후속 모듈이 그대로 따른다. M-D-R 진입 시 `MENU_ITEMS`에 `{ label: '도메인', route: '/domain', icon: 'category' }` 1줄 추가 + `features/domain/` 모듈 신설.
+- `docs/cycles/` 신규 폴더는 사이클 진입 시점에 생성한다(미리 만들지 않음).
+- `docs/superpowers/specs/2026-05-03-grid-selection-design.md`는 **만들지 않음** — 그리드 결정은 code-structure-design.md와 decisions.md에만 기록.
+- C1 결정의 재시작 stale 처리 정책은 **정책만 등재**, 실 코드는 I0/N1 책임. C1에서는 `JobStatus`·`AsyncConfig`만 골격으로 박힘.
+- C1 컨벤션: `TRM_*_HISTORY` 11컬럼 베이스(decisions.md), 응답 직렬화 §11(conventions.md), 운영 비밀 외부화 정책(env-var `TRMDICT_*` 4종) 모두 후속 사이클에서 인용.
+- C2 컨벤션: localStorage 키명 `trmdict_token`, ErrorInterceptor 단일 401/403 분기, AuthGuard returnUrl 패턴, MENU_ITEMS 패턴, 5종 shared 컴포넌트 시그니처 — 모두 후속 사이클(I1·M-*-R/W·N2)에서 직접 인용.
+- Frontend 빌드 환경: Node.js 22.17 + npm 10.9. Angular 15는 공식 Node 16/18 지원이지만 22도 동작 확인 (peer dep warning은 발생 가능, 실 빌드 영향 없음).

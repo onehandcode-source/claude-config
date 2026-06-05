@@ -1,0 +1,240 @@
+# 의존성 전체 업그레이드 마이그레이션
+
+> 작성일: 2026-05-19  
+> 대상: `frontend/` 전체 npm 패키지  
+> 목표: 보안 이슈 없는 모든 패키지를 최신 버전으로 업그레이드
+
+---
+
+## 요약
+
+| 위험도 | 패키지 수 | 설명 |
+|--------|-----------|------|
+| 없음 (패치) | 2 | `@tanstack/react-query`, `date-fns` |
+| 낮음 | 6 | `react@19`, `vite@8`, `vitest@4`, `@vitejs/plugin-react@6`, `eslint@10`, `jsdom@29` |
+| 중간 | 3 | `react-router-dom@7`, `zod@4`, `@hookform/resolvers@5` |
+| 높음 | 1 | `tailwindcss@4` — 설정 방식 전면 변경 |
+
+---
+
+## Phase 1 — 패치 + 낮음 (breaking 없음)
+
+### 대상 패키지
+
+| 패키지 | 현재 | 목표 |
+|--------|------|------|
+| `@tanstack/react-query` | 5.100.10 | 5.100.11 |
+| `date-fns` | 4.1.0 | 4.2.1 |
+| `react` / `react-dom` | 18.3.1 | 19.2.6 |
+| `vite` | 5.4.21 | 8.0.13 |
+| `@vitejs/plugin-react` | 4.7.0 | 6.0.2 |
+| `vitest` | 2.1.9 | 4.1.6 |
+| `eslint` | 9.39.4 | 10.4.0 |
+| `eslint-plugin-react-hooks` | 5.2.0 | 7.1.1 |
+| `jsdom` | 25.0.1 | 29.1.1 |
+| `lucide-react` | 0.511.0 | 1.16.0 |
+
+### 주의사항
+
+**React 19**
+- `React.forwardRef` deprecated → 경고만 출력, 동작은 정상
+- shadcn/ui 컴포넌트(button, input, table, sheet) 모두 `forwardRef` 사용 중
+- 즉각적인 코드 변경 불필요, 향후 shadcn 업데이트 시 자연 해소
+
+**Vite 8**
+- Node.js 20+ 요건 → 현재 v22.16.0 충족
+- `vite.config.js` 옵션명 변경 가능성 → 빌드 후 확인
+
+**lucide-react 1.x**
+- 아이콘명 변경 가능성 → 빌드 후 누락 아이콘 확인
+- 현재 사용 아이콘: `X` (sheet.jsx) 등 기본 아이콘
+
+### 실행 명령
+
+```bash
+npm install react@19 react-dom@19
+npm install vite@8 @vitejs/plugin-react@6
+npm install vitest@4 jsdom@29
+npm install eslint@10 eslint-plugin-react-hooks@7
+npm install @tanstack/react-query@latest date-fns@latest lucide-react@latest
+npm run build
+npm test
+```
+
+---
+
+## Phase 2 — 중간 위험도
+
+### react-router-dom v6 → v7
+
+| 현재 | 목표 |
+|------|------|
+| 6.30.3 | 7.15.1 |
+
+**변경 사항**
+- `createBrowserRouter` / `RouterProvider` API 유지 (SPA 라이브러리 모드)
+- `<Link>`, `useNavigate`, `useParams`, `useLocation` 등 주요 API 동일
+- `react-router-dom` 패키지명 유지 (v7에서 `react-router`로 통합, shim 제공)
+
+**확인 필요 파일**
+- `src/app/router.jsx` — `createBrowserRouter` 정의
+- `src/app/ProtectedRoute.jsx` — `Navigate`, `useLocation`
+- `src/layouts/MainLayout.jsx` — `Link`, `useNavigate`
+- `src/layouts/BlankLayout.jsx` — `Outlet`
+
+**실행 명령**
+```bash
+npm install react-router-dom@7
+npm run build
+# /login, /home, /domain, /import 라우팅 동작 검증
+```
+
+---
+
+### zod v3 → v4 + @hookform/resolvers v3 → v5
+
+| 패키지 | 현재 | 목표 |
+|--------|------|------|
+| `zod` | 3.25.76 | 4.4.3 |
+| `@hookform/resolvers` | 3.10.0 | 5.2.2 |
+
+**zod v4 주요 변경**
+- `z.string().min()` 등 기본 유효성 API는 동일
+- 오류 메시지 포맷 변경 (`error.issues` 구조 일부)
+- `.optional()` / `.nullable()` 동작 미세 변경
+- `z.object().strict()` → `z.strictObject()` 권장
+
+**영향 파일**
+- `src/features/auth/login.schema.js`
+- 향후 추가될 `*.schema.js` 파일 전체
+
+**실행 명령**
+```bash
+npm install zod@4 @hookform/resolvers@5
+npm run build
+# 로그인 폼, 유효성 검사 동작 확인
+```
+
+---
+
+## Phase 3 — 높음 (Tailwind v4)
+
+### tailwindcss v3 → v4
+
+| 현재 | 목표 |
+|------|------|
+| 3.4.19 | 4.3.0 |
+
+**패러다임 변경 요약**
+
+| 항목 | v3 | v4 |
+|------|----|----|
+| 설정 파일 | `tailwind.config.js` | 없음 → `globals.css` 내 `@theme {}` |
+| CSS 진입점 | `@tailwind base/components/utilities` | `@import "tailwindcss"` |
+| 테마 커스터마이징 | `theme.extend` 객체 | `@theme {}` CSS 블록 |
+| 색상 변수 | `:root { --background: ... }` | `@theme { --color-background: ... }` |
+| 콘텐츠 경로 | `content: [...]` 명시 필요 | 자동 감지 |
+
+**영향 파일**
+- `tailwind.config.js` — 전면 재작성 또는 삭제
+- `src/styles/globals.css` — `@theme {}` 블록으로 이전
+- `components.json` — shadcn 설정 업데이트
+- `src/shared/components/ui/*.jsx` — 클래스명 호환 확인
+
+**globals.css 변경 예시**
+
+```css
+/* v3 현재 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --primary: 222.2 47.4% 11.2%;
+}
+
+/* v4 목표 */
+@import "tailwindcss";
+
+@theme {
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.09 0.019 264.4);
+  --color-primary: oklch(0.21 0.034 264.4);
+}
+```
+
+**실행 명령**
+```bash
+npm install tailwindcss@4
+# tailwind.config.js → globals.css @theme 마이그레이션
+npm run build
+# 브라우저 전체 UI 확인
+```
+
+---
+
+## 전체 실행 순서
+
+```
+Phase 1 → npm run build + npm test 통과 확인
+Phase 2-a (router) → 라우팅 동작 확인
+Phase 2-b (zod) → 폼 유효성 동작 확인
+Phase 3 (tailwind) → UI 전체 시각 확인
+```
+
+---
+
+## 보안 감사 결과 (npm audit 기준)
+
+| 취약점 | 패키지 | 심각도 | 프로덕션 영향 | 해결 방법 |
+|--------|--------|--------|---------------|-----------|
+| RegExp 복잡도 | `@babel/runtime < 7.26.10` | moderate | 없음 | Phase 1 (vite 업그레이드로 해소) |
+| dev 서버 요청 허용 | `esbuild` (vite 내부) | moderate | **없음** (dev only) | Phase 1 (vite@8 업그레이드) |
+| 메모리 노출 | `ws 8.0.0–8.20.0` | moderate | 없음 (dev only) | Phase 1 업그레이드로 해소 |
+
+> 3개 모두 개발 환경 전용 취약점 — 프로덕션 빌드 결과물에 영향 없음.
+
+---
+
+## Remaining Work
+
+### 1. Dependency upgrade is still incomplete
+
+The current `frontend/package.json` is already converted from Angular to React/Vite, but it is still on the pre-upgrade versions:
+
+- React 18 instead of React 19
+- Vite 5 instead of Vite 8
+- Vitest 2 instead of Vitest 4
+- ESLint 9 instead of ESLint 10
+- jsdom 25 instead of jsdom 29
+- `@vitejs/plugin-react` 4 instead of 6
+
+The migration plan still needs the actual version bump and verification run for the target versions described above.
+
+### 2. Router/menu integration is still missing for new feature slices
+
+The newly added `word` and `forbidden` pages exist under `frontend/src/features/*`, but they are not yet wired into the active router/menu. Current navigation still exposes only:
+
+- `/home`
+- `/import`
+- `/domain`
+
+The remaining integration work is:
+
+- add `/word` and `/forbidden` routes to `frontend/src/app/router.jsx`
+- add menu entries to `frontend/src/layouts/menuItems.js`
+- confirm the new pages are reachable from the authenticated shell
+
+### 3. Verification gates
+
+After the dependency bump and route/menu wiring, re-run:
+
+```bash
+npm install
+npm run build
+npm test
+```
+
+If phase 2 or phase 3 of the migration is started later, re-run the same commands after each phase because the router and Tailwind changes can regress the app shell quickly.

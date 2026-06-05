@@ -1,0 +1,105 @@
+package egov.sia.fileRestoreMng.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Resource;
+import org.springframework.stereotype.Service;
+import egov.common.file.service.AtchFileService;
+import egov.sia.fileRestoreMng.mapper.FileRestoreMngMapper;
+import egov.sia.fileRestoreMng.service.FileRestoreMngService;
+import egov.sia.fileSyncMng.dto.FileSyncMngDto;
+import egov.sia.fileSyncMng.vo.FileSyncMngVO;
+
+import java.util.Collections;
+
+@Service("fileRestoreMngService")
+public class FileRestoreMngServiceImpl implements FileRestoreMngService {
+
+    @Resource(name = "fileRestoreMngMapper")
+    private FileRestoreMngMapper fileRestoreMngMapper;
+
+    @Resource(name = "atchFileService")
+    private AtchFileService atchFileService;
+
+    @Override
+    public List<FileSyncMngVO> selectRestoreSingoList(FileSyncMngDto dto) throws Exception {
+        return fileRestoreMngMapper.selectRestoreSingoList(dto);
+    }
+
+    @Override
+    public Map<String, Object> updateBulkFileRestore(List<Integer> singoNos, String userId) throws Exception {
+        Map<String, Object> resultMap = new HashMap<>();
+        List<String> messages = Collections.synchronizedList(new ArrayList<>());
+
+        long successCnt = singoNos.stream()
+            .map(singoNo -> {
+                HashMap<String, Object> paramMap = new HashMap<>();
+                paramMap.put("C_NO", singoNo);
+                paramMap.put("userId", userId);
+                try {
+                    String resultMsg = atchFileService.updateSingoAttachFilesCopy(paramMap);
+                    messages.add("신고번호[" + singoNo + "]: " + resultMsg);
+                    return true;
+                } catch (Exception e) {
+                    messages.add("신고번호[" + singoNo + "]: 오류 발생 - " + e.getMessage());
+                    return false;
+                }
+            })
+            .filter(Boolean::booleanValue)
+            .count();
+
+        int totalCnt = singoNos.size();
+        long failCnt = totalCnt - successCnt;
+
+        resultMap.put("success", true);
+        resultMap.put("successCnt", (int)successCnt);
+        resultMap.put("failCnt", (int)failCnt);
+        resultMap.put("messages", messages);
+        resultMap.put("message", "일괄 복원 요청이 완료되었습니다. (성공: " + successCnt + ", 실패: " + failCnt + ")");
+
+        return resultMap;
+    }
+
+    @Override
+    public Map<String, Object> updateAllFileRestore(FileSyncMngDto dto, String userId) throws Exception {
+        Map<String, Object> resultMap = new HashMap<>();
+        List<String> messages = Collections.synchronizedList(new ArrayList<>());
+
+        // 1. 전체 대상 목록 조회 (페이징 없이)
+        dto.setStartRowNum(0);
+        dto.setEndRowNum(999999);
+        List<FileSyncMngVO> targetList = fileRestoreMngMapper.selectRestoreSingoList(dto);
+
+        if (targetList == null || targetList.isEmpty()) {
+            resultMap.put("success", false);
+            resultMap.put("message", "복원할 대상이 없습니다.");
+            return resultMap;
+        }
+
+        // 2. Stream을 사용하여 복원 처리
+        long successCnt = targetList.stream()
+            .map(vo -> {
+                HashMap<String, Object> paramMap = new HashMap<>();
+                paramMap.put("C_NO", vo.getcNo());
+                paramMap.put("userId", userId);
+                try {
+                    atchFileService.updateSingoAttachFilesCopy(paramMap);
+                    return true;
+                } catch (Exception e) {
+                    return false;
+                }
+            })
+            .filter(Boolean::booleanValue)
+            .count();
+
+        int totalCnt = targetList.size();
+        long failCnt = totalCnt - successCnt;
+
+        resultMap.put("success", true);
+        resultMap.put("message", "전체 복원 요청이 완료되었습니다. (총 " + totalCnt + "건 중 성공: " + successCnt + ", 실패: " + failCnt + ")");
+
+        return resultMap;
+    }
+}

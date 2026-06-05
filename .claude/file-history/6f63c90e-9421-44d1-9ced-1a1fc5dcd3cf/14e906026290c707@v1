@@ -1,0 +1,927 @@
+ package egov.common.file.service.impl;
+
+import java.io.File;
+import java.text.ParseException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+ import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+ import egov.common.scheduler.web.MainScheduleController;
+ import egov.sia.fileSyncMng.dto.FileSyncMngDto;
+ import egov.sia.fileSyncMng.mapper.FileSyncMngMapper;
+ import egov.sia.fileSyncMng.vo.FileSyncMngVO;
+ import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang3.StringUtils;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.google.gson.Gson;
+
+import egov.common.board.vo.BoardVO;
+import egov.common.file.mapper.AtchFileMapper;
+import egov.common.file.service.AtchFileService;
+import egov.common.util.DataMap;
+import egov.common.util.FileUtil;
+import egov.system.util.CommProperties;
+import egov.system.util.CommonUtil;
+import egov.system.util.EgovFileUploadUtil;
+import egov.system.util.EgovFormBasedFileVo;
+import egov.system.util.StringUtil;
+import egov.system.util.WebUtil;
+
+@Service("atchFileService")
+public class AtchFileServiceImpl implements AtchFileService {
+
+	public static final Logger logger = LoggerFactory.getLogger(AtchFileServiceImpl.class);
+
+	@Autowired
+	private AtchFileMapper atchFileMapper;
+
+	@Autowired
+	private FileSyncMngMapper fileSyncMngMapper;
+
+	@Autowired
+	EgovFileUploadUtil egovFileUploadUtil;
+
+	@Autowired
+	CommonUtil commonUtil;
+
+	/*@Autowired
+	private EgovFileUploadUtil egovFileUploadUtil;*/
+
+	/**
+	 * 파일 등록
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+/*	@Override
+	public  HashMap<String, Object> insAtchFile(Map<String, Object> commandMap, List<EgovFormBasedFileVo> egovFormBasedFileVo, HttpServletRequest request) throws Exception {
+		List<EgovFormBasedFileVo> EgovFormBasedFileVo = multiFileAttrToVo(commandMap);
+		return insAtchFile(commandMap, EgovFormBasedFileVo, request);
+	}*/
+
+
+	/**
+	 * 파일 등록
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+	@Override
+	@Transactional(value="txManager")
+	public HashMap<String, Object> insAtchFile(Map<String,Object> param, HttpServletRequest request) throws Exception {
+		HashMap<String, Object> fileMap = new HashMap<String, Object>();
+
+		// param 데이타를 EgovFormBasedFileVo에 셋팅
+		//EgovFormBasedFileVo egovFormBasedFileVo = new EgovFormBasedFileVo();
+		//egovFormBasedFileVo = (EgovFormBasedFileVo)commonUtil.setExcuteVoValue(egovFormBasedFileVo, param);
+
+
+
+		//if( egovFormBasedFileVo.getFileName()  != null){
+
+		Map<String,Object> tmpMap = new HashMap();
+		HashMap<String, Object> map = new HashMap<String, Object>();
+		String atch_id = "";
+		//수정
+		if( param.get("atchId") != null && !"".equals(param.get("atchId")) ){
+			atch_id = param.get("atchId").toString();
+		//저장
+		}else{
+			atch_id = atchFileMapper.getAtchId().get("ATCH_ID").toString();
+		}
+
+		WebUtil wUtil = new WebUtil();
+		//세션정보를 가져온다.
+		tmpMap =  wUtil.getAuthUserInfo(request);
+
+		if( atchFileMapper != null && atchFileMapper.getAtchFileId() != null && atchFileMapper.getAtchFileId().get("FILE_ID") != null ){
+			map.put("FILE_ID", atchFileMapper.getAtchFileId().get("FILE_ID").toString());
+		}
+		map.put("REG_ID", tmpMap.get("userId"));
+		map.put("ATCH_ID", atch_id);
+		map.put("REG_IP", request.getRemoteAddr());
+		map.put("ATCH_NM",     commonUtil.getNullToStr(param.get("fileName"))     );
+		map.put("ATCH_TYPE",   commonUtil.getNullToStr(param.get("contentType"))  );
+		map.put("TGRT_NM",     commonUtil.getNullToStr(param.get("serverSubPath")));
+		map.put("ATCH_SYS_NM", commonUtil.getNullToStr(param.get("physicalName")) );
+		map.put("ATCH_SZ",     commonUtil.getNullToStr(param.get("size"))         );
+		map.put("SUB_PATH",    commonUtil.getNullToStr(param.get("subPath"))      );
+		map.put("DOWN_TYPE",   commonUtil.getNullToStr(param.get("downType"))     );
+
+		atchFileMapper.insAtchFile(map);
+
+		fileMap.put("atchId", map.get("ATCH_ID"));
+		fileMap.put("fileId", map.get("FILE_ID"));
+
+
+		String strUploadpath = CommProperties.getProperty("file.Uploadpath");
+		if("Y".equals(MapUtils.getString(param, "excel",""))){ //엑셀 데이터 게시판 파일 여부
+			strUploadpath += "excel/";
+		}
+		if(!"".equals(commonUtil.getNullToStr(param.get("serverSubPath")))){
+			strUploadpath = strUploadpath + commonUtil.getNullToStr(param.get("serverSubPath"));
+
+			strUploadpath = strUploadpath.replaceAll("//", "/");
+		};
+
+		String direction = CommProperties.getProperty("FILEQ.DIRECTION");
+		Map<String, Object> fileQ = new HashMap<String, Object>();
+		fileQ.put("DRCTRY_PATH", strUploadpath);
+		fileQ.put("STRE_FILE_NM", commonUtil.getNullToStr(param.get("physicalName")));
+		fileQ.put("DIRECTION", direction);
+
+		atchFileMapper.insertSafeIdbFileQ(fileQ);
+
+		//}
+
+		return fileMap;
+	}
+
+
+	/**
+	 * 파일 등록
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+	@Override
+	@Transactional(value="txManager")
+	public HashMap<String, Object> insAtchFileList(Map<String,Object> param, HttpServletRequest request) throws Exception {
+		HashMap<String, Object> fileMap = new HashMap<String, Object>();
+		List<EgovFormBasedFileVo> egovFormBasedFileVo = multiFileAttrToVo(param);
+
+		List<EgovFormBasedFileVo> fileList = egovFormBasedFileVo;
+
+		if(fileList != null){
+			Map<String,Object> tmpMap = new HashMap();
+			HashMap<String, Object> map = new HashMap<String, Object>();
+			String atch_id = "";
+			//수정
+			if(!"".equals(param.get("atchId")) && param.get("atchId") != null){
+				atch_id = param.get("atchId").toString();
+			//저장
+			}else{
+				atch_id = atchFileMapper.getAtchId().get("ATCH_ID").toString();
+			}
+			WebUtil wUtil = new WebUtil();
+			//세션정보를 가져온다.
+			tmpMap =  wUtil.getAuthUserInfo(request);
+
+			List fileIdList = new ArrayList();
+			for(int i=0; i<fileList.size(); i++){
+				if( atchFileMapper != null && atchFileMapper.getAtchFileId() != null && atchFileMapper.getAtchFileId().get("FILE_ID") != null ){
+					map.put("FILE_ID", atchFileMapper.getAtchFileId().get("FILE_ID").toString());
+				}
+				map.put("REG_ID", tmpMap.get("userId"));
+				//map.put("INS_IP", tmpMap.get("regIp"));
+				map.put("ATCH_ID", atch_id);
+				map.put("REG_IP", request.getRemoteAddr());
+				map.put("ATCH_NM", fileList.get(i).getFileName());
+				map.put("ATCH_TYPE", fileList.get(i).getContentType());
+				map.put("TGRT_NM", fileList.get(i).getServerSubPath());
+				map.put("ATCH_SYS_NM", fileList.get(i).getPhysicalName());
+				map.put("ATCH_SZ", fileList.get(i).getSize());
+				map.put("SUB_PATH", param.get("subPath"));
+				map.put("DOWN_TYPE", param.get("downType"));
+
+				atchFileMapper.insAtchFile(map);
+
+				/*fileMap.put(fileList.get(i).getFieldName(), 0);
+				fileMap.put(fileList.get(i).getFieldName()+"_NM", fileList.get(i).dtlFileInfoName());*/
+				fileIdList.add(map.get("FILE_ID"));
+			}
+			fileMap.put("atchId", map.get("ATCH_ID"));
+			fileMap.put("fileId", fileIdList);
+
+
+		}
+
+		return fileMap;
+	}
+	/**
+	 * 파일 수정
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+	@Override
+	@Transactional(value="txManager")
+	public HashMap<String, Object> updAtchFile(HttpServletRequest request, HttpServletResponse response,  String addPath, String tgrt_id) throws Exception {
+		HashMap<String, Object> fileMap = new HashMap<String, Object>();
+
+		//파일 업로드
+		EgovFileUploadUtil egovFileUploadUtil = new EgovFileUploadUtil();
+		List<EgovFormBasedFileVo> fileList = egovFileUploadUtil.uploadFiles(request, response, addPath);
+
+		if(fileList != null){
+			HashMap<String, Object> map = new HashMap<String, Object>();
+			for(int i=0; i<fileList.size(); i++){
+				map.put("ATCH_ID", request.getParameter("ATCH_ID"));
+				map.put("UPD_IP", request.getRemoteAddr());
+				map.put("ATCH_NM", fileList.get(i).getFileName());
+				map.put("ATCH_TYP", fileList.get(i).getContentType());
+				map.put("TGRT_NM", addPath);
+				map.put("ATCH_SYS_NM", fileList.get(i).getPhysicalName());
+				map.put("ATCH_SZ", fileList.get(i).getSize());
+				map.put("TGRT_ID", StringUtil.noNull(tgrt_id));
+
+				//DB저장
+				int resultInt = (Integer)atchFileMapper.updAtchFile(map);
+
+				fileMap.put(fileList.get(i).getFieldName(), resultInt);
+
+			}
+		}
+
+		return fileMap;
+	}
+	/**
+	 * 파일 정보 조회
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+	@Override
+	public Map<String, Object> dtlFileInfo(Map<String, Object> param) throws Exception{
+		Map<String, Object> reslutMap = atchFileMapper.dtlFileInfo(param);
+		return reslutMap;
+	}
+	/**
+	 * 파일 정보List 조회
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+	@Override
+	public List<Map<String, Object>> listAtchFileInfo(Map<String, Object> param) throws Exception{
+		List<Map<String, Object>> reslutList = atchFileMapper.listAtchFileInfo(param);
+		return reslutList;
+	}
+	/**
+	 * 파일 정보 리스트 타겟용
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+	@Override
+	public List listTgrtAtchFile(Map<String, Object> param) throws Exception{
+		List reslutList = atchFileMapper.listTgrtAtchFile(param);
+		return reslutList;
+	}
+	/**
+	 * 파일 삭제
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+	@Override
+	public void delAtchFile(String fileString) throws Exception {
+		Map<String, Object> param = new HashMap<String, Object>();
+		param.put("atchSysNm", fileString);
+		// DB업데이트
+		int result = atchFileMapper.delAtchFile(param);
+
+	}
+	/**
+     * 다중 파일 삭제시 파일명 배열로 반환
+     * @param request
+     * @throws Exception
+     */
+	@Override
+	public String[] getDelNames(HttpServletRequest request) throws Exception {
+		EgovFileUploadUtil egovFileUploadUtil = new EgovFileUploadUtil();
+		String[] arr = egovFileUploadUtil.getDelNames(request);
+		return arr;
+	}
+    /**
+     * 파일 전체 삭제
+     * @param Map
+     * @exception Exception Exception
+     */
+	@Override
+	public int delAllAtchFiles(Map<String, Object> param) throws Exception {
+		int resultInt = atchFileMapper.delAllAtchFiles(param);
+		return resultInt;
+	}
+
+	/**
+	 * 파일 등록 추가 - 프로그램관리
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+	@Override
+	public HashMap<String, Object> pgminsAtchFile(HttpServletRequest request, String addPath) throws Exception {
+		HashMap<String, Object> fileMap = new HashMap<String, Object>();
+
+		//파일 업로드
+		EgovFileUploadUtil egovFileUploadUtil = new EgovFileUploadUtil();
+		List<EgovFormBasedFileVo> fileList = egovFileUploadUtil.pgmUploadFiles(request, addPath, 0);
+
+		if(fileList != null){
+			//HashMap<String, Object> map = new HashMap<String, Object>();
+			for(int i=0; i<fileList.size(); i++){
+				/*map.put("INS_IP", request.getRemoteAddr());
+				map.put("ATCH_NM", fileList.get(i).dtlFileInfoName());
+				map.put("ATCH_TYP", fileList.get(i).getContentType());
+				map.put("TGRT_NM", addPath);
+				map.put("ATCH_SYS_NM", fileList.get(i).getPhysicalName());
+				map.put("ATCH_SZ", fileList.get(i).getSize());*/
+				//map.put("TGRT_ID", StringUtil.noNull(tgrt_id));
+
+				//DB저장
+				//int resultInt = (Integer)atchFileMapper.insAtchFile(map);
+
+				fileMap.put("FIME_NM", fileList.get(i).getFileName());
+
+			}
+		}
+
+		return fileMap;
+	}
+	 /**
+	 *
+	 * @param commandMap
+	 *
+	 * @exception Exception
+	 *                Exception
+	 * desc: 다중파일을 EgovFormBasedFileVo객체로 리턴한다.
+	 */
+	public List<EgovFormBasedFileVo> multiFileAttrToVo(Map<String, Object> commandMap){
+		List<EgovFormBasedFileVo> resultVo = new ArrayList();
+		/************** 프로그램 로직 **************/
+		//
+		String[] fileName = null;
+		String[] contentType = null;
+		String[] physicalName = null;
+		String[] serverSubPath = null;
+		String[] size = null;
+		String[] fieldName = null;
+	
+	
+		fileName = commandMap.get("fileName").toString().split(",");
+		contentType = commandMap.get("contentType").toString().split(",");
+		physicalName = commandMap.get("physicalName").toString().split(",");
+		serverSubPath = commandMap.get("serverSubPath").toString().split(",");
+		size = commandMap.get("size").toString().split(",");
+		fieldName = commandMap.get("fieldName").toString().split(",");
+	
+	
+		for(int i=0; i<fileName.length; i++){
+			EgovFormBasedFileVo tmpVo = new EgovFormBasedFileVo();
+			tmpVo.setFileName(fileName[i]);
+			tmpVo.setContentType(contentType[i]);
+			tmpVo.setPhysicalName(physicalName[i]);
+			tmpVo.setServerSubPath(serverSubPath[i]);
+			tmpVo.setSize(Long.parseLong(size[i]));
+			tmpVo.setFieldName(fieldName[i]);
+			resultVo.add(tmpVo);
+	
+		}
+	
+		return resultVo;
+	
+	}
+
+
+	 /**
+	 * 게시판 수정 후 추가되는 파일들에 한해서 기존 TB_COMN_BOARD 테이블의 FILE_ID와 같게 UPDATE한다.
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+	 public int updAtchId(BoardVO boardVO) throws Exception{
+		 int result = atchFileMapper.updAtchId(boardVO);
+		 return result;
+	 }
+
+	 /**
+	 * 게시판용 파일 삭제
+	 * ATCH_SYS_NM 컬럼값의 유니크 여부를 알수 없어 ATCH_ID 조건절에 추가함
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+	 public int delAtchBoardFile(BoardVO boardVO) throws Exception{
+		 int result = atchFileMapper.delAtchBoardFile(boardVO);
+		 return result;
+	 }
+
+	 /**
+	 * Atch Id get
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+     public Map<String, Object> getAtchId() throws Exception{
+    	 return atchFileMapper.getAtchId();
+     }
+
+     /**
+ 	 * 파일 정보 조회
+ 	 * @param Map : atchId, atchSysNm
+ 	 * @exception Exception Exception
+ 	 */
+ 	 public Map<String, Object> dtlCommAtch (Map<String,Object> param) throws Exception{
+ 		 return atchFileMapper.dtlCommAtch(param);
+ 	 }
+
+ 	/**
+ 	 * 게시판용 파일 삭제
+ 	 * ATCH_SYS_NM 컬럼값의 유니크 여부를 알수 없어 ATCH_ID 조건절에 추가함
+ 	 * @param Map
+ 	 * @exception Exception Exception
+ 	 */
+     public int delCommAtch(Map<String,Object> param) throws Exception{
+    	 return atchFileMapper.delCommAtch(param);
+     }
+
+     /**
+ 	 * 임시저장된 파일 활성화 여부 update
+ 	 * ATCH_SYS_NM 컬럼값의 유니크 여부를 알수 없어 ATCH_ID 조건절에 추가함
+ 	 * @param Map
+ 	 * @exception Exception Exception
+ 	 */
+     public int updCommAtchDltYn(Map<String,Object> param) throws Exception{
+    	 return atchFileMapper.updCommAtchDltYn(param);
+     }
+
+     /**
+ 	 * ATCH_ID에 해당하는 모든 파일 정보List 조회
+ 	 * @param Map
+ 	 * @exception Exception Exception
+ 	 */
+     public List<Map<String, Object>> listAtchFileAll (Map<String,Object> param) throws Exception{
+    	 return atchFileMapper.listAtchFileAll(param);
+     }
+
+     /**
+ 	 * file_id를 기준으로 atch_id update
+ 	 * @param Map
+ 	 * @exception Exception Exception
+ 	 */
+     public int updAtchIdOne (BoardVO boardVO) throws Exception{
+    	 return atchFileMapper.updAtchIdOne(boardVO);
+     }
+
+     /**
+ 	 * 게시판용 파일 전체 삭제
+ 	 * ATCH_ID 에 해당하는 모든 파일 삭제
+ 	 * @param Map
+ 	 * @exception Exception Exception
+ 	 */
+     public int delAtchFileAll(String atchId) throws Exception{
+
+    	 Map<String,Object> map = new HashMap<String,Object>();
+    	 map.put("atchId", atchId);
+
+    	 List<Map<String, Object>> listAtchFileAll = atchFileMapper.listAtchFileAll(map);
+
+    	 String subPath = "";
+    	 String atchSysNm = "";
+    	 for(int i=0; i<listAtchFileAll.size(); i++){
+    		 map = listAtchFileAll.get(i);
+
+    		 subPath = ""+map.get("TGRT_NM");
+    		 subPath = subPath.replaceAll("fileRepository", ""); // 이전데이터들이 강제로 밖혀 있는 값(fileRepository) 제거
+    		 atchSysNm = ""+map.get("ATCH_SYS_NM");
+
+    		// 물리적인 파일 삭제
+        	 boolean boolDel = egovFileUploadUtil.deleteFile(subPath, atchSysNm);
+    	 }
+
+    	 map.put("atchId", atchId);
+    	 return atchFileMapper.delAtchFileAll(map);
+     }
+
+     /**
+ 	 * 파일 정보 조회
+ 	 * @param Map : atchId, atchSysNm
+ 	 * @exception Exception Exception
+ 	 */
+     public Map<String, Object> dtlCommAtchAll (Map<String,Object> param) throws Exception{
+    	 return atchFileMapper.dtlCommAtchAll(param);
+     }
+
+
+     /** Sia 추가 파일 처리 **/
+
+     /**
+ 	 * 신고 답변 첨부파일 조회
+ 	 * @param Map
+ 	 * @exception Exception Exception
+ 	 */
+	@Override
+	public List<HashMap<String, Object>> selectSingoAnswerFileList(Map<String, Object> commandMap) throws Exception {
+		 return atchFileMapper.selectSingoAnswerFileList(commandMap);
+	}
+
+	@Override
+	public List<HashMap<String, Object>> selectSingoAnswerFileList(HashMap<String, Object> commandMap) throws Exception {
+		return atchFileMapper.selectSingoAnswerFileList(commandMap);
+	}
+
+	/**
+	 * 신고 첨부파일 조회
+	 * @param Map
+	 * @exception Exception Exception
+	 */
+	@Override
+	public List<HashMap<String, Object>> selectSingoFileList(
+			Map<String, Object> commandMap) throws Exception {
+		 return atchFileMapper.selectSingoFileList(commandMap);
+	}
+
+	@Override
+	public List<HashMap<String, Object>> selectSingoFileList(HashMap<String, Object> commandMap) throws Exception {
+		return atchFileMapper.selectSingoFileList(commandMap);
+	}
+
+    @Override
+    public boolean selectSingoFileExist(Map<String, Object> commandMap) throws ParseException {
+		try {
+			List<HashMap<String, Object>> result = atchFileMapper.selectSingoFileList(commandMap);
+			return result.stream().anyMatch(this::isExpiredSingoFile);
+		} catch (Exception e) {
+			logger.error("파일복원 체크 중 오류 발생: ", e);
+			return false;
+		}
+	}
+
+	private boolean isExpiredSingoFile(HashMap<String, Object> fileInfo) {
+		String drctryPath = MapUtils.getString(fileInfo, "DRCTRY_PATH");
+		String streFileNm = MapUtils.getString(fileInfo, "STRE_FILE_NM");
+
+		// 파일 존재 여부 확인.
+		File file = new File(drctryPath + streFileNm);
+        // 파일 없음 -> 복원 버튼 노출
+        return !file.exists() || file.length() <= 0; // 파일 있음 -> 복원 버튼 필요 없음
+    }
+
+	/**
+	 * 사후처리 첨부파일 조회
+	 */
+	@Override
+	public List<HashMap<String, Object>> selectAnswerProcessResult(
+			Map<String, Object> commandMap) throws Exception {
+		return atchFileMapper.selectAnswerProcessResult(commandMap);
+	}
+
+	/**
+	 * TB_FILE_MANAGE 첨부파일 조회
+	 * @param fileParam
+	 * @return
+	 * @throws Exception
+	 */
+	@Override
+	public List<HashMap<String, Object>> selectFileList(HashMap<String, Object> fileParam) throws Exception {
+		return atchFileMapper.selectFileList(fileParam);
+	}
+
+	/**
+     * 공개수배 첨부파일 조회
+     * @param fileParam
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public DataMap selectFilePTList(HashMap<String, Object> fileParam) throws Exception {
+        return atchFileMapper.selectFilePTList(fileParam);
+    }
+
+	/**
+     * 현장점검 첨부파일 조회
+     * @param Map
+     * @exception Exception Exception
+     */
+    @Override
+    public List<HashMap<String, Object>> selectSingoInspFileList(Map<String, Object> commandMap) throws Exception {
+         return atchFileMapper.selectSingoInspFileList(commandMap);
+    }
+
+    /*safepeople 로직 이관_2021-12-13*/
+    /**
+     * 파일 업로드
+     * @param file,resourceYn
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public List<Map<String, Object>> uploadFiles(MultipartFile file, String resourceYn) throws Exception {
+        List<Map<String, Object>> fileList = new ArrayList<Map<String, Object>>();
+        Map<String, Object> fileMap = new HashMap<String, Object>();
+
+        String originalFileName = file.getOriginalFilename();
+        String originalFileExtension = originalFileName.substring(originalFileName.lastIndexOf('.')+1);
+        String fileType = FileUtil.getFileType(originalFileExtension);
+
+        if(!resourceYn.equals("Y")){//N
+            if("4".equals(fileType)){
+                fileType = "0";
+            }
+        }
+
+        if("0".equals(fileType)){
+            fileMap.put("ORGINL_FILE_NM", originalFileName);
+            fileMap.put("FILE_TY", fileType);
+
+            fileList.add(fileMap);
+            return fileList;
+        }
+
+        String uploadFilePath;
+
+        if(System.getProperty("os.name").toLowerCase().startsWith("win")){
+            //uploadFilePath = "c:" + CommonConstant.TMP_FILE_PATH;
+            uploadFilePath = "c:" + CommProperties.getProperty("Globals.TMP_FILE_PATH");
+        }else{
+            //uploadFilePath = CommonConstant.TMP_FILE_PATH;
+            uploadFilePath = CommProperties.getProperty("Globals.TMP_FILE_PATH");
+        }
+
+        String uploadDirectory = null;
+        Calendar calendar = Calendar.getInstance();
+        String mon="";
+        int iMon = calendar.get(Calendar.MONTH)+1;
+        if(iMon<10){
+            mon = "0"+String.valueOf(iMon);
+        }else{
+            mon = String.valueOf(iMon);
+        }
+        String day="";
+        int iDay = calendar.get(Calendar.DAY_OF_MONTH);
+        if(iDay<10){
+            day = "0"+String.valueOf(iDay);
+        }else{
+            day = String.valueOf(iDay);
+        }
+        String fileDirectory = calendar.get(Calendar.YEAR)+"/"+mon+"/"+day+"/";
+
+        uploadDirectory = uploadFilePath+fileDirectory;
+        File uploadDirFile = new File(uploadDirectory);
+        if(uploadDirFile.exists() == false){
+            uploadDirFile.mkdirs();
+            //SafeReportUtil.setFileAuth(uploadDirectory);
+            FileUtil.setFileAuth(uploadDirectory);
+        }
+
+        String storedFileName = fileDirectory.replaceAll("/", "")+"_"+UUID.randomUUID().toString().replaceAll("-", "")+"."+originalFileName.substring(originalFileName.lastIndexOf(".") + 1);
+        File saveFile = new File(uploadDirectory + storedFileName);
+        file.transferTo(saveFile);
+
+        fileMap.put("DRCTRY_PATH", fileDirectory);
+        fileMap.put("ORGINL_FILE_NM", originalFileName);
+        fileMap.put("STRE_FILE_NM", storedFileName);
+        fileMap.put("FILE_SIZE", file.getSize());
+        fileMap.put("FILE_TY", fileType);   // 파일 유형 변경(0:금지, 1:이미지, 2:동영상, 3:일반파일, 4:문서파일, 8:신고지도, 9:주요처리사례(노출이미지 아님) )
+        //fileMap.put("FILE_URL", CommonConstant.TMP_FILE_PATH_TARGET + fileDirectory + storedFileName);
+        fileMap.put("FILE_URL", CommProperties.getProperty("Globals.TMP_FILE_PATH_TARGET") + fileDirectory + storedFileName);
+        fileMap.put("FILE_STATUS", "I");
+
+        fileList.add(fileMap);
+
+        return fileList;
+    }
+
+    /**
+     * SiaFile_SQL.xml > TB_FILE_MANAGE 등록
+     * @param commandMap
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public int insertFile(Map<String, Object> commandMap) throws Exception {
+        return atchFileMapper.insertFile(commandMap);
+    }
+
+    /**
+     * SiaFile_SQL.xml > TBL_FILEQ 등록
+     * @param commandMap
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public int insertFileQ(Map<String, Object> commandMap) throws Exception {
+        String direction = CommProperties.getProperty("FILEQ.DIRECTION");
+        commandMap.put("DIRECTION", direction);
+        return atchFileMapper.insertFileQ(commandMap);
+    }
+
+    /**
+     * SiaFile_SQL.xml > TB_FILE_MANAGE 수정
+     * @param commandMap
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public int updateFileDelete(Map<String, Object> commandMap) throws Exception {
+        return atchFileMapper.updateFileDelete(commandMap);
+    }
+
+    /**
+     * SiaFile_SQL.xml > TB_FILE_MANAGE 수정
+     * @param commandMap
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public int updateFileTy(Map<String, Object> commandMap) throws Exception {
+        return atchFileMapper.updateFileTy(commandMap);
+    }
+	/*safepeople 로직 이관_2021-12-13*/
+
+
+	@Override
+	public List<DataMap> selectMainProcessCaseSingoAnswerFileList(HashMap<String, Object> paramMap) {
+		return atchFileMapper.selectMainProcessCaseSingoAnswerFileList(paramMap);
+	}
+
+	@Override
+	public List<DataMap> selectMainProcessCaseManageFileList(HashMap<String, Object> paramMap) {
+		return atchFileMapper.selectMainProcessCaseManageFileList(paramMap);
+	}
+
+	@Override
+    public List<DataMap> selectWantedPosterSingoAnswerFileList(HashMap<String, Object> paramMap) {
+        return atchFileMapper.selectWantedPosterSingoAnswerFileList(paramMap);
+    }
+
+    @Override
+    public List<DataMap> selectWantedPosterManageFileList(HashMap<String, Object> paramMap) {
+        return atchFileMapper.selectWantedPosterManageFileList(paramMap);
+    }
+
+    /**
+	 * 첨부파일 불러오기(백업망 -> 업무망 -> 인터넷망)
+	 */
+    @Override
+    @Transactional(value="txManager")
+    public String updateSingoAttachFilesCopy(HashMap<String, Object> paramMap){
+		try {
+			List<HashMap<String, Object>> fileList = atchFileMapper.selectSingoFileList(paramMap);
+			if (fileList == null || fileList.isEmpty()) {
+				return "첨부파일이 존재하지 않습니다. 관리자에게 문의하십시오.";
+			}
+
+			int totalCnt = fileList.size();
+			final AtomicInteger uCnt = new AtomicInteger(0);
+
+			// 허용되는 이전 상태값 정의 (2:전송완료, 3:실패, 4:최종실패, 6:복원완료)
+			List<Integer> allowedStatuses = Arrays.asList(2, 3, 4, 6);
+
+			fileList.stream()
+				.map(file -> MapUtils.getInteger(file, "C_NO"))
+				.filter(Objects::nonNull)
+				.forEach(cNo -> {
+					Optional<FileSyncMngVO> vo = fileSyncMngMapper.selectFileSyncMng2(cNo);
+
+					// 상태 업데이트를 위한 Dto 구성 (업무망 복원 중: 7)
+					FileSyncMngDto updateDto = new FileSyncMngDto();
+					updateDto.setFileQCNo(cNo);
+					updateDto.setQueueStt(7);
+					updateDto.setcId(MapUtils.getString(paramMap, "userId"));
+					updateDto.setcRelation(1);
+
+					if (!vo.isPresent()) {
+						// 3-1. 데이터가 없으면 insert
+						fileSyncMngMapper.insertFileSyncMng(updateDto);
+					} else {
+						FileSyncMngVO actualVo = vo.get();
+
+						// 1. 이미 진행 중이거나(1) 복원 요청된(7) 상태면 건너뜀 (중복 방지)
+						if (actualVo.getQueueStt() == 1 || actualVo.getQueueStt() == 7) {
+							uCnt.incrementAndGet();
+							return;
+						}
+
+						// 2. 특정 상태값(2, 3, 4, 6)일 때만 업데이트 수행
+						if (!allowedStatuses.contains(actualVo.getQueueStt())) {
+							uCnt.incrementAndGet();
+							return;
+						}
+
+						// 3-2. 데이터가 있으면 update
+						fileSyncMngMapper.updateFileSyncMng2(updateDto);
+					}
+				});
+
+			// 3. 결과 코드 반환
+			if (uCnt.get() == totalCnt) {
+				return "복원중 입니다 잠시만 기다려 주세요."; 	// 이미 복원요청중
+			} else if (uCnt.get() > 0) {
+				return "복원중 입니다 잠시만 기다려 주세요."; 	// 일부 복원 중 포함됨 (나머지는 요청 완료)
+			} else {
+				return "첨부파일을 불러오고 있습니다. 약 5분 후 다시 확인하여 주시기 바랍니다.";		// 복원 대상
+			}
+
+		} catch (Exception e) {
+			logger.error("복원 프로세스 중 오류 발생: {}", e.getMessage());
+			return "문제가 발생하였습니다. 관리자에게 문의하십시요.";
+		}
+    }
+    
+	// 자동차 교통 위반 신고 첨부파일(미디어, 사진) 인코딩 완료 여부 및 목록 조회
+	@Override
+	public Map<String, String> getTrfcFileFullpath(Map<String, Object> commandMap) {
+		
+		Map<String, String> rtnMap = new HashMap<String, String>();
+		// 1. 파일 첨부 여부 확인
+		int cnt = atchFileMapper.getAttachFileCnt(commandMap);
+		
+		if(cnt == 0) {
+			// 첨부파일이 없는 경우
+			rtnMap.put("fileResType", "01"); // 첨부파일 없음
+			rtnMap.put("sourceFiles", "[]");
+			return rtnMap;
+		} else {
+			// 2. 파일 인코딩 여부 확인
+			String encodeYn = atchFileMapper.getTrfcAllFileEncodeYn(commandMap);
+			if(StringUtils.equals(encodeYn, "N")) {
+				// 첨부파일에 대한 인코딩 여부 확인
+				// P OR T 가 하나라도 있는 경우 인코딩 진행중 표출
+				// T의 경우 압축 재요청 데몬이 10분에 15건씩 압축 요청 진행
+				// 실패율 확인 추후 조정 필요
+				rtnMap.put("fileResType", "02"); // 인코딩 진행중
+				rtnMap.put("sourceFiles", "[]");
+				return rtnMap;
+			}
+		}
+		
+		// 첨부파일의 인코딩이 완료된 경우 목록 조회 해서 json으로 만들기
+		List<HashMap<String, Object>> fileList = atchFileMapper.getTrfcFileFullpath(commandMap);
+		
+		return makeFileJson(fileList);
+	}
+	
+
+	// 캠코더 교통 위반 신고 첨부파일(미디어, 사진) 인코딩 완료 여부 및 목록 조회
+	@Override
+	public Map<String, String> getCrdnFileFullpath(Map<String, Object> commandMap) {
+
+		Map<String, String> rtnMap = new HashMap<String, String>();
+		// 캠코더 교통 단속은 첨부파일이 필수이기 때문에 인코딩 여부만 조회
+		// 1. 파일 인코딩 여부 확인
+		String encodeYn = atchFileMapper.getCrdnAllFileEncodeYn(commandMap);
+		if(StringUtils.equals(encodeYn, "N")) {
+			// 첨부파일에 대한 인코딩 여부 확인
+			// P OR T 가 하나라도 있는 경우 인코딩 진행중 표출
+			// T의 경우 압축 재요청 데몬이 10분에 15건씩 압축 요청 진행
+			// 실패율 확인 추후 조정 필요
+			rtnMap.put("fileResType", "02"); // 인코딩 진행중
+			rtnMap.put("sourceFiles", "[]");
+			return rtnMap;
+		}
+
+		List<HashMap<String, Object>> fileList = new ArrayList<HashMap<String, Object>>();
+		fileList = atchFileMapper.getCrdnFileFullpath(commandMap);
+
+		return makeFileJson(fileList);
+	}
+	
+	// filepresso에 전달할 인코딩 완료된 첨부파일 파라미터 json 형태로 생성
+	private Map<String, String> makeFileJson(List<HashMap<String, Object>> fileList) {
+		
+		Map<String, String> rtnMap = new HashMap<String, String>();
+		Map<String, Map<String, Object>> fileMap = new LinkedHashMap<>();
+ 
+		// fileName 기준으로 json 형태의 배열로 만드는 작업 
+		for (HashMap<String, Object> file: fileList) {
+			String fileName = MapUtils.getString(file, "NAME", "");
+
+			if (!fileMap.containsKey(fileName)) {
+				Map<String, Object> fileData = new LinkedHashMap<>(); 
+				fileData.put("name", MapUtils.getString(file, "NAME", ""));
+				fileData.put("type", MapUtils.getString(file, "TYPE", ""));
+				fileData.put("originalUrl", MapUtils.getString(file, "ORIGINALURL", ""));
+				fileData.put("localUrls", new ArrayList<String>());
+				fileData.put("dmndYn", MapUtils.getString(file, "DMNDYN", ""));
+				fileData.put("encYn", MapUtils.getString(file, "ENCYN", ""));
+				fileMap.put(fileName, fileData);
+			}
+			// 한개의 영상 파일에서 트랜스 코딩 후 여러개로 나눠진 파일을 원본파일명 기준으로 배열 형태로 변경하여 localUrls에 맵핑
+			/* localUrls: [
+				"/wwwroot/html/files/2021-0818000308__00.mp4",
+				"/wwwroot/html/files/2021-0818000308__01.mp4",
+			] */
+			Map<String, Object> fileData = fileMap.get(fileName);
+			List<String> localUrls = (List<String>) fileData.get("localUrls");
+			localUrls.add(MapUtils.getString(file, "LOCALURL", ""));
+		}
+		// JSON 문자열로 변환
+		String json = new Gson().toJson(new ArrayList<>(fileMap.values()));
+		rtnMap.put("sourceFiles", json.replace("\\\\", "/"));
+		rtnMap.put("fileResType", "00"); // 인코딩 완료 
+		
+		return rtnMap;
+	}
+	
+	@Override
+	public int getFileSyncCnt(Map<String, Object> param){
+		return atchFileMapper.getFileSyncCnt(param);
+	}
+	
+	
+
+}

@@ -1,0 +1,33 @@
+{
+  "state": "done",
+  "detail": "worktree `c2-spec-react` 상태 확인 완료 — C2 spec React 재작성(`8d65ca8`) 완료, 워킹트리 클린, 다음 액션 사용자 결정 대기",
+  "tempo": "idle",
+  "inFlight": {
+    "tasks": 0,
+    "queued": 0,
+    "kinds": []
+  },
+  "output": {
+    "result": "worktree `c2-spec-react` 상태 확인 완료 — C2 spec React 재작성(`8d65ca8`) 완료, 워킹트리 클린, 다음 액션 사용자 결정 대기"
+  },
+  "children": null,
+  "linkScanOffset": 638187,
+  "linkScanPath": "C:\\Users\\ygkim\\.claude\\projects\\D--20--POC-TrmWordDict--claude-worktrees-c2-spec-react\\685255ec-75a8-4f4c-9eda-b496b632d1e0.jsonl",
+  "template": "claude",
+  "respawnFlags": [],
+  "intent": "03-c2-frontend-core 하위 spec.md 수정 01. system.md내용에 의하면 frontend는 react로 하기로 변경되었음.",
+  "name": "frontend react migration",
+  "nameSource": "auto",
+  "sessionId": "4e307d26-4fd8-4273-b497-15b43adfb08b",
+  "resumeSessionId": "685255ec-75a8-4f4c-9eda-b496b632d1e0",
+  "daemonShort": "4e307d26",
+  "cliVersion": "2.1.140",
+  "cwd": "D:\\20. POC\\TrmWordDict",
+  "worktreePath": "D:\\20. POC\\TrmWordDict\\.claude\\worktrees\\c2-spec-react",
+  "worktreeBranch": "worktree-c2-spec-react",
+  "originCwd": "D:\\20. POC\\TrmWordDict",
+  "backend": "daemon",
+  "createdAt": "2026-05-15T07:47:21.169Z",
+  "updatedAt": "2026-05-15T08:29:42.140Z",
+  "firstTerminalAt": "2026-05-15T08:29:42.140Z"
+}

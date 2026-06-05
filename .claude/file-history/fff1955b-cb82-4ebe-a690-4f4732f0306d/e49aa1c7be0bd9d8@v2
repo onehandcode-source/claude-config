@@ -1,0 +1,186 @@
+# USER/ADMIN 화면 분리 설계
+
+**작성일:** 2026-05-27  
+**브랜치:** yg_v0.2  
+**참조:** `docs/sampleHtml/termbase-atlas-project/`
+
+---
+
+## 1. 배경 및 목표
+
+현재 USER·ADMIN이 동일한 레이아웃·경로를 공유. 샘플 HTML(`termbase-atlas-project`)을 기준으로 전체 UI를 재설계.
+
+- **공개 사이트 제거** — 전 화면 로그인 필수
+- **USER 전용 레이아웃** (`/app/*`) — 조회 중심 사용자 화면
+- **ADMIN 전용 레이아웃** (`/admin/*`) — 관리 콘솔 전체
+- 접근 방식: **Big Bang** (기존 경로 일괄 제거 후 신규 경로로 교체)
+
+---
+
+## 2. URL 구조
+
+```
+/login
+  └─ USER  → /app/home
+  └─ ADMIN → /admin/dashboard
+
+/app/*   (UserLayout, USER+ADMIN 접근)
+  /app/home           홈 (검색 히어로 + 카테고리 카드)
+  /app/words          단어 목록 (카드/테이블 뷰 전환, 카테고리 필터, 알파벳 인덱스)
+  /app/words/:id      단어 상세 (전체 페이지 — 3컬럼: TOC / 본문 / 액션)
+  /app/domains        도메인 목록
+  /app/domains/:id    도메인 상세
+  /app/forbidden      금칙어 목록 + 실시간 스캐너
+
+/admin/* (AdminLayout, ADMIN 전용)
+  /admin/dashboard    대시보드
+  /admin/data         데이터 관리 (탭 4개)
+  /admin/mcp          MCP 서버 (탭 5개)
+  /admin/stats        통계
+  /admin/settings     설정
+  /admin/words        단어 관리
+  /admin/domains      도메인 관리
+  /admin/forbidden    금칙어 관리
+```
+
+---
+
+## 3. 레이아웃 구조
+
+### UserLayout
+```
+src/layouts/UserLayout.jsx
+src/layouts/components/UserSidebar.jsx
+```
+- 좌측 사이드바: 홈 / 단어사전 / 도메인 / 금칙어
+- 디자인: 현재 TermBase Atlas 스타일 유지 (border-left active, serif 로고)
+
+**UserSidebar 메뉴:**
+```
+홈              /app/home
+── 용어사전 ──
+단어 사전       /app/words
+도메인          /app/domains
+금칙어          /app/forbidden
+```
+
+### AdminLayout
+```
+src/layouts/AdminLayout.jsx
+src/layouts/components/AdminSidebar.jsx
+```
+- 좌측 사이드바: 대시보드 / 관리 / 용어관리 / 바로가기
+- 디자인: 샘플 `admin/_shared.css` 스타일 기반
+
+**AdminSidebar 메뉴:**
+```
+대시보드         /admin/dashboard
+── 관리 ──
+데이터 관리      /admin/data
+MCP 서버         /admin/mcp
+통계             /admin/stats
+설정             /admin/settings
+── 용어 관리 ──
+단어             /admin/words
+도메인           /admin/domains
+금칙어           /admin/forbidden
+── 바로가기 ──
+사용자 화면      /app/home (새탭)
+```
+
+---
+
+## 4. 화면별 상세
+
+### USER 화면
+
+| 화면 | 구성 | 샘플 참조 |
+|---|---|---|
+| `/app/home` | 검색 히어로(큰 입력창) + 카테고리 카드 + 통계 뱃지 | index.html 상단 |
+| `/app/words` | 카테고리 필터 탭 + 알파벳 인덱스 + 카드/테이블 뷰 전환 | index.html |
+| `/app/words/:id` | 좌: TOC / 중: 정의·근거·MCP코드·관련용어 / 우: 액션(PDF·JSON·금칙어검사) | term-detail.html |
+| `/app/domains` | 검색폼 + 카드리스트 | — |
+| `/app/domains/:id` | 메타정보 + 속한 단어 목록 | — |
+| `/app/forbidden` | 상단: 실시간 스캐너(입력→하이라이트+위반목록) / 하단: 금칙어 테이블 | forbidden-words.html |
+
+### ADMIN 화면
+
+| 화면 | 구성 | 샘플 참조 |
+|---|---|---|
+| `/admin/dashboard` | 지표카드 4개 + 동기화 상태바 + 변경이력 테이블 | admin/index.html |
+| `/admin/data` | 탭: 행안부연동 / 가져오기(CSV 드래그드롭+미리보기) / 변경이력 / 검수대기(승인·반려) | admin/data.html |
+| `/admin/mcp` | 탭: 서버상태 / 연결클라이언트 / 도구명세 / Playground / 요청로그 | admin/mcp.html |
+| `/admin/stats` | 7일 라인차트 + 바차트(MCP) + 인기용어 Top5 | admin/stats.html |
+| `/admin/settings` | API키 테이블(생성·폐기) + 서버설정폼 | admin/settings.html |
+| `/admin/words` | 단어 목록 + 편집 (M-D-W 사이클 완성 후) | — |
+| `/admin/domains` | 도메인 목록 + 편집 | — |
+| `/admin/forbidden` | 금칙어 목록 + 편집 | — |
+
+---
+
+## 5. 데이터 처리
+
+- **실시간 스캐너**: 프론트 로직 (API로 받은 금칙어 목록 → 로컬 regex 매칭)
+- **통계 차트**: `chart.js` + `react-chartjs-2` 신규 설치
+- **MCP Playground**: `/api/v1/mcp/...` 백엔드 연동
+- **데이터 관리**: 현재 `/import` 기능 → `/admin/data` 탭으로 흡수
+
+---
+
+## 6. 구현 파일 목록
+
+### 신규 생성 (18개)
+```
+src/layouts/UserLayout.jsx
+src/layouts/AdminLayout.jsx
+src/layouts/components/UserSidebar.jsx
+src/layouts/components/AdminSidebar.jsx
+
+src/features/app/home/AppHomePage.jsx
+src/features/app/word/WordListPage.jsx
+src/features/app/word/WordDetailPage.jsx
+src/features/app/domain/DomainListPage.jsx
+src/features/app/domain/DomainDetailPage.jsx
+src/features/app/forbidden/ForbiddenPage.jsx
+
+src/features/admin/dashboard/DashboardPage.jsx
+src/features/admin/data/DataManagePage.jsx
+src/features/admin/mcp/McpPage.jsx
+src/features/admin/stats/StatsPage.jsx
+src/features/admin/settings/SettingsPage.jsx
+src/features/admin/word/AdminWordPage.jsx
+src/features/admin/domain/AdminDomainPage.jsx
+src/features/admin/forbidden/AdminForbiddenPage.jsx
+```
+
+### 수정 (2개)
+```
+src/app/router.jsx
+src/layouts/components/LayoutHeader.jsx
+```
+
+### 제거 (12개)
+```
+src/features/home/HomePage.jsx
+src/features/word/WordListPage.jsx
+src/features/word/WordDetailDialog.jsx
+src/features/domain/DomainListPage.jsx
+src/features/domain/DomainDetailDialog.jsx
+src/features/forbidden/ForbiddenListPage.jsx
+src/features/forbidden/ForbiddenDetailDialog.jsx
+src/features/import/UploadPage.jsx
+src/features/import/DetailPage.jsx
+src/layouts/MainLayout.jsx
+src/layouts/components/SidebarSurface.jsx
+src/layouts/components/menuItems.js
+```
+
+---
+
+## 7. 구현 순서
+
+```
+Phase 1: 아키텍처 (라우팅 + 레이아웃)
+Phase 2: USER 화면 (/app/*)
+Phase 3: ADMIN 화면 (/admin/*)
+```

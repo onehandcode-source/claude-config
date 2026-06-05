@@ -1,0 +1,90 @@
+package com.devwogns.trmdict.module.domain.entity;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "TB_TRM_DOMAIN")
+public class DomainEntity {
+
+    @Id
+    @Column(name = "DOMAIN_SN")
+    private Long id;
+
+    @Column(name = "STD_DMN_GROUP_NM")
+    private String stdDmnGroupNm;
+
+    @Column(name = "STD_DMN_CLSF_NM")
+    private String stdDmnClsfNm;
+
+    @Column(name = "STD_DMN_NM")
+    private String stdDmnNm;
+
+    @Column(name = "STD_DMN_EXPLN")
+    private String stdDmnExpln;
+
+    @Column(name = "DATA_TYPE_NM")
+    private String dataTypeNm;
+
+    @Column(name = "DATA_LEN")
+    private String dataLen;
+
+    @Column(name = "DATA_DCPT_DGT")
+    private String dataDcptDgt;
+
+    @Column(name = "STRG_FRM_NM")
+    private String strgFrmNm;
+
+    @Column(name = "INDCT_FRM_NM")
+    private String indctFrmNm;
+
+    @Column(name = "UNIT_NM")
+    private String unitNm;
+
+    @Column(name = "PRM_VALUE_CN")
+    private String prmValueCn;
+
+    @Column(name = "ENCT_CYCL")
+    private String enctCycl;
+
+    @Column(name = "RVSN_SE_NM")
+    private String rvsnSeNm;
+
+    @Column(name = "RVSN_ARTCL_NM")
+    private String rvsnArtclNm;
+
+    @Column(name = "RVSN_RSN")
+    private String rvsnRsn;
+
+    @Column(name = "USE_YN")
+    private String useYn;
+
+    @Column(name = "RMRK_CN")
+    private String rmrkCn;
+
+    @Column(name = "RGTR_ID")
+    private String rgtrId;
+
+    @Column(name = "REG_IP_ADDR")
+    private String regIpAddr;
+
+    @Column(name = "REG_DT")
+    private LocalDateTime regDt;
+
+    @Column(name = "MDFR_ID")
+    private String mdfrId;
+
+    @Column(name = "MDFCN_IP_ADDR")
+    private String mdfcnIpAddr;
+
+    @Column(name = "MDFCN_DT")
+    private LocalDateTime mdfcnDt;
+}

@@ -1,0 +1,46 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Toaster } from 'sonner';
+
+export function AppProviders({ children }) {
+    const [queryClient] = useState(
+        () =>
+            new QueryClient({
+                defaultOptions: {
+                    queries: {
+                        retry: false,
+                    },
+                    mutations: {
+                        retry: false,
+                    },
+                },
+            }),
+    );
+
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
+
+/**
+ * C2 계약: providers.jsx — QueryClientProvider + Toaster 전역 Provider 래핑
+ * router.jsx의 RouterProvider와 함께 사용.
+ */
+export function Providers({ children }) {
+    const [queryClient] = useState(
+        () =>
+            new QueryClient({
+                defaultOptions: {
+                    queries: {
+                        retry: 1,
+                        staleTime: 1000 * 60 * 5,
+                    },
+                },
+            }),
+    );
+
+    return (
+        <QueryClientProvider client={queryClient}>
+            {children}
+            <Toaster richColors position="top-right" />
+        </QueryClientProvider>
+    );
+}

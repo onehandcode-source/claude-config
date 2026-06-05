@@ -1,0 +1,221 @@
+﻿import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import { useMemo, useState } from 'react';
+import { Button } from '../ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { cn } from '@/lib/utils';
+import { useColumnResize } from './useColumnResize';
+
+const getTextAlignClassName = (align) => {
+    if (align === 'center') return 'text-center';
+    if (align === 'end') return 'text-right';
+    return 'text-left';
+}
+
+export const DataGrid = ({
+    columns = [],
+    pageData = null,
+    pageSizeOptions = [10, 20, 50, 100],
+    selectable = false,
+    onPageChange,
+    onSortChange,
+    onSelectionChange,
+    onRowClick,
+}) => {
+    const rows = pageData?.items ?? [];
+    const [sorting, setSorting] = useState([]);
+    const [selectedKeys, setSelectedKeys] = useState([]);
+    const { widths, getResizeProps } = useColumnResize(columns);
+
+    const tableColumns = useMemo(
+        () =>
+            columns.map((column) => ({
+                accessorKey: column.key,
+                header: column.header,
+                cell: ({ row }) =>
+                    column.cell
+                        ? column.cell({ value: row.original[column.key], row: row.original })
+                        : row.original[column.key],
+                meta: column,
+            })),
+        [columns],
+    );
+
+    const table = useReactTable({
+        data: rows,
+        columns: tableColumns,
+        getCoreRowModel: getCoreRowModel(),
+    });
+
+    const toggleSort = (column) => {
+        if (!column.sortable) {
+            return;
+        }
+
+        const currentDirection = sorting[0]?.id === column.key ? sorting[0].desc : undefined;
+        const nextDirection = currentDirection === undefined ? 'asc' : currentDirection === false ? 'desc' : '';
+
+        setSorting(nextDirection ? [{ id: column.key, desc: nextDirection === 'desc' }] : []);
+        onSortChange?.({ active: column.key, direction: nextDirection });
+    };
+
+    const isAllSelected = rows.length > 0 && selectedKeys.length === rows.length;
+
+    const updateSelection = (nextRows) => {
+        setSelectedKeys(nextRows.map((row) => row.id ?? JSON.stringify(row)));
+        onSelectionChange?.(nextRows);
+    };
+
+    const toggleAll = () => {
+        if (isAllSelected) {
+            updateSelection([]);
+            return;
+        }
+
+        updateSelection(rows);
+    };
+
+    const toggleRow = (row) => {
+        const rowKey = row.id ?? JSON.stringify(row);
+        const exists = selectedKeys.includes(rowKey);
+        const nextRows = exists
+            ? rows.filter((item) => (item.id ?? JSON.stringify(item)) !== rowKey)
+            : rows.filter((item) => selectedKeys.includes(item.id ?? JSON.stringify(item))).concat(row);
+
+        updateSelection(nextRows);
+    };
+
+    return (
+        <section className='overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm'>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        {selectable ? (
+                            <TableHead className='w-14'>
+                                <input
+                                    type='checkbox'
+                                    aria-label='Select all rows'
+                                    checked={isAllSelected}
+                                    onChange={toggleAll}
+                                />
+                            </TableHead>
+                        ) : null}
+                        {table.getHeaderGroups().map((headerGroup) =>
+                            headerGroup.headers.map((header) => {
+                                const meta = header.column.columnDef.meta;
+                                const width = widths[meta.key] ?? meta.width;
+
+                                return (
+                                    <TableHead
+                                        key={header.id}
+                                        className={getTextAlignClassName(meta.align)}
+                                        style={width ? { width: `${width}px` } : undefined}
+                                        {...getResizeProps(meta)}
+                                    >
+                                        {meta.sortable ? (
+                                            <button
+                                                type='button'
+                                                aria-label={`Sort by ${meta.header}`}
+                                                className='inline-flex items-center gap-1 text-inherit'
+                                                onClick={() => toggleSort(meta)}
+                                            >
+                                                <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                                                <span className='text-xs text-slate-400'>
+                                                    {sorting[0]?.id === meta.key
+                                                        ? sorting[0].desc
+                                                            ? '▼'
+                                                            : '▲'
+                                                        : '–'}
+                                                </span>
+                                            </button>
+                                        ) : (
+                                            flexRender(header.column.columnDef.header, header.getContext())
+                                        )}
+                                    </TableHead>
+                                );
+                            }),
+                        )}
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {table.getRowModel().rows.map((row) => {
+                        const rowKey = row.original.id ?? JSON.stringify(row.original);
+                        const checked = selectedKeys.includes(rowKey);
+
+                        return (
+                            <TableRow
+                                key={row.id}
+                                data-state={checked ? 'selected' : undefined}
+                                className='cursor-pointer'
+                                onClick={() => onRowClick?.(row.original)}
+                            >
+                                {selectable ? (
+                                    <TableCell className='w-14' onClick={(event) => event.stopPropagation()}>
+                                        <input
+                                            type='checkbox'
+                                            aria-label={`Select row ${row.index + 1}`}
+                                            checked={checked}
+                                            onChange={() => toggleRow(row.original)}
+                                        />
+                                    </TableCell>
+                                ) : null}
+                                {row.getVisibleCells().map((cell) => {
+                                    const meta = cell.column.columnDef.meta;
+
+                                    return (
+                                        <TableCell
+                                            key={cell.id}
+                                            className={cn(getTextAlignClassName(meta.align))}
+                                        >
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </TableCell>
+                                    );
+                                })}
+                            </TableRow>
+                        );
+                    })}
+                </TableBody>
+            </Table>
+
+            {pageData ? (
+                <footer className='flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-3'>
+                    <div className='text-sm text-slate-500'>
+                        Page {pageData.page} of {pageData.totalPages} 쨌 {pageData.totalElements} items
+                    </div>
+                    <div className='flex items-center gap-2'>
+                        <select
+                            aria-label='Page size'
+                            className='h-9 rounded-md border border-slate-300 bg-white px-3 text-sm'
+                            value={pageData.size}
+                            onChange={(event) =>
+                                onPageChange?.({
+                                    page: 1,
+                                    size: Number(event.target.value),
+                                })
+                            }
+                        >
+                            {pageSizeOptions.map((option) => (
+                                <option key={option} value={option}>
+                                    {option} / page
+                                </option>
+                            ))}
+                        </select>
+                        <Button
+                            variant='outline'
+                            disabled={pageData.page <= 1}
+                            onClick={() => onPageChange?.({ page: pageData.page - 1, size: pageData.size })}
+                        >
+                            Previous page
+                        </Button>
+                        <Button
+                            variant='outline'
+                            disabled={pageData.page >= pageData.totalPages}
+                            onClick={() => onPageChange?.({ page: pageData.page + 1, size: pageData.size })}
+                        >
+                            Next page
+                        </Button>
+                    </div>
+                </footer>
+            ) : null}
+        </section>
+    );
+}

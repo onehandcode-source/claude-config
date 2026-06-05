@@ -1,0 +1,229 @@
+# safeAutoTest 재설계 설계 문서
+
+**작성일**: 2026-05-11  
+**상태**: 승인됨  
+**범위**: 웹 테스트 자동화 + Tibero DB 비교
+
+---
+
+## 1. 배경 및 목표
+
+### 기존 상태
+- Playwright 기반 웹 테스트 도구 (AS-IS URL vs TO-BE URL 비교)
+- DB 연동 미구현 (문서만 존재)
+- 단일 시나리오 단위 관리 (계층 구조 없음)
+
+### 목표
+1. 시나리오 > 테스트케이스 계층 구조로 테스트 관리
+2. 웹 액션 + Tibero DB 쿼리를 하나의 테스트케이스에서 통합 실행
+3. 소스 변경 전 결과를 AS-IS 스냅샷으로 저장 → 변경 후 비교
+
+---
+
+## 2. 핵심 워크플로우
+
+```
+[소스 변경 전]
+시나리오 실행 → 결과를 AS-IS 스냅샷으로 저장 (JSON)
+
+[소스 변경 후]
+같은 시나리오 실행 → 저장된 AS-IS 스냅샷과 비교 → 차이점 리포트
+```
+
+---
+
+## 3. 데이터 모델
+
+### 3-1. 시나리오 (Scenario)
+
+```typescript
+interface Scenario {
+  id: string;
+  name: string;                  // 예: "일반 신고 테스트"
+  description: string;
+  dbConfig?: TiberoConfig;       // 시나리오 공통 Tibero 연결 정보
+  testCases: TestCase[];
+  createdAt: string;             // ISO 8601
+  updatedAt: string;             // ISO 8601
+}
+```
+
+### 3-2. 테스트케이스 (TestCase)
+
+```typescript
+interface TestCase {
+  id: string;
+  name: string;                  // 예: "로그인 후 신고 접수"
+  description?: string;
+  baseUrl: string;
+  steps: Step[];                 // 웹액션 + DB쿼리 혼합 순서 목록
+  dbConfig?: TiberoConfig;       // 케이스별 오버라이드 (없으면 시나리오 공통 사용)
+}
+```
+
+### 3-3. Step (웹액션 또는 DB쿼리)
+
+```typescript
+type Step =
+  | { type: 'navigate';   url: string;                              description?: string }
+  | { type: 'click';      selector: string;                         description?: string }
+  | { type: 'fill';       selector: string; text: string;           description?: string }
+  | { type: 'select';     selector: string; text: string;           description?: string }
+  | { type: 'wait';       milliseconds: number;                     description?: string }
+  | { type: 'screenshot';                                           description?: string }
+  | { type: 'evaluate';   script: string;                           description?: string }
+  | { type: 'dbQuery';    queryId: string; query: string;           description?: string };
+```
+
+### 3-4. Tibero 연결 정보
+
+```typescript
+interface TiberoConfig {
+  host: string;
+  port: number;          // 기본값: 8629
+  username: string;
+  password: string;
+  serviceName: string;
+}
+```
+
+### 3-5. 실행 결과 & 스냅샷
+
+```typescript
+interface ScenarioResult {
+  scenarioId: string;
+  scenarioName: string;
+  executedAt: string;            // ISO 8601
+  testCaseResults: TestCaseResult[];
+}
+
+interface TestCaseResult {
+  testCaseId: string;
+  testCaseName: string;
+  status: 'passed' | 'failed' | 'error';
+  executionTime: number;         // ms
+  stepResults: StepResult[];
+}
+
+interface StepResult {
+  step: Step;
+  status: 'passed' | 'failed' | 'error';
+  output?: any;                  // evaluate 결과 또는 DB 쿼리 결과(rows)
+  screenshot?: string;           // base64
+  error?: string;
+}
+```
+
+### 3-6. 비교 결과
+
+```typescript
+interface ComparisonReport {
+  scenarioId: string;
+  snapshotCapturedAt: string;    // ISO 8601
+  comparedAt: string;            // ISO 8601
+  status: 'identical' | 'different' | 'error';
+  testCaseDiffs: TestCaseDiff[];
+}
+
+interface TestCaseDiff {
+  testCaseId: string;
+  testCaseName: string;
+  status: 'identical' | 'different' | 'error';
+  stepDiffs: StepDiff[];
+}
+
+interface StepDiff {
+  stepIndex: number;
+  description?: string;
+  snapshotOutput: any;
+  currentOutput: any;
+  isDifferent: boolean;
+  severity: 'critical' | 'warning' | 'info';
+}
+```
+
+---
+
+## 4. 파일 저장 구조
+
+```
+data/
+  scenarios/
+    {scenarioId}.json            시나리오 정의 (TestCase 포함)
+  snapshots/
+    {scenarioId}/
+      {YYYYMMDD-HHmmss}.json     AS-IS 스냅샷 (ScenarioResult)
+      latest.json                최신 스냅샷 (ScenarioResult 그대로 복사)
+```
+
+---
+
+## 5. API 설계
+
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | `/api/scenarios` | 시나리오 목록 조회 |
+| POST | `/api/scenarios` | 시나리오 생성 |
+| GET | `/api/scenarios/:id` | 시나리오 상세 조회 |
+| PUT | `/api/scenarios/:id` | 시나리오 수정 |
+| DELETE | `/api/scenarios/:id` | 시나리오 삭제 |
+| POST | `/api/scenarios/:id/run` | 시나리오 실행 (전체 테스트케이스 독립 실행) |
+| POST | `/api/scenarios/:id/snapshot` | 실행 결과를 AS-IS 스냅샷으로 저장 |
+| GET | `/api/scenarios/:id/snapshots` | 저장된 스냅샷 목록 |
+| POST | `/api/scenarios/:id/compare` | 현재 실행 결과 vs 최신 스냅샷 비교 |
+
+---
+
+## 6. UI 구조
+
+### 페이지 라우팅
+
+```
+/                              시나리오 목록
+/scenarios/new                 새 시나리오 생성
+/scenarios/:id/edit            시나리오 편집 (테스트케이스 관리 포함)
+/scenarios/:id/run             실행 & 비교
+```
+
+### 시나리오 목록 (`/`)
+- 시나리오 카드 목록 (이름, 테스트케이스 수, 최근 실행 시각)
+- [실행] [편집] [삭제] 버튼
+- [+ 새 시나리오] 버튼
+
+### 시나리오 편집 (`/scenarios/:id/edit`)
+- 시나리오 정보 (이름, 설명)
+- Tibero 연결 정보 입력 (공통)
+- 테스트케이스 목록 (추가 / 편집 / 삭제)
+- 테스트케이스 편집 패널
+  - Step 목록 (웹액션 또는 DB쿼리 추가)
+  - Step 타입 선택 → 해당 입력 필드 표시
+
+### 실행 & 비교 (`/scenarios/:id/run`)
+- [AS-IS로 저장] — 실행 후 스냅샷 저장
+- [현재와 비교] — 실행 후 최신 스냅샷과 비교
+- 저장된 스냅샷 목록 (날짜별 선택 가능)
+- 실행 진행 상태: 테스트케이스별 / Step별 실시간 표시
+- 비교 결과: 테스트케이스 단위 접기/펼치기, Step별 차이 강조
+
+---
+
+## 7. 핵심 모듈
+
+```
+lib/
+  types.ts                  데이터 타입 전체 정의
+  scenario-manager.ts       시나리오 JSON 파일 CRUD
+  snapshot-manager.ts       스냅샷 저장/로드
+  playwright-executor.ts    웹 Step 실행 엔진
+  tibero-executor.ts        Tibero DB 쿼리 실행 (oracledb)
+  test-runner.ts            TestCase 실행 조율 (웹 + DB 통합)
+  comparison-engine.ts      스냅샷 vs 현재 결과 비교
+```
+
+---
+
+## 8. 미구현 범위 (향후)
+
+- 앱(네이티브) 테스트 — 스킵
+- 시나리오 저장소 Tibero 이전 — JSON 우선, 추후 확장 가능
+- CI/CD 통합 — 추후

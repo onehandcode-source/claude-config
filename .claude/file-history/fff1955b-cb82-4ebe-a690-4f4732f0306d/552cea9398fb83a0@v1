@@ -1,0 +1,1 @@
+export const SettingsPage = () => <div className='p-6 text-sm text-muted-foreground'>SettingsPage — 구현 예정</div>;

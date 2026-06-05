@@ -1,0 +1,47 @@
+import '@testing-library/jest-dom/vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { ProtectedRoute } from './ProtectedRoute';
+import { useAuthStore } from '@/store/useAuthStore';
+
+function renderRoutes(initialEntries = ['/home']) {
+    return render(
+        <MemoryRouter initialEntries={initialEntries}>
+            <Routes>
+                <Route
+                    path='/home'
+                    element={
+                        <ProtectedRoute>
+                            <div>Protected Home</div>
+                        </ProtectedRoute>
+                    }
+                />
+                <Route path='/login' element={<div>Login Page</div>} />
+            </Routes>
+        </MemoryRouter>,
+    );
+}
+
+describe('ProtectedRoute', () => {
+    test('redirects anonymous users to login', () => {
+        useAuthStore.getState().logout();
+
+        renderRoutes();
+
+        expect(screen.getByText('Login Page')).toBeInTheDocument();
+    });
+
+    test('renders children when authenticated', () => {
+        useAuthStore.getState().setUser({
+            id: 1,
+            username: 'admin',
+            name: '관리자',
+            email: null,
+            role: 'ADMIN',
+        });
+
+        renderRoutes();
+
+        expect(screen.getByText('Protected Home')).toBeInTheDocument();
+    });
+});

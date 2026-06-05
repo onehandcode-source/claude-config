@@ -1,0 +1,33 @@
+package egov.sia.fileRestoreMng.service;
+
+import java.util.List;
+import java.util.Map;
+import egov.sia.fileSyncMng.dto.FileSyncMngDto;
+import egov.sia.fileSyncMng.vo.FileSyncMngVO;
+
+public interface FileRestoreMngService {
+
+    /**
+     * 파일 복원용 신고 목록 조회
+     */
+    List<FileSyncMngVO> selectRestoreSingoList(FileSyncMngDto dto) throws Exception;
+
+    /**
+     * 파일 복원용 신고 목록 총 건수 조회
+     */
+    int selectRestoreSingoListCnt(FileSyncMngDto dto) throws Exception;
+
+    /**
+     * 파일 복원 대상 파일 총 개수 조회
+     */
+    int selectRestoreSingoFileTotalCnt(FileSyncMngDto dto) throws Exception;
+
+    /**
+     * 일괄 파일 복원 처리
+     */
+    Map<String, Object> updateBulkFileRestore(List<Integer> singoNos, String userId) throws Exception;
+    /**
+     * 조회 결과 전체 파일 복원 처리
+     */
+    Map<String, Object> updateAllFileRestore(FileSyncMngDto dto, String userId) throws Exception;
+}

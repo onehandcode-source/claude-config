@@ -1,0 +1,46 @@
+import { describe, expect, test, vi, beforeEach } from 'vitest';
+import { getForbiddenById, searchForbiddens } from './forbiddenApi';
+import { http, unwrapResponse } from '@/core/api/http';
+
+vi.mock('@/core/api/http', () => ({
+    http: {
+        post: vi.fn(),
+        get: vi.fn(),
+    },
+    unwrapResponse: vi.fn(),
+}));
+
+describe('forbiddenApi', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    test('posts forbidden search requests to the search endpoint', async () => {
+        const payload = { page: 1, size: 20, phwrdNm: '금지어' };
+        const response = { data: { success: true, data: { items: [] } } };
+        const unwrapped = { items: [] };
+
+        http.post.mockResolvedValue(response);
+        unwrapResponse.mockReturnValue(unwrapped);
+
+        const result = await searchForbiddens(payload);
+
+        expect(http.post).toHaveBeenCalledWith('/v1/forbiddens/search', payload);
+        expect(unwrapResponse).toHaveBeenCalledWith(response);
+        expect(result).toBe(unwrapped);
+    });
+
+    test('gets a forbidden detail record by id', async () => {
+        const response = { data: { success: true, data: { id: 7 } } };
+        const unwrapped = { id: 7 };
+
+        http.get.mockResolvedValue(response);
+        unwrapResponse.mockReturnValue(unwrapped);
+
+        const result = await getForbiddenById(7);
+
+        expect(http.get).toHaveBeenCalledWith('/v1/forbiddens/7');
+        expect(unwrapResponse).toHaveBeenCalledWith(response);
+        expect(result).toBe(unwrapped);
+    });
+});

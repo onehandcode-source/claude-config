@@ -1,0 +1,183 @@
+# AI Agent 기반 지능형 통합 모니터링 — 설계 검증 및 HTML 문서화 계획
+
+작성일: 2026-06-04
+대상 프로젝트: D:/20. POC/monitoring
+상태: DRAFT — 사용자 승인 후 HTML 페이지 생성으로 진행
+
+---
+
+## 1. Problem Statement
+
+폐쇄망 환경에서 Grafana 중앙 모니터링 서버를 확장하여 다음을 달성한다.
+
+- 인터넷망(32대) + 업무망(20대)의 데몬·앱·서버 메트릭/로그 통합 수집
+- 장애 알람 발생 시 LLM 자동 분석 → 원인·조치 요약
+- 운영자가 자연어로 메트릭을 질의 → PromQL 자동 생성 → 결과 시각화
+- 일일 점검 결과 LLM 요약 리포트 자동 생성·전달
+
+기존 설계(architecture.html, flow.html)는 4개 핵심 도구(Alloy, Loki, Grafana+LLM Plugin, Prometheus)를 사용한다. **본 문서는 그 설계가 각 도구의 실제 커버 범위와 정합하는지 검증하고, 식별된 갭을 보완하는 HTML 문서를 작성하기 위한 계획서**다.
+
+---
+
+## 2. 도구 커버리지 검증 결과
+
+### 2.1 Alloy
+- OpenTelemetry Collector + Prometheus Agent 통합 텔레메트리 수집기
+- 메트릭(host_metrics/OTLP/scrape), 로그(file/syslog/OTLP), 트레이스, 프로파일 모두 수집 가능
+- 본 PoC 사용 범위: 메트릭 + 로그 only (트레이스·프로파일은 추후 확장)
+- 게이트웨이 모드로 OTLP 집약 후 단일 포트(:4317) 중앙 전달 — 현 설계 정합
+- `remote.http` 컴포넌트로 Config Pull 5분 주기 + `/-/reload` 무중단 반영 — 현 설계 정합
+- 자체 메트릭 :12345 노출 (self-monitoring 가능)
+
+### 2.2 Loki
+- 라벨 인덱스 + 청크 압축 로그 DB. LogQL로 필터·파싱·메트릭 변환
+- 본 PoC 라벨 전략 4개(`job, level, host, env`) 정합 — 안전한 카디널리티
+- 보존 30일·TSDB-shipper+filesystem(monolithic) 정합
+- Ruler 사용 안 함 → Grafana Unified Alerting으로 알림 일원화 (설계 명시 필요)
+- **갭**: 고카디널리티 필드(trace_id, request_id 등) 라벨 금지 가이드 미명시
+
+### 2.3 Grafana + LLM App Plugin
+- LLM Plugin은 provider 추상화 — Ollama를 Custom OpenAI-호환으로 설정
+- 내장 기능: AI Explain, 패널 자동 생성, vector RAG(선택), 다른 패널의 LLM SDK
+- 폐쇄망 제약: Sift, Adaptive Metrics 등 Grafana Cloud 전용 기능 사용 불가
+- Plugin 오프라인 설치 정합 (zip → `~/grafana/plugins/`, `allow_loading_unsigned_plugins`)
+- **갭**: 자연어→PromQL은 Plugin 단독으로 한계. 메트릭 카탈로그/few-shot 보강 필요
+
+### 2.4 Prometheus
+- TSDB + PromQL + scrape + alert rule. 본 PoC는 Alloy remote_write 수신 경로 사용
+- HTTP API 중 RAG 핵심 엔드포인트:
+  - `/api/v1/label/__name__/values` — 전체 메트릭 목록
+  - `/api/v1/metadata` — 메트릭별 HELP/TYPE
+  - `/api/v1/series` — 라벨 조합 탐색
+- LLM과의 4가지 통신 패턴:
+  - A. 자연어 → PromQL → 실행 → 시각화
+  - B. Alert → LLM 컨텍스트 분석
+  - C. 일일 KPI 집계 → LLM 요약
+  - D. PromQL 코파일럿(설명·최적화)
+- **갭**: PromQL hallucination 방지를 위한 카탈로그/few-shot 미설계, 실행 전 lint/parse 단계 부재
+
+---
+
+## 3. 식별된 갭과 채택 보완사항
+
+검증 결과 6개 보완 후보 중, 본 차수에 반영할 항목 2개를 채택한다.
+
+| # | 보완 항목 | 채택 | 사유 |
+|---|---|---|---|
+| 1 | **메트릭 카탈로그/RAG + few-shot prompt 설계** | 채택 | LLM PromQL 생성 정확도의 근간. 미반영 시 hallucination이 PoC의 신뢰도를 직접 훼손 |
+| 2 | **PromQL/LogQL lint·parse 검증 단계** | 채택 | LLM 출력의 안전한 실행 경로 확보. 잘못된 쿼리로 인한 Prometheus 부하 방지 |
+| 3 | 로그 라벨링 가이드라인(고카디널리티 금지) | 흡수 | 컴포넌트 페이지(Loki)에 운영 가이드로 흡수 |
+| 4 | system prompt 템플릿 + LLM 평가 계획 | 흡수 | #1에 포함 |
+| 5 | Loki Ruler 사용 여부 명확화 | 흡수 | 컴포넌트 페이지(Loki)에 결정 명시 |
+| 6 | Sift/Adaptive 등 Cloud 전용 기능 비가용 명시 | 흡수 | 컴포넌트 페이지(Grafana)에 흡수 |
+
+---
+
+## 4. 산출물 — HTML 설계 문서 구성
+
+기존 index.html에 탭을 그룹화하여 7개 신규 페이지를 추가한다. 다크 테마(`#0d1117`, `#3b82f6`)를 그대로 유지한다.
+
+```
+탭 그룹화:
+  개요(2)        | 컴포넌트(4)                              | LLM 적용(2)           | 운영(1)
+  ─────────────────────────────────────────────────────────────────────────────────────
+  전체 아키텍처   | Alloy   Loki   Grafana   Prometheus      | LLM 설계   검증       | 배포·운영
+  AI 흐름
+```
+
+### 4.1 컴포넌트 페이지 (4개)
+
+#### `alloy.html`
+- 역할, 커버 범위(메트릭/로그), 두 가지 역할(엣지 게이트웨이 vs 에이전트)
+- Config 구조 예시(host_metrics, loki.source.file, otelcol.receiver/exporter)
+- Config Pull 5분 + `/-/reload`, RPM 추출 절차
+
+#### `loki.html`
+- 라벨 인덱스 모델, 수신 경로(Alloy 경유)
+- LogQL 필터·파싱·집계 예시
+- **라벨링 가이드**: `job, level, host, env` 고정, 고카디널리티 필드는 본문에 유지
+- 보존 30일, Ruler 미사용 → Grafana Unified Alerting 일원화 명시
+
+#### `grafana.html`
+- Data source 2종(Prometheus, Loki), Unified Alerting, Contact Point
+- LLM Plugin provider 추상화, 내장 기능, 사내 메신저 webhook 연동
+- **폐쇄망 제약 명시**: Sift, Adaptive Metrics 사용 불가
+- Plugin 오프라인 설치 절차
+
+#### `prometheus.html`
+- TSDB + PromQL + alert rule, Alloy remote_write 수신 경로
+- HTTP API 중 카탈로그 RAG에 사용할 엔드포인트
+- PromQL 핵심 함수표, 포트 :9091 비표준 사유
+
+### 4.2 LLM 적용 페이지 (2개) — 검증 갭 핵심
+
+#### `llm-design.html`
+- 문제 정의: 메트릭 정보 없이 LLM이 생성하는 PromQL의 hallucination 위험
+- **메트릭 카탈로그 빌더**:
+  - Spring Boot 배치(@Scheduled 1일 1회)
+  - `/api/v1/label/__name__/values` + `/api/v1/metadata` + `/api/v1/series` 호출
+  - 결과 JSON 형식: `{ metric_name: { help, type, labels: [...], common_values: {...} } }`
+- **System prompt 템플릿**: 역할 정의 + 카탈로그 top N + 라벨 모델 + 응답 포맷(JSON 강제)
+- **Few-shot 예시 세트** 10개 (CPU/메모리/에러율/응답시간/디스크/네트워크/JVM/GC/스레드/요청수)
+- **RAG 옵션**: Grafana LLM Plugin pgvector vs 단순 카탈로그 lookup. PoC는 lookup 우선
+- 토큰 관리: 카탈로그 압축(label만 또는 value 샘플 5개), 컨텍스트 캐시
+- 다국어: 한국어 질의 → 영문 PromQL, 응답 요약은 한국어
+
+#### `validation.html`
+- 문제 정의: LLM 출력을 직접 실행하면 잘못된 쿼리·Prometheus DoS·잘못된 결과 위험
+- **6단계 검증 파이프라인**:
+  1. LLM 응답 JSON parse (응답 포맷 검증)
+  2. PromQL/LogQL syntax parse (promql-parser 등)
+  3. 메트릭/라벨 존재 검증 (카탈로그 lookup)
+  4. 시간 범위·복잡도 제한 (기본 1h, 최대 24h, rate window ≥ 1m, 결과 ≤ 1000 시계열)
+  5. dry-run (`limit=1`)
+  6. 정식 실행
+- 실패 시 처리: 오류 메시지 + 카탈로그 보강 → LLM 재시도 1회
+- flow.html과 동일한 step 카드 다이어그램
+
+### 4.3 운영 페이지 (1개)
+
+#### `deployment.html`
+- 초기 설치 절차(NAS → rpm2cpio)
+- Config 라이프사이클(Spring Boot UI → git-like 버저닝 → Pull → reload)
+- 방화벽 행렬 (from → to 표)
+- 포트 매트릭스 (Alloy/Loki/Prometheus/Grafana/Ollama/Spring Boot)
+- 장애 대응 절차:
+  - 엣지 Alloy 다운 → 각 서버 retry queue · 디스크 버퍼
+  - Ollama 다운 → AI 분석 disable, 기본 알람만 동작
+  - Loki 다운 → 메트릭 알람은 정상
+- 모니터링의 모니터링(Alloy 자체 메트릭 scrape)
+- 백업/복구 정책
+- 확장 로드맵(Tempo, Pyroscope, 멀티클러스터, 카탈로그 자동 동기화)
+
+### 4.4 index.html 수정
+- 기존 2탭 → 9탭으로 확장
+- 그룹 헤더(개요·컴포넌트·LLM 적용·운영)로 시각적 구분
+- 신규 페이지 모두 iframe으로 로드 (기존 구조 그대로 유지)
+
+---
+
+## 5. 작성 방식
+
+- 7개 페이지 + index.html 수정을 한 번에 병렬 작성
+- 기존 architecture.html / flow.html의 디자인 토큰 재사용 (색상·간격·컴포넌트 카드 스타일)
+- 각 페이지 자체 완결성 — 독립 열람해도 의미 전달 가능
+
+---
+
+## 6. 성공 기준
+
+- 7개 HTML 페이지가 index.html 탭에서 정상 로드된다
+- 4개 도구 각각의 본 PoC 사용 범위가 명시되어 있다
+- LLM이 PromQL을 생성할 때 사용할 카탈로그 형식과 prompt 템플릿이 구체적으로 기술되어 있다
+- LLM 출력 검증 파이프라인 6단계가 다이어그램과 함께 명시되어 있다
+- 운영자가 페이지만 보고도 배포·장애 대응 절차를 따라갈 수 있다
+
+---
+
+## 7. 다음 단계
+
+1. 본 설계 문서 사용자 승인
+2. 7개 HTML + index.html 수정 병렬 작성
+3. 브라우저에서 index.html 열어 9개 탭 동작 확인
+4. (선택) writing-plans 스킬로 실제 구현(Spring Boot 카탈로그 빌더, 검증 파이프라인) 계획 작성

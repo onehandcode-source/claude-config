@@ -1,0 +1,32 @@
+import { randomUUID } from "node:crypto";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { listMacros, saveMacro } from "@/lib/macro-manager";
+import type { Macro } from "@/lib/types";
+
+export async function GET() {
+  try {
+    return NextResponse.json({ success: true, data: listMacros() });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const now = new Date().toISOString();
+    const macro: Macro = {
+      id: randomUUID(),
+      name: body.name,
+      description: body.description ?? "",
+      steps: body.steps ?? [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    saveMacro(macro);
+    return NextResponse.json({ success: true, data: macro }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}

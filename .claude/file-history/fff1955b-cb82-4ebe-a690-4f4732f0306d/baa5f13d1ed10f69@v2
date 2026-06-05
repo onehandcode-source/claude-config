@@ -1,0 +1,134 @@
+import { Card } from '@/shared/components/ui/card';
+
+const TREND_DAYS = ['5/21', '5/22', '5/23', '5/24', '5/25', '5/26', '5/27'];
+const TREND_SEARCH = [842, 1034, 788, 1156, 943, 1242, 976];
+const TREND_MCP = [3120, 3842, 2980, 4102, 3654, 4231, 3842];
+const TOP_TERMS = [
+    { name: '개인정보처리자', views: 412 },
+    { name: '가명처리', views: 387 },
+    { name: '주민등록번호', views: 312 },
+    { name: '데이터 주체', views: 289 },
+    { name: '개인정보 파기', views: 245 },
+];
+const MOCK_TOOLS = [
+    { name: 'search_terms', calls: 2341, p95: 92, errors: 0 },
+    { name: 'get_term', calls: 891, p95: 55, errors: 1 },
+    { name: 'check_forbidden', calls: 412, p95: 34, errors: 0 },
+    { name: 'list_categories', calls: 154, p95: 28, errors: 0 },
+    { name: 'get_forbidden_term', calls: 44, p95: 41, errors: 0 },
+];
+
+const BAR_COLOR = 'hsl(var(--accent))';
+const LINE_COLOR = 'hsl(var(--fg))';
+
+const BarChart = ({ data, color }) => {
+    const max = Math.max(...data);
+    return (
+        <div className='flex items-end gap-1.5 h-[160px]'>
+            {data.map((v, i) => (
+                <div key={i} className='flex flex-col items-center gap-1 flex-1'>
+                    <div
+                        className='w-full rounded-sm transition-all'
+                        style={{ height: `${(v / max) * 140}px`, background: color }}
+                    />
+                    <span className='text-[9px] font-mono text-muted-foreground'>{TREND_DAYS[i]}</span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+const LineChart = ({ data, color }) => {
+    const max = Math.max(...data);
+    const min = Math.min(...data);
+    const range = max - min || 1;
+    const w = 100 / (data.length - 1);
+    const points = data.map((v, i) => `${i * w},${100 - ((v - min) / range) * 80 + 10}`).join(' ');
+    const areaPoints = `0,100 ${points} ${(data.length - 1) * w},100`;
+
+    return (
+        <div className='space-y-1'>
+            <svg viewBox='0 0 100 100' preserveAspectRatio='none' className='w-full h-[140px]'>
+                <polygon points={areaPoints} fill={color} fillOpacity='0.08' />
+                <polyline points={points} fill='none' stroke={color} strokeWidth='2' vectorEffect='non-scaling-stroke' />
+                {data.map((v, i) => (
+                    <circle key={i} cx={i * w} cy={100 - ((v - min) / range) * 80 + 10} r='3' fill={color} vectorEffect='non-scaling-stroke' />
+                ))}
+            </svg>
+            <div className='flex justify-between'>
+                {TREND_DAYS.map((d) => (
+                    <span key={d} className='text-[9px] font-mono text-muted-foreground'>{d}</span>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const THead = ({ cols }) => (
+    <thead>
+        <tr className='border-b border-border-lt'>
+            {cols.map((h) => <th key={h} className='px-4 py-2.5 text-left text-[11px] font-bold tracking-[0.08em] uppercase text-muted-foreground'>{h}</th>)}
+        </tr>
+    </thead>
+);
+
+export const StatsPage = () => {
+    const maxViews = Math.max(...TOP_TERMS.map((t) => t.views));
+
+    return (
+        <div className='space-y-4'>
+            <header className='pb-5 border-b border-border-lt mb-5'>
+                <h1 className='font-display italic font-bold text-[26px] m-0 mb-1' style={{ letterSpacing: '-0.02em' }}>
+                    통계·모니터링
+                </h1>
+                <p className='text-[13px] text-muted-foreground m-0'>최근 7일 검색·MCP 호출 현황</p>
+            </header>
+
+            <div className='grid grid-cols-2 gap-4'>
+                <Card className='p-5 border-[1.5px] border-border-lt rounded-sm bg-bg'>
+                    <p className='text-[11px] font-bold tracking-[0.08em] uppercase text-muted-foreground mb-4 m-0'>일별 검색 수</p>
+                    <LineChart data={TREND_SEARCH} color={LINE_COLOR} />
+                </Card>
+                <Card className='p-5 border-[1.5px] border-border-lt rounded-sm bg-bg'>
+                    <p className='text-[11px] font-bold tracking-[0.08em] uppercase text-muted-foreground mb-4 m-0'>MCP 호출 수</p>
+                    <BarChart data={TREND_MCP} color={BAR_COLOR} />
+                </Card>
+            </div>
+
+            <div className='grid grid-cols-2 gap-4'>
+                <Card className='p-5 border-[1.5px] border-border-lt rounded-sm bg-bg'>
+                    <p className='text-[11px] font-bold tracking-[0.08em] uppercase text-muted-foreground mb-4 m-0'>인기 용어 Top 5</p>
+                    <div className='space-y-3'>
+                        {TOP_TERMS.map((t) => (
+                            <div key={t.name} className='flex items-center gap-3'>
+                                <span className='text-[12px] min-w-[120px]'>{t.name}</span>
+                                <div className='flex-1 h-3 bg-border-lt rounded-sm overflow-hidden'>
+                                    <div
+                                        className='h-full rounded-sm transition-all'
+                                        style={{ width: `${Math.round((t.views / maxViews) * 100)}%`, background: BAR_COLOR }}
+                                    />
+                                </div>
+                                <span className='text-[12px] font-mono text-muted-foreground w-10 text-right'>{t.views}</span>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+                <Card className='p-0 overflow-hidden border-[1.5px] border-border-lt rounded-sm'>
+                    <table className='w-full text-[13px]'>
+                        <THead cols={['도구', '오늘 호출', 'P95 (ms)', '오류']} />
+                        <tbody>
+                            {MOCK_TOOLS.map((t, i) => (
+                                <tr key={i} className='border-b border-border-lt last:border-0'>
+                                    <td className='px-4 py-2.5 font-mono'>{t.name}</td>
+                                    <td className='px-4 py-2.5 font-mono'>{t.calls.toLocaleString()}</td>
+                                    <td className='px-4 py-2.5 font-mono'>{t.p95}ms</td>
+                                    <td className={`px-4 py-2.5 font-mono ${t.errors > 0 ? 'text-yellow-600' : 'text-green-600'}`}>{t.errors}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </Card>
+            </div>
+        </div>
+    );
+};

@@ -1,0 +1,11 @@
+import { http, unwrapResponse } from '@/core/api/http';
+
+export async function searchWords(payload) {
+    const response = await http.post('/v1/words/search', payload);
+    return unwrapResponse(response);
+}
+
+export async function getWordById(id) {
+    const response = await http.get(`/v1/words/${id}`);
+    return unwrapResponse(response);
+}

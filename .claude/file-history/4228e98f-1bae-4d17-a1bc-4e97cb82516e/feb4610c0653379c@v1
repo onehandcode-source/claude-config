@@ -1,0 +1,19 @@
+import 'server-only'
+import { prisma } from '@/lib/prisma'
+import type { ImportJobItem } from './types'
+
+export async function getImportJobs(limit = 20): Promise<ImportJobItem[]> {
+  const jobs = await prisma.importJob.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  })
+  return jobs.map((job) => ({
+    ...job,
+    createdAt: job.createdAt.toISOString(),
+    completedAt: job.completedAt?.toISOString() ?? null,
+  }))
+}
+
+export async function getImportJobById(id: number) {
+  return prisma.importJob.findUnique({ where: { id } })
+}

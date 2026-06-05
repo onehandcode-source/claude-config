@@ -1,0 +1,43 @@
+package com.devwogns.trmdict.module.auth.entity;
+
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "TB_TRM_USER")
+public class AuthUserEntity {
+
+    @Id
+    @Column(name = "USER_SN")
+    private Long id;
+
+    @Column(name = "LGN_ID")
+    private String username;
+
+    @Column(name = "ENPSWD")
+    private String passwordHash;
+
+    @Column(name = "USER_NM")
+    private String name;
+
+    @Column(name = "EML_ADDR")
+    private String email;
+
+    @Column(name = "ROLE_CD")
+    private String role;
+
+    @Column(name = "USE_YN")
+    private String useYn;
+}

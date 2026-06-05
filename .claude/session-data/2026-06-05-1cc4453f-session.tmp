@@ -1,0 +1,42 @@
+# Session: 2026-06-05
+**Date:** 2026-06-05
+**Started:** 09:02
+**Last Updated:** 09:53
+**Project:** haness
+**Branch:** unknown
+**Worktree:** D:\haness
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- @2026-06-04-ax-harness-introduction.md 내용 추가. 대략 다음과같음  1. 소개글  - 이미 기존에 잘 사용하시는 분들도 많겠지만 ...
+- 적용 업무 활용 방법 활용 Prompt 예시 실제 활용 사례 개선 효과  이 항목도 간단하게 작성해야함
+- 1. /brainstorming - 아이디어 설계, 설계변환, 요구사항 정체  2. /writing-plans - 실행 계획을 문서화 3. /code-review 4. /ultraqa  이렇게 4가지 항목으로 활용방법 정했어
+- 조금만 더 자세하게 써줘
+- 개선효과 좀더 여러가지로
+- 실제 활용 사례도 더 많이
+- <p style="font-family:돋움체;font-size:10pt;color:rgb(0, 0, 0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p> 웹 에디터 html 형식인데  @sp-omc-ecc-gs-harness-comparison.md 해당파일을 새로 하나 이 양식에 맞게 만들어
+- @2026-06-04-ax-harness-introduction.md 느낀점도 하나 작성해야해 구조체로 작성. 20자 이내로 5줄
+- [Request interrupted by user for tool use]
+- 개발자의 입장에서 좀더 자세하게
+
+### Files Modified
+- D:\haness\2026-06-04-ax-harness-introduction.md
+- D:\haness\sp-omc-ecc-gs-harness-comparison-web.html
+
+### Tools Used
+Read, Edit, Write, Glob
+
+### Stats
+- Total user messages: 10
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

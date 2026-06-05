@@ -1,0 +1,19 @@
+{
+  "id": "macro-find-address",
+  "name": "위치찾기 (카카오 주소)",
+  "description": "위치찾기 버튼 클릭 → 카카오 우편번호 서비스 → 주소 검색 → 선택 → 복귀",
+  "steps": [
+    { "type": "click", "locator": { "role": "button", "name": "위치찾기" }, "description": "위치찾기 버튼 클릭" },
+    { "type": "wait", "milliseconds": 1500, "description": "카카오 우편번호 서비스 탭 로드 대기" },
+    { "type": "switchTab", "index": 1, "description": "카카오 우편번호 서비스 탭으로 전환" },
+    { "type": "wait", "milliseconds": 3000, "description": "iframe 로드 대기" },
+    { "type": "fill", "locator": { "role": "textbox", "frame": "iframe" }, "text": "한림프라자", "description": "주소 검색어 입력" },
+    { "type": "click", "locator": { "role": "button", "name": "검색", "frame": "iframe" }, "description": "주소 검색 실행" },
+    { "type": "wait", "milliseconds": 1000, "description": "검색 결과 로드 대기" },
+    { "type": "click", "locator": { "selector": "li:has-text('세종특별자치시 한누리대로 219')", "frame": "iframe" }, "description": "검색결과 선택" },
+    { "type": "switchTab", "index": 0, "description": "신고 페이지로 복귀" },
+    { "type": "wait", "milliseconds": 500, "description": "신고 페이지 복귀 확인" }
+  ],
+  "createdAt": "2026-05-19T00:00:00.000Z",
+  "updatedAt": "2026-05-19T00:00:00.000Z"
+}

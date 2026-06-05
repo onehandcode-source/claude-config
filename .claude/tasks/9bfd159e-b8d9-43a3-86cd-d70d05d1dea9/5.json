@@ -1,0 +1,8 @@
+{
+  "id": "5",
+  "subject": "구현 계획 작성 (writing-plans 스킬)",
+  "description": "승인된 설계를 구현 플랜으로 전환",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

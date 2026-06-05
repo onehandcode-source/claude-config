@@ -1,0 +1,440 @@
+38f059a feat: 초안2
+dc0b352 feat:초안2
+e2ffc19 feat: 초안1
+---
+ M .claude/settings.local.json
+ M .gitignore
+ M .omc/project-memory.json
+ D .omc/state/agent-replay-6cf58105-adc3-4323-9860-e5dbd118352e.jsonl
+ M .omc/state/last-tool-error.json
+ M .omc/state/mission-state.json
+ M .omc/state/subagent-tracking.json
+ D Dockerfile
+D  backend/.classpath
+D  backend/.gradle/8.11.1/checksums/checksums.lock
+D  backend/.gradle/8.11.1/checksums/md5-checksums.bin
+D  backend/.gradle/8.11.1/checksums/sha1-checksums.bin
+D  backend/.gradle/8.11.1/executionHistory/executionHistory.bin
+D  backend/.gradle/8.11.1/executionHistory/executionHistory.lock
+D  backend/.gradle/8.11.1/fileChanges/last-build.bin
+D  backend/.gradle/8.11.1/fileHashes/fileHashes.bin
+D  backend/.gradle/8.11.1/fileHashes/fileHashes.lock
+D  backend/.gradle/8.11.1/fileHashes/resourceHashesCache.bin
+D  backend/.gradle/8.11.1/gc.properties
+D  backend/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+D  backend/.gradle/buildOutputCleanup/cache.properties
+D  backend/.gradle/buildOutputCleanup/outputFiles.bin
+D  backend/.gradle/file-system.probe
+D  backend/.gradle/vcs-1/gc.properties
+D  backend/.project
+D  backend/.settings/org.eclipse.jdt.core.prefs
+D  backend/build/bootJarMainClassName
+D  backend/build/classes/java/main/com/devwogns/trmdict/TrmDictApplication.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/async/JobStatus.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/exception/BusinessException.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/exception/ErrorCode.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/exception/GlobalExceptionHandler.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/paging/PageRequest.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/response/ApiResponse$1.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/response/ApiResponse$ApiResponseBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/response/ApiResponse.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/response/PageResponse$1.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/response/PageResponse$PageResponseBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/response/PageResponse.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/security/AuthPrincipal.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/security/CookieProperties.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/security/JwtAuthenticationFilter.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/security/JwtTokenProvider.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/common/security/SecurityConfig.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/config/AsyncConfig.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/config/DataSourceConfig.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/config/JpaConfig.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/config/SpaController.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/config/TiberoDialect.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/controller/AuthController$LoginResponse$LoginResponseBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/controller/AuthController$LoginResponse.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/controller/AuthController$MeResponse$MeResponseBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/controller/AuthController$MeResponse.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/controller/AuthController$UserSummary$UserSummaryBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/controller/AuthController$UserSummary.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/controller/AuthController.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/dto/LoginDto.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/entity/AuthUserEntity$AuthUserEntityBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/entity/AuthUserEntity.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/repository/AuthRepository.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/service/AuthService$LoginResult.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/service/AuthService.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/vo/AuthUserVo$AuthUserVoBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/auth/vo/AuthUserVo.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/domain/controller/DomainController.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/domain/dto/DomainSearchDto.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/domain/entity/DomainEntity$DomainEntityBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/domain/entity/DomainEntity.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/domain/repository/DomainRepository.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/domain/service/DomainService.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/domain/vo/DomainDtlVo$DomainDtlVoBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/domain/vo/DomainDtlVo.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/domain/vo/DomainListVo$DomainListVoBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/domain/vo/DomainListVo.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/forbidden/controller/ForbiddenController.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/forbidden/dto/ForbiddenSearchDto.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/forbidden/entity/ForbiddenEntity$ForbiddenEntityBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/forbidden/entity/ForbiddenEntity.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/forbidden/repository/ForbiddenRepository.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/forbidden/service/ForbiddenService.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/forbidden/vo/ForbiddenDtlVo$ForbiddenDtlVoBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/forbidden/vo/ForbiddenDtlVo.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/forbidden/vo/ForbiddenListVo$ForbiddenListVoBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/forbidden/vo/ForbiddenListVo.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/controller/ImportJobController.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/entity/ImportErrorEntity$ImportErrorEntityBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/entity/ImportErrorEntity.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/entity/ImportJobEntity$ImportJobEntityBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/entity/ImportJobEntity.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/listener/ImportJobRecoveryListener.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/parser/CsvImportParser$RowConsumer.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/parser/CsvImportParser.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/parser/ImportType.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/persistence/ImportJobNativePersistence$1.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/persistence/ImportJobNativePersistence.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/repository/ImportErrorRepository.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/repository/ImportJobRepository.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/service/ImportJobService$ProcessStats.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/service/ImportJobService.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/vo/ImportErrorVo$ImportErrorVoBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/vo/ImportErrorVo.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/vo/ImportHistoryVo$ImportHistoryVoBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/vo/ImportHistoryVo.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/vo/ImportSummaryVo$ImportSummaryVoBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/importjob/vo/ImportSummaryVo.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/word/controller/WordController.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/word/dto/WordSearchDto.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/word/entity/WordEntity$WordEntityBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/word/entity/WordEntity.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/word/repository/WordRepository.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/word/service/WordService.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/word/vo/WordDtlVo$WordDtlVoBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/word/vo/WordDtlVo.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/word/vo/WordListVo$WordListVoBuilder.class
+D  backend/build/classes/java/main/com/devwogns/trmdict/module/word/vo/WordListVo.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/TrmDictApplicationTests.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/common/async/JobStatusTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/common/exception/ErrorCodeTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/common/exception/GlobalExceptionHandlerTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/common/paging/PageRequestTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/common/response/ApiResponseTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/common/response/PageResponseTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/common/security/JwtAuthenticationFilterTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/common/security/JwtTokenProviderTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/common/security/SecurityConfigTest$DummyController.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/common/security/SecurityConfigTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/config/AsyncConfigTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/db/SchemaVerifyTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/auth/AuthIntegrationTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/auth/controller/AuthControllerTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/auth/repository/AuthRepositoryTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/auth/service/AuthServiceTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/domain/controller/DomainControllerTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/domain/service/DomainServiceTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/forbidden/controller/ForbiddenControllerTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/forbidden/service/ForbiddenServiceJpaTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/forbidden/service/ForbiddenServiceTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/importjob/ImportJobIntegrationTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/importjob/controller/ImportJobControllerTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/importjob/listener/ImportJobRecoveryListenerTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/importjob/parser/CsvImportParserTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/importjob/service/ImportJobServiceTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/word/controller/WordControllerTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/word/service/WordServiceJpaTest.class
+D  backend/build/classes/java/test/com/devwogns/trmdict/module/word/service/WordServiceTest.class
+D  backend/build/libs/trmdict-1.0.0-SNAPSHOT-plain.jar
+D  backend/build/libs/trmdict-1.0.0-SNAPSHOT.jar
+D  backend/build/reports/problems/problems-report.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.common.security.JwtAuthenticationFilterTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.common.security.JwtTokenProviderTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.common.security.SecurityConfigTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.auth.AuthIntegrationTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.auth.controller.AuthControllerTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.auth.repository.AuthRepositoryTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.auth.service.AuthServiceTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.domain.controller.DomainControllerTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.domain.service.DomainServiceTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.forbidden.controller.ForbiddenControllerTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.forbidden.service.ForbiddenServiceJpaTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.forbidden.service.ForbiddenServiceTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.importjob.ImportJobIntegrationTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.importjob.controller.ImportJobControllerTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.importjob.listener.ImportJobRecoveryListenerTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.importjob.parser.CsvImportParserTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.importjob.service.ImportJobServiceTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.word.controller.WordControllerTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.word.service.WordServiceJpaTest.html
+D  backend/build/reports/tests/test/classes/com.devwogns.trmdict.module.word.service.WordServiceTest.html
+D  backend/build/reports/tests/test/css/base-style.css
+D  backend/build/reports/tests/test/css/style.css
+D  backend/build/reports/tests/test/index.html
+D  backend/build/reports/tests/test/js/report.js
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.common.security.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.auth.controller.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.auth.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.auth.repository.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.auth.service.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.domain.controller.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.domain.service.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.forbidden.controller.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.forbidden.service.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.importjob.controller.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.importjob.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.importjob.listener.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.importjob.parser.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.importjob.service.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.word.controller.html
+D  backend/build/reports/tests/test/packages/com.devwogns.trmdict.module.word.service.html
+D  backend/build/resources/main/application-local.yml
+D  backend/build/resources/main/application-prod.yml
+D  backend/build/resources/main/application.yml
+D  backend/build/resources/main/db-ddl/00_common.sql
+D  backend/build/resources/main/db-ddl/01_import.sql
+D  backend/build/resources/main/db-ddl/02_staging.sql
+D  backend/build/resources/main/db-ddl/03_domain.sql
+D  backend/build/resources/main/db-ddl/04_word.sql
+D  backend/build/resources/main/db-ddl/05_term.sql
+D  backend/build/resources/main/db-ddl/06_forbidden.sql
+D  backend/build/resources/main/db-ddl/drop_legacy.sql
+D  backend/build/resources/main/static/assets/DetailPage-CrI8j3bj.js
+D  backend/build/resources/main/static/assets/DetailPanel-Dz-2dn2u.js
+D  backend/build/resources/main/static/assets/DetailView-3DZeGng7.js
+D  backend/build/resources/main/static/assets/DomainListPage-Cn_eVRHy.js
+D  backend/build/resources/main/static/assets/ForbiddenListPage-D9Gt3PHk.js
+D  backend/build/resources/main/static/assets/HomePage-D-TqDgc7.js
+D  backend/build/resources/main/static/assets/LoginPage-DtUczcmP.js
+D  backend/build/resources/main/static/assets/UploadPage-CSrS-Aff.js
+D  backend/build/resources/main/static/assets/WordListPage-DzOFXKX1.js
+D  backend/build/resources/main/static/assets/dialog-CTStrWvh.js
+D  backend/build/resources/main/static/assets/import.model-aYc_o_kL.js
+D  backend/build/resources/main/static/assets/index-B4y4L8IY.css
+D  backend/build/resources/main/static/assets/index-Cvs0wBJo.js
+D  backend/build/resources/main/static/assets/input-ByP3pWMZ.js
+D  backend/build/resources/main/static/assets/queryHelpers-D-w_DsRs.js
+D  backend/build/resources/main/static/assets/useMutation-DQjMPezt.js
+D  backend/build/resources/main/static/assets/xlsx-Bme4aJTu.js
+D  backend/build/resources/main/static/favicon-option1.svg
+D  backend/build/resources/main/static/favicon-option2.svg
+D  backend/build/resources/main/static/favicon-option3.svg
+D  backend/build/resources/main/static/favicon-option4.svg
+D  backend/build/resources/main/static/favicon-option5.svg
+D  backend/build/resources/main/static/favicon-option6.svg
+D  backend/build/resources/main/static/favicon.ico
+D  backend/build/resources/main/static/index.html
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.common.security.JwtAuthenticationFilterTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.common.security.JwtTokenProviderTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.common.security.SecurityConfigTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.auth.AuthIntegrationTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.auth.controller.AuthControllerTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.auth.repository.AuthRepositoryTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.auth.service.AuthServiceTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.domain.controller.DomainControllerTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.domain.service.DomainServiceTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.forbidden.controller.ForbiddenControllerTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.forbidden.service.ForbiddenServiceJpaTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.forbidden.service.ForbiddenServiceTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.importjob.ImportJobIntegrationTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.importjob.controller.ImportJobControllerTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.importjob.listener.ImportJobRecoveryListenerTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.importjob.parser.CsvImportParserTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.importjob.service.ImportJobServiceTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.word.controller.WordControllerTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.word.service.WordServiceJpaTest.xml
+D  backend/build/test-results/test/TEST-com.devwogns.trmdict.module.word.service.WordServiceTest.xml
+D  backend/build/test-results/test/binary/output.bin
+D  backend/build/test-results/test/binary/output.bin.idx
+D  backend/build/test-results/test/binary/results.bin
+D  backend/build/tmp/bootJar/MANIFEST.MF
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ApiResponse.class.uniqueId33
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/AuthController$LoginResponse.class.uniqueId12
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/AuthController$MeResponse.class.uniqueId37
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/AuthController$UserSummary.class.uniqueId14
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/AuthController.class.uniqueId13
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/AuthRepository.class.uniqueId39
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/AuthService$LoginResult.class.uniqueId3
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/AuthService.class.uniqueId6
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/AuthUserEntity.class.uniqueId38
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/AuthUserVo.class.uniqueId27
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/DomainController.class.uniqueId20
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/DomainDtlVo.class.uniqueId34
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/DomainEntity.class.uniqueId41
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/DomainListVo.class.uniqueId42
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/DomainRepository.class.uniqueId21
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/DomainService.class.uniqueId24
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ForbiddenController.class.uniqueId10
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ForbiddenDtlVo.class.uniqueId0
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ForbiddenEntity.class.uniqueId28
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ForbiddenListVo.class.uniqueId7
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ForbiddenRepository.class.uniqueId18
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ForbiddenService.class.uniqueId4
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/GlobalExceptionHandler.class.uniqueId25
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ImportErrorEntity.class.uniqueId9
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ImportErrorRepository.class.uniqueId19
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ImportErrorVo.class.uniqueId36
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ImportHistoryVo.class.uniqueId29
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ImportJobController.class.uniqueId22
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ImportJobEntity.class.uniqueId5
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ImportJobRecoveryListener.class.uniqueId30
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ImportJobRepository.class.uniqueId35
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ImportJobService$ProcessStats.class.uniqueId11
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ImportJobService.class.uniqueId1
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ImportSummaryVo$ImportSummaryVoBuilder.class.uniqueId15
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/ImportSummaryVo.class.uniqueId31
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/PageResponse.class.uniqueId32
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/SecurityConfig.class.uniqueId26
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/WordController.class.uniqueId23
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/WordDtlVo.class.uniqueId8
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/WordEntity.class.uniqueId40
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/WordListVo.class.uniqueId2
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/WordRepository.class.uniqueId17
+D  backend/build/tmp/compileJava/compileTransaction/stash-dir/WordService.class.uniqueId16
+D  backend/build/tmp/compileJava/previous-compilation-data.bin
+D  backend/build/tmp/compileTestJava/previous-compilation-data.bin
+D  backend/build/tmp/jar/MANIFEST.MF
+ M backend/src/main/resources/application.yml
+ D backend/src/main/resources/static/assets/DetailPage-BfZq5g_o.js
+ D backend/src/main/resources/static/assets/DetailView-Df6et0Zi.js
+ D backend/src/main/resources/static/assets/DomainListPage-CrcazImb.js
+ D backend/src/main/resources/static/assets/ForbiddenListPage-CNCi9jJf.js
+ D backend/src/main/resources/static/assets/HomePage-D4Jz-eVH.js
+ D backend/src/main/resources/static/assets/LoginPage-B4FhrDPo.js
+ D backend/src/main/resources/static/assets/UploadPage-DjT4BZPv.js
+ D backend/src/main/resources/static/assets/WordListPage-CSvOmKPq.js
+ D backend/src/main/resources/static/assets/dialog-ZbDnrnyN.js
+ D backend/src/main/resources/static/assets/import.model-CCSYEEWk.js
+ D backend/src/main/resources/static/assets/index-DJUNdVQO.js
+ D backend/src/main/resources/static/assets/index-MWh3yOz2.css
+ D backend/src/main/resources/static/assets/input-DNazaDdq.js
+ D backend/src/main/resources/static/assets/useMutation-CcWx-whw.js
+ D backend/src/main/resources/static/assets/xlsx-Bme4aJTu.js
+ M backend/src/main/resources/static/index.html
+ D docs/component-structure.html
+ M docs/handoff.md
+ D docs/sampleHtml/forbidden-words.html
+ D docs/sampleHtml/index.html
+ D docs/sampleHtml/term-detail.html
+ D docs/sampleHtml/termbase-glossary.html
+ M "docs/superpowers/ygKim/01. system.md"
+ M docs/worklog.md
+ M frontend/.omc/project-memory.json
+ M frontend/.omc/state/last-tool-error.json
+ M frontend/.omc/state/mission-state.json
+ M frontend/.omc/state/subagent-tracking.json
+ M frontend/README.md
+ M frontend/package-lock.json
+ M frontend/package.json
+ M frontend/src/app/router.jsx
+ D frontend/src/favicon.ico
+ M frontend/src/features/auth/LoginPage.jsx
+ D frontend/src/features/domain/DomainDetailDialog.jsx
+ D frontend/src/features/domain/DomainListPage.jsx
+ D frontend/src/features/forbidden/ForbiddenDetailDialog.jsx
+ D frontend/src/features/forbidden/ForbiddenListPage.jsx
+ D frontend/src/features/forbidden/ForbiddenListPage.test.jsx
+ D frontend/src/features/forbidden/forbiddenApi.test.js
+ D frontend/src/features/home/HomePage.jsx
+ D frontend/src/features/home/HomePage.test.jsx
+ D frontend/src/features/import/DetailPage.jsx
+ D frontend/src/features/import/DetailPage.test.jsx
+ D frontend/src/features/import/UploadPage.jsx
+ D frontend/src/features/import/UploadPage.test.jsx
+ D frontend/src/features/import/import.model.test.js
+ D frontend/src/features/word/WordDetailDialog.jsx
+ D frontend/src/features/word/WordListPage.jsx
+ D frontend/src/features/word/WordListPage.test.jsx
+ D frontend/src/features/word/wordApi.test.js
+ D frontend/src/layouts/BlankLayout.test.jsx
+ D frontend/src/layouts/MainLayout.jsx
+ D frontend/src/layouts/MainLayout.test.jsx
+ M frontend/src/layouts/components/LayoutHeader.jsx
+ D frontend/src/layouts/components/SidebarSurface.jsx
+ D frontend/src/layouts/menuItems.js
+ M frontend/src/shared/components/CardList/CardList.jsx
+ M frontend/src/shared/components/DataGrid/DataGrid.jsx
+ D frontend/src/shared/components/DataGrid/DataGrid.test.jsx
+ D frontend/src/shared/components/DetailPanel/DetailPanel.test.jsx
+ D frontend/src/shared/components/EditDrawer/EditDrawer.test.jsx
+ D frontend/src/shared/components/FileUpload/FileUpload.test.jsx
+ M frontend/src/shared/components/SearchForm/SearchForm.jsx
+ D frontend/src/shared/components/SearchForm/SearchForm.test.jsx
+ D frontend/src/shared/components/ThemeToggle/ThemeToggle.test.jsx
+ D frontend/src/shared/components/ui/avatar.jsx
+ D frontend/src/shared/components/ui/avatar.test.jsx
+ M frontend/src/shared/components/ui/button.jsx
+ D frontend/src/shared/components/ui/button.test.jsx
+ M frontend/src/shared/components/ui/card.jsx
+ D frontend/src/shared/components/ui/card.test.jsx
+ D frontend/src/shared/components/ui/dialog.test.jsx
+ D frontend/src/shared/components/ui/scroll-area.jsx
+ D frontend/src/shared/components/ui/scroll-area.test.jsx
+ D frontend/src/shared/components/ui/separator.jsx
+ D frontend/src/shared/components/ui/sheet.test.jsx
+ D frontend/src/shared/components/ui/table.jsx
+ D frontend/src/shared/query/queryHelpers.test.js
+ D frontend/src/store/useAuthStore.test.js
+ D frontend/src/store/useLoadingStore.test.js
+ M frontend/src/styles/globals.css
+ D frontend/src/test-setup.js
+ M frontend/tailwind.config.js
+ M frontend/vite.config.js
+?? .env.example
+?? Dockerfile.legacy
+?? app/
+?? backend/src/main/resources/static/assets/AdminDomainPage-B5i-Oi-I.js
+?? backend/src/main/resources/static/assets/AdminForbiddenPage-C-IRJ3vC.js
+?? backend/src/main/resources/static/assets/AdminWordPage-DUMmZ94x.js
+?? backend/src/main/resources/static/assets/AppHomePage-DfT5M4Q7.js
+?? backend/src/main/resources/static/assets/DashboardPage-B_FOTv78.js
+?? backend/src/main/resources/static/assets/DataManagePage-e65TzapD.js
+?? backend/src/main/resources/static/assets/DomainDetailPage-CfaJwtOv.js
+?? backend/src/main/resources/static/assets/DomainListPage-5rs_mK3g.js
+?? backend/src/main/resources/static/assets/ForbiddenPage-Bnj_VQCx.js
+?? backend/src/main/resources/static/assets/LoginPage-B19Z9yaH.js
+?? backend/src/main/resources/static/assets/McpPage-D_y87A7l.js
+?? backend/src/main/resources/static/assets/SettingsPage-BDsSuSU0.js
+?? backend/src/main/resources/static/assets/StatsPage-DqgsvhBN.js
+?? backend/src/main/resources/static/assets/WordDetailPage-F8_tOsK2.js
+?? backend/src/main/resources/static/assets/WordListPage-BAjCQGHB.js
+?? backend/src/main/resources/static/assets/badge-Emgs5coj.js
+?? backend/src/main/resources/static/assets/card-Ck0SHyzh.js
+?? backend/src/main/resources/static/assets/index-CbMV6Sl3.css
+?? backend/src/main/resources/static/assets/index-CwEidFVZ.js
+?? backend/src/main/resources/static/assets/input-NnuB15Sg.js
+?? backend/src/main/resources/static/assets/label-DkOptKsj.js
+?? backend/src/main/resources/static/assets/select-D2gtJS3G.js
+?? backend/src/main/resources/static/assets/useListPage-mtSV1Mg_.js
+?? backend/src/main/resources/static/assets/useQuery-DaYRza2h.js
+?? docs/plans/2026-05-27-user-admin-split-design.md
+?? docs/plans/2026-05-27-user-admin-split-plan.md
+?? docs/plans/2026-05-27-user-screen-redesign-plan.md
+?? docs/plans/2026-05-27-user-screen-redesign.md
+?? docs/plans/2026-05-29-nextjs-supabase-migration-design.md
+?? docs/plans/2026-05-29-nextjs-supabase-migration-plan.md
+?? docs/sampleHtml/termbase-atlas-project/
+?? docs/superpowers/specs/2026-05-29-auth-supabase-design.md
+?? docs/superpowers/specs/2026-05-29-code-structure-design.md
+?? docs/superpowers/specs/2026-05-29-deployment-design.md
+?? docs/superpowers/specs/2026-05-29-prisma-schema-design.md
+?? docs/superpowers/specs/spec-overview.html
+?? frontend/src/app/AdminRoute.jsx
+?? frontend/src/features/admin/
+?? frontend/src/features/app/
+?? frontend/src/layouts/AdminLayout.jsx
+?? frontend/src/layouts/UserLayout.jsx
+?? frontend/src/layouts/components/AdminSidebar.jsx
+?? frontend/src/layouts/components/UserSidebar.jsx
+?? frontend/src/shared/components/ui/badge.jsx
+?? frontend/src/shared/components/ui/label.jsx
+?? frontend/src/shared/components/ui/select.jsx
+?? next.config.ts
+?? package.json
+?? pnpm-lock.yaml
+?? pnpm-workspace.yaml
+?? postcss.config.mjs
+?? tailwind.config.ts
+?? tsconfig.json

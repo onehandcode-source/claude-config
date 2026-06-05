@@ -1,0 +1,4258 @@
+# C2. 공통 프론트 코어 — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** C2 사이클(3/17) — 후속 모든 프론트 사이클(I1·M-*-R/W·N2)의 화면 골격(login + home placeholder), 인증 흐름(JwtInterceptor / ErrorInterceptor / AuthGuard / AuthService), 5종 공통 컴포넌트(SearchForm / DataGrid+ColumnResize / FileUpload / DetailPanel / EditDrawer), 글로벌 LoadingService를 일체로 박는다. Playwright 자동 E2E 4 시나리오로 검증.
+
+**Architecture:** Angular 15 NgModule(Standalone 미사용) + Material 15(indigo-pink) + Karma/Jasmine 단위 + Playwright(chromium 단일) E2E. F1+ 골격(`core / shared / layouts / auth / features`) 5분할. 토큰은 `localStorage['trmdict_token']`. 401(`AUTH_1002`) → logout + `/login?returnUrl=...`, 403(`COMMON_0003`) → toast + 화면 유지. CI 미도입 — 운영자 로컬 `npm run e2e` 수동 실행.
+
+**Tech Stack:** Angular 15.x, Angular Material 15.x + CDK 15.x, RxJS 7.x, TypeScript 4.9.x, Karma + Jasmine 4.x, Playwright (`@playwright/test`), ESLint (`@angular-eslint`) + Prettier + `eslint-config-prettier`, npm.
+
+**입력 자료:** `docs/cycles/03-c2-frontend-core/spec.md` (commit `bb74e30` master, 본 plan의 단일 출처).
+
+**Stage 구성:** 9 Stage / 23 Task.
+- Stage 0 — 선행 문서 갱신 + 브랜치 분기 (2 Task)
+- Stage 1 — Frontend 골격 부트 (1 Task)
+- Stage 2 — core models + services (4 Task)
+- Stage 3 — interceptors + guards (3 Task)
+- Stage 4 — shared 컴포넌트 5종 + material module (6 Task)
+- Stage 5 — layouts + auth + home + app wiring (3 Task)
+- Stage 6 — Playwright E2E 4 시나리오 (1 Task)
+- Stage 7 — G2-d 검증 게이트 (1 Task)
+- Stage 8 — 사이클 마감 + master 머지 (2 Task)
+
+**브랜치:** `cycles/03-c2-frontend-core` (Stage 0 T02에서 master `bb74e30`에서 분기).
+
+**테스트 카운트 추적:**
+- 시작(master 시점): backend 52/52 그린.
+- C2는 frontend만 추가. backend 테스트 변동 없음.
+- frontend 단위 테스트는 컴포넌트당 3~5 케이스. 총 ~50~60 spec.
+- 검증 게이트(Stage 7)에서 `npm test -- --watch=false --browsers=ChromeHeadless` 그린 + Playwright 4 시나리오 통과.
+
+---
+
+## Stage 0 — 선행 문서 갱신 + 브랜치 분기
+
+### Task 1: master working tree `application.yml` 1줄 변경 처리 (사용자 의도 확인)
+
+> handoff.md §"Working Tree" 명시: `backend/src/main/resources/application.yml`에 `spring.profiles.active: local` 1줄 unstaged 변경. C2 코드 진입 전 의도 확인 후 commit 또는 revert.
+
+**Files:**
+- Modify or Restore: `backend/src/main/resources/application.yml`
+
+- [ ] **Step 1: 변경 내용 확인**
+
+```bash
+git diff backend/src/main/resources/application.yml
+```
+Expected: `+ spring.profiles.active: local` 1줄 추가만 보임 (또는 동등한 1줄 차이).
+
+- [ ] **Step 2: 사용자 의도 확인 (Hard Stop)**
+
+> 다음 메시지를 사용자에게 보낸다:
+>
+> "`backend/src/main/resources/application.yml`에 `spring.profiles.active: local` 1줄이 unstaged로 추가되어 있습니다 (C1 범위 외 변경). 두 가지 옵션이 있습니다:
+> - **A. commit**: 로컬 부트 시 `--spring.profiles.active=local` 인자 생략 가능. 단 prod 부트 시 반드시 `--spring.profiles.active=prod`로 명시 override 필요.
+> - **B. revert**: handoff에 명시된 본래 정책(부트 시 매번 명시 지정) 유지.
+>
+> A / B 중 선택해주세요."
+>
+> 답변에 따라 Step 3 또는 Step 4 진행. 둘 다 master 위에서 작업.
+
+- [ ] **Step 3: (A 선택 시) commit**
+
+```bash
+git add backend/src/main/resources/application.yml
+git commit -m "chore: application.yml — spring.profiles.active=local default 명시"
+```
+
+- [ ] **Step 4: (B 선택 시) revert**
+
+```bash
+git restore backend/src/main/resources/application.yml
+```
+
+- [ ] **Step 5: working tree clean 확인**
+
+```bash
+git status --short
+```
+Expected: `backend/src/main/resources/application.yml`이 결과에서 사라짐. 남는 untracked는 `.claude/settings.local.json` / `docs/prompt.md` 정도(무관).
+
+---
+
+### Task 2: 사이클 브랜치 분기 + Stage 0 문서 일괄 갱신 + status.md 신규
+
+**Files:**
+- Modify: `docs/decisions.md` (3 결정 append)
+- Modify: `docs/handoff.md` (C2 진입 반영)
+- Modify: `docs/worklog.md` (C2 진입 반영)
+- Create: `docs/cycles/03-c2-frontend-core/status.md`
+
+- [ ] **Step 1: master 최신 상태 확인**
+
+```bash
+git checkout master
+git log --oneline -3
+```
+Expected: 가장 위 commit이 `bb74e30 docs(C2): spec.md 초안 — 공통 프론트 코어 사이클 진입`.
+
+- [ ] **Step 2: 사이클 브랜치 분기**
+
+```bash
+git checkout -b cycles/03-c2-frontend-core master
+git status
+```
+Expected: `On branch cycles/03-c2-frontend-core`, `nothing to commit, working tree clean`.
+
+- [ ] **Step 3: `docs/decisions.md` 끝에 3 신규 결정 append**
+
+`docs/decisions.md` 마지막 `---` 다음에 다음 블록을 append:
+
+```markdown
+
+## 2026-05-03 - C2: Frontend 인증 흐름 정책 확정
+
+### Decision
+- 토큰 저장: `localStorage`, 키명 **`trmdict_token`** (단일 문자열, JWT 그대로).
+- 만료/위조 감지 위치: **HTTP 응답 인터셉터(`ErrorInterceptor`) 단일**. 클라이언트 측 사전 만료 타이머 X.
+- 401(`AUTH_1002`): `AuthService.logout()` + Router로 `/login?returnUrl=<현재 URL>` 이동 + toast.
+- 403(`COMMON_0003`): toast + 화면 유지(라우팅 변경 없음).
+- 그 외 `success=false`: toast + 호출자에게 `throwError` 전달.
+- `HttpErrorResponse`(네트워크/5xx, body 무): toast `'서버 통신 오류가 발생했습니다.'` + `throwError`.
+- toast 메커니즘: `MatSnackBar.open(message, '확인', { duration: 4000 })` (래퍼 미작성).
+- refresh 토큰 / 자동 로그인 연장 / 만료 직전 사전 로그아웃 타이머: **1차 비범위** (C0 spec §4.4 준용).
+- `AuthGuard`는 `canActivate` + `canLoad` 모두 지원. 미인증 시 `Router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } })` 반환.
+- `admin.guard`는 1차 ADMIN 전용 라우트 부재로 미생성. 첫 ADMIN 라우트 등장 사이클에서 작성.
+
+### Reason
+- B(클라이언트 만료 타이머)는 탭 sleep / 시계 변경 / 새 탭에서 동기화 안 됨 등 엣지 케이스가 많은데, 401 인터셉터가 어차피 모든 만료 케이스를 잡아냄. 타이머는 "조금 더 친절한 UX"일 뿐 안전 자산은 안 됨.
+- C(`sessionStorage`)는 새 탭마다 재로그인 강제라 운영자/관리자 패턴에 불편. 1차 사용자 수가 적어 보안 이득도 한계.
+- 인터셉터 1개로 끝나면 코드량·테스트 케이스도 적음.
+
+### Alternatives
+- B(인터셉터 + 클라이언트 사전 만료 타이머) — 엣지 케이스 누수.
+- C(`sessionStorage`) — 새 탭마다 재로그인 강제.
+- ConfirmDialog/스낵바 래퍼 컴포넌트 별도 작성 — `MatDialog`/`MatSnackBar` 직접 사용으로 충족.
+
+### Impact
+- C2 사이클 산출물: `core/interceptors/error.interceptor.ts` + `core/services/auth.service.ts` + `core/guards/auth.guard.ts`에 본 정책 코드화.
+- 후속 사이클(I1·M-*-R/W·N2)은 `AuthService`·인터셉터 동작을 그대로 인용.
+
+---
+
+## 2026-05-03 - C2: 자동 E2E 도구 채택 — Playwright (chromium 단일)
+
+### Decision
+- 1차 자동 E2E 도구는 **Playwright** (`@playwright/test`, MIT, Microsoft 유지).
+- 브라우저: **chromium 단일** (firefox/webkit 1차 비범위).
+- 시나리오 위치: `frontend/e2e/auth.spec.ts` (4 시나리오 — 로그인 성공/실패/JWT 만료 redirect/AuthGuard 차단).
+- 실행 정책: **로컬 `npm run e2e` 수동 실행**. CI 자동 실행 미도입(`code-structure-design.md` §7 준용).
+- 운영자 사전 조건: backend `--profiles=local` 부트 + frontend `npm start` (4200) 동시 가동.
+
+### Reason
+- Cypress(C-Cy 안)는 번들 ~200MB로 크고 chromium 계열 1종만 지원. Playwright는 ~50MB + 멀티브라우저(필요 시 후속 확장 용이) + API 단순.
+- B(수동 시나리오 체크리스트)는 회귀 추적 비용 큼. Playwright 시나리오 파일은 4개 사이클 후 도래할 모듈 사이클(M-D-R 등)에서도 시나리오 추가만으로 회귀 자동화 가능.
+- C(CI 자동 실행)는 1차 비범위 정책과 충돌. 시나리오 파일까지만 작성하고 trigger는 운영자 수동.
+
+### Alternatives
+- C-Cy(Cypress) — 번들 큼.
+- B(수동 시나리오) — 회귀 추적 비용.
+- C(CI 자동 실행) — 1차 정책 위반.
+
+### Impact
+- C2 산출물: `frontend/playwright.config.ts` + `frontend/e2e/auth.spec.ts` + `package.json` script `e2e`.
+- 후속 사이클은 `frontend/e2e/{module}.spec.ts` 추가로 회귀 시나리오 누적.
+
+---
+
+## 2026-05-03 - C2: Material prebuilt theme 채택 — indigo-pink
+
+### Decision
+- Angular Material 15의 prebuilt theme 중 **indigo-pink** 채택.
+- import 경로: `@angular/material/prebuilt-themes/indigo-pink.css` (`styles.scss`에서 import).
+- 다크 테마 / 컬러 토큰 사용자 정의는 1차 비범위.
+
+### Reason
+- 가장 보편적, 행정 도메인(공공표준 사전)에 무난한 중성 톤.
+- prebuilt theme 사용은 `ng add @angular/material@15 --theme=indigo-pink`로 한 줄 도입 가능.
+- 커스텀 theme 작성은 1차에서 가치 대비 비용 큼.
+
+### Alternatives
+- deeppurple-amber / pink-bluegrey / purple-green — 행정 도메인에 톤이 무거움.
+- 커스텀 theme — 1차 과사양.
+
+### Impact
+- `styles.scss`에 `@import '@angular/material/prebuilt-themes/indigo-pink.css';` 1줄.
+- 후속 사이클(M-*-R 등)은 본 theme 토큰을 그대로 사용. 색상 변경이 필요하면 별도 사이클로 분기.
+
+---
+```
+
+- [ ] **Step 4: `docs/handoff.md` 갱신 — C2 진입 반영**
+
+다음 항목들을 갱신:
+1. "다음 세션 시작 가이드" §2를 갱신: C0/C1/C2 spec 모두 master에 commit, plan 진행 중. 다음 액션 = "C2 plan 단계 진행 중" 또는 plan 완료 후 머지.
+2. "Current Goal": `**C2 사이클(공통 프론트 코어) plan 진행 중**. spec commit bb74e30, 사이클 브랜치 cycles/03-c2-frontend-core 분기 완료. 9 Stage / 23 Task.`로 갱신.
+3. "In Progress" 섹션에 "C2 사이클 진행 중 — 단계별 status.md 추적" 추가.
+4. "Next Steps" 섹션 §2를 "C2 plan 진행 (Stage 1 ~ Stage 8 순차)"로 변경.
+5. "Done (2026-05-03)" 끝에 다음 항목 추가:
+   - `C2 spec(docs/cycles/03-c2-frontend-core/spec.md) 작성 완료 — 9 §섹션 / 528 lines / commit bb74e30 (master)`
+   - `C2 사이클 브랜치 cycles/03-c2-frontend-core 분기 (master에서)`
+   - `decisions.md에 C2 결정 3건 등재 (Frontend 인증 흐름 / Playwright / Material indigo-pink)`
+6. "Working Tree" 섹션을 정리: application.yml 항목은 Task 1 결과에 따라 갱신 (commit 됐으면 삭제, revert 됐으면 "정리 완료"로). master HEAD는 Task 1 결과에 따라 갱신.
+
+- [ ] **Step 5: `docs/worklog.md` 갱신 — C2 진입 반영**
+
+다음 항목들을 갱신:
+1. "Current Status" 끝에 추가: "C2(frontend-core) 사이클 진입 — 브랜치 분기 완료, decisions 3 결정 등재, plan 진행 중."
+2. "Today (2026-05-03)" 끝에 추가:
+   - `C2 사이클 spec/plan 작성 진입 — 9 Stage / 23 Task`
+   - `decisions.md C2 3 결정 등재 (Frontend 인증 / Playwright / Material indigo-pink)`
+   - `사이클 브랜치 cycles/03-c2-frontend-core 분기 (master bb74e30에서)`
+3. "In Progress" 섹션을 "C2 사이클 진행 중 (Stage 0 일괄 완료, Stage 1 진입 대기)"로 갱신.
+4. "Next" 섹션 §1을 "C2 Stage 1 ~ Stage 8 순차 진행"으로 갱신. §2는 그대로.
+5. "Recent Changes" 끝에 "C2 spec 작성 완료(bb74e30) + 사이클 브랜치 분기 + decisions 3 결정 등재" 추가.
+6. "TODO (Short-term)"을 "C2 사이클 단계별 진행 + 마감 시 master 머지"로 갱신.
+
+- [ ] **Step 6: `docs/cycles/03-c2-frontend-core/status.md` 신규 생성**
+
+```markdown
+# C2. 공통 프론트 코어 - 작업 진행 상태
+
+## 현재 단계: [Stage 0] 선행 문서 갱신 + 브랜치 분기
+**완료 일시**: YYYY-MM-DD HH:MM (실제 완료 시각으로 채움)
+
+### ✅ 완료된 작업 내용
+* [Stage 0] 선행 문서 갱신 + 브랜치 분기
+  - master working tree application.yml 처리 완료 (Task 1)
+  - 사이클 브랜치 cycles/03-c2-frontend-core 분기 완료
+  - decisions.md C2 결정 3건 등재 (Frontend 인증 / Playwright / Material indigo-pink)
+  - handoff.md / worklog.md C2 진입 반영
+  - status.md 신규 생성
+
+### 📋 완료된 파일/코드
+* [Stage 0]
+  - docs/decisions.md (append 3 결정)
+  - docs/handoff.md (C2 진입 반영)
+  - docs/worklog.md (C2 진입 반영)
+  - docs/cycles/03-c2-frontend-core/status.md (본 파일 신규)
+
+### 📋 작업 단계별 사용자 검토 포인트
+* [Stage 0]
+  - working tree application.yml 처리 결과 (commit/revert) 확인
+  - 사이클 브랜치 분기 시점 확인 (master bb74e30)
+
+### ⏭️ 다음 단계
+**다음 작업**: [Stage 1] Frontend 골격 부트 (Angular CLI + Material + ESLint/Prettier/Playwright + proxy.conf)
+**예상 소요 시간**: 30~60분 (npm install 시간 포함)
+**필수 입력사항**: Node.js 18.x 이상 + npm 9.x 이상 가용 + 인터넷 연결 (npm registry)
+```
+
+- [ ] **Step 7: 정적 검증**
+
+```bash
+grep -c "## 2026-05-03 - C2:" docs/decisions.md
+```
+Expected: `3`.
+
+```bash
+ls docs/cycles/03-c2-frontend-core/status.md
+```
+Expected: 파일 존재.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add docs/decisions.md docs/handoff.md docs/worklog.md docs/cycles/03-c2-frontend-core/status.md
+git commit -m "docs(C2): Stage 0 — decisions 3 결정 + handoff/worklog/status 일괄 갱신"
+```
+
+---
+
+## Stage 1 — Frontend 골격 부트
+
+### Task 3: Angular CLI 부트 + Material + ESLint/Prettier/Playwright + proxy.conf + 부트 검증
+
+> 본 Task는 step이 많지만 모두 한 PR(commit) 단위로 묶는다. 각 step 직후 다음 step 전에 부트 검증을 위해 `npm run build` / `npm test` / `npm start`를 한 번씩 돌린다.
+
+**Files:**
+- Create: `frontend/` 전체 (Angular CLI 산출물)
+- Modify: `frontend/package.json` (deps + scripts 추가)
+- Modify: `frontend/angular.json` (proxy.conf 등록)
+- Modify: `frontend/src/styles.scss` (Material theme import + 글로벌 토큰)
+- Modify: `frontend/src/environments/environment.ts` (apiBaseUrl 설정)
+- Create: `frontend/proxy.conf.json`
+- Create: `frontend/playwright.config.ts`
+- Create: `frontend/.eslintrc.json` / `frontend/.prettierrc` / `frontend/.prettierignore`
+
+- [ ] **Step 1: Angular CLI 15 글로벌 설치 (가용성 확인)**
+
+```bash
+npm install -g @angular/cli@15
+ng version
+```
+Expected: `Angular CLI: 15.x.x` 출력. 이미 설치돼 있으면 Step 2로.
+
+- [ ] **Step 2: `ng new`로 frontend 골격 생성**
+
+```bash
+ng new frontend --routing --style=scss --skip-git --strict --skip-install
+```
+Expected: `frontend/` 디렉터리 생성, `package.json` / `angular.json` / `tsconfig*.json` / `src/app/app.module.ts` / `src/app/app-routing.module.ts` / `src/app/app.component.{html,ts,scss}` 등 자동 생성. `--skip-git`은 backend와 같은 repo이므로 nested .git 생성 방지. `--skip-install`은 이후 한 번에 install.
+
+- [ ] **Step 3: `frontend/` 진입 후 의존성 install**
+
+```bash
+cd frontend
+npm install
+```
+Expected: `node_modules/` 생성, `package-lock.json` 생성, 0 errors. 약 1~3분 소요.
+
+- [ ] **Step 4: Angular Material 15 추가 (indigo-pink theme)**
+
+```bash
+ng add @angular/material@15 --theme=indigo-pink --typography=true --animations=true --skip-confirmation
+```
+Expected: `package.json`에 `@angular/material` / `@angular/cdk` 추가, `src/styles.scss`에 `@import '@angular/material/prebuilt-themes/indigo-pink.css';` 자동 추가, `src/index.html`에 Roboto/Material Icons 폰트 link 추가, `src/app/app.module.ts`에 `BrowserAnimationsModule` import 자동 추가.
+
+- [ ] **Step 5: `@angular-eslint` schematics 추가**
+
+```bash
+ng add @angular-eslint/schematics --skip-confirmation
+```
+Expected: `.eslintrc.json` 생성, `package.json`에 `@angular-eslint/builder` / `@angular-eslint/eslint-plugin` / `eslint` 등 dev 의존성 추가, `angular.json`에 `lint` builder 등록. `npm run lint` 사용 가능해짐.
+
+- [ ] **Step 6: Prettier + eslint-config-prettier 추가 + 설정**
+
+```bash
+npm install --save-dev prettier eslint-config-prettier
+```
+
+`frontend/.prettierrc` 신규:
+
+```json
+{
+  "tabWidth": 4,
+  "useTabs": false,
+  "printWidth": 120,
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "bracketSpacing": true
+}
+```
+
+`frontend/.prettierignore` 신규:
+
+```
+node_modules
+dist
+.angular
+coverage
+playwright-report
+test-results
+```
+
+`frontend/.eslintrc.json`의 `overrides` 안에서 첫 번째 항목(`.ts` 파일 룰)의 `extends` 배열 끝에 `"prettier"`를 추가하여 충돌 회피:
+
+기존:
+```jsonc
+{
+  "root": true,
+  ...
+  "overrides": [
+    {
+      "files": ["*.ts"],
+      "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:@angular-eslint/recommended",
+        "plugin:@angular-eslint/template/process-inline-templates"
+      ],
+      "rules": { ... }
+    },
+    ...
+  ]
+}
+```
+
+변경 후:
+```jsonc
+{
+  "root": true,
+  ...
+  "overrides": [
+    {
+      "files": ["*.ts"],
+      "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:@angular-eslint/recommended",
+        "plugin:@angular-eslint/template/process-inline-templates",
+        "prettier"
+      ],
+      "rules": { ... }
+    },
+    ...
+  ]
+}
+```
+
+- [ ] **Step 7: `package.json` scripts 추가**
+
+기존 `scripts` 영역에 다음 5개 추가:
+```jsonc
+"scripts": {
+  "ng": "ng serve",
+  "start": "ng serve --proxy-config proxy.conf.json",
+  "build": "ng build",
+  "watch": "ng build --watch --configuration development",
+  "test": "ng test",
+  "lint": "ng lint",
+  "format": "prettier --write \"src/**/*.{ts,html,scss,json}\" \"e2e/**/*.{ts,json}\"",
+  "format:check": "prettier --check \"src/**/*.{ts,html,scss,json}\" \"e2e/**/*.{ts,json}\"",
+  "e2e": "playwright test"
+}
+```
+
+> `start`에 `--proxy-config proxy.conf.json` 추가가 핵심. `test` / `build` / `lint`는 `ng new`가 기본 등록한 것을 유지.
+
+- [ ] **Step 8: `proxy.conf.json` 신규**
+
+`frontend/proxy.conf.json`:
+
+```json
+{
+  "/api": {
+    "target": "http://localhost:8080",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info"
+  }
+}
+```
+
+- [ ] **Step 9: `environments/environment.ts` 갱신**
+
+`frontend/src/environments/environment.ts`:
+
+```typescript
+export const environment = {
+    production: false,
+    apiBaseUrl: '/api'
+};
+```
+
+`frontend/src/environments/environment.prod.ts` (운영 배포 시점에 결정):
+
+```typescript
+export const environment = {
+    production: true,
+    apiBaseUrl: '/api'
+};
+```
+
+> Angular CLI 15 strict 모드에서는 `environments/` 폴더가 자동 생성되지 않을 수 있다. 없으면 위 두 파일을 수동 생성한다. `angular.json`의 `fileReplacements`에서 production 빌드 시 `environment.ts` → `environment.prod.ts`로 치환되도록 자동 등록되어 있는지 확인하고, 없으면 `architect.build.configurations.production.fileReplacements`에 다음 추가:
+>
+> ```json
+> "fileReplacements": [
+>   {
+>     "replace": "src/environments/environment.ts",
+>     "with": "src/environments/environment.prod.ts"
+>   }
+> ]
+> ```
+
+- [ ] **Step 10: Playwright 추가 + chromium 설치**
+
+```bash
+npm install --save-dev @playwright/test
+npx playwright install chromium
+```
+Expected: `node_modules/@playwright/test` 설치 + chromium 바이너리 다운로드 (약 100~150MB).
+
+`frontend/playwright.config.ts` 신규:
+
+```typescript
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+    testDir: './e2e',
+    fullyParallel: false,
+    forbidOnly: !!process.env.CI,
+    retries: 0,
+    workers: 1,
+    reporter: 'list',
+    use: {
+        baseURL: 'http://localhost:4200',
+        trace: 'on-first-retry',
+        screenshot: 'only-on-failure',
+    },
+    projects: [
+        {
+            name: 'chromium',
+            use: { ...devices['Desktop Chrome'] },
+        },
+    ],
+});
+```
+
+`frontend/e2e/` 빈 디렉터리 생성:
+
+```bash
+mkdir -p frontend/e2e
+```
+
+> 실제 시나리오 파일 `auth.spec.ts`는 Stage 6에서 작성.
+
+- [ ] **Step 11: `styles.scss` 글로벌 토큰 추가**
+
+`frontend/src/styles.scss`의 Material theme import 다음에 다음 글로벌 reset/토큰을 append:
+
+```scss
+/* Global reset / tokens */
+html, body { height: 100%; margin: 0; }
+body {
+    font-family: Roboto, "Helvetica Neue", sans-serif;
+    background: #fafafa;
+    color: rgba(0, 0, 0, 0.87);
+}
+
+* {
+    box-sizing: border-box;
+}
+```
+
+- [ ] **Step 12: `.gitignore` 보완 (frontend 루트)**
+
+`frontend/.gitignore`는 `ng new`가 자동 생성. 다음이 포함되어 있는지 확인하고 없으면 추가:
+
+```
+node_modules/
+dist/
+.angular/
+coverage/
+playwright-report/
+test-results/
+```
+
+> repo 루트의 `.gitignore`에 이미 `node_modules/`가 있을 수 있다. 중복돼도 무방.
+
+- [ ] **Step 13: 빌드 검증**
+
+```bash
+npm run build
+```
+Expected: `BUILD SUCCESS` 또는 `Compiled successfully`. `frontend/dist/frontend/` 산출물 생성. 0 errors.
+
+- [ ] **Step 14: 단위 테스트 검증 (`ng new`이 만든 default `app.component.spec.ts`)**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: `ng new`이 자동 생성한 3 default test (`app.component.spec.ts`) 그린. `Tests run: 3, Failures: 0` 또는 동등 출력.
+
+> ChromeHeadless가 없으면 `npm install --save-dev karma-chrome-launcher`로 추가 후 재실행. Angular CLI 15는 기본 포함이지만 환경에 따라 확인 필요.
+
+- [ ] **Step 15: lint 검증**
+
+```bash
+npm run lint
+```
+Expected: `All files pass linting.` 0 errors. (`ng new`이 자동 생성한 코드는 ESLint 룰 통과.)
+
+- [ ] **Step 16: format 검증**
+
+```bash
+npm run format:check
+```
+Expected: 모든 파일 통과 또는 일부 실패 → `npm run format` 실행 후 재검증.
+
+- [ ] **Step 17: 부트 smoke (수동)**
+
+별도 터미널에서:
+```bash
+npm start
+```
+
+브라우저에서 `http://localhost:4200` 접속:
+- Angular default 페이지("Welcome ...") 렌더 (이후 단계에서 교체).
+- 콘솔 에러 부재.
+- Material 폰트(Roboto) 로딩.
+
+확인 후 Ctrl+C로 종료.
+
+- [ ] **Step 18: Commit**
+
+```bash
+git add frontend/
+git commit -m "feat(C2): Frontend 골격 부트 — Angular 15 + Material(indigo-pink) + ESLint/Prettier/Playwright + proxy.conf"
+```
+
+---
+
+## Stage 2 — core models + services
+
+### Task 4: `core/models/*` 클라이언트 타입 정의
+
+> 인터페이스만 — 단위 테스트 없음 (타입은 컴파일러가 검증).
+
+**Files:**
+- Create: `frontend/src/app/core/models/api-response.model.ts`
+- Create: `frontend/src/app/core/models/page-response.model.ts`
+- Create: `frontend/src/app/core/models/user.model.ts`
+
+- [ ] **Step 1: `api-response.model.ts`**
+
+```typescript
+export interface ApiResponse<T> {
+    success: boolean;
+    code: string;
+    message: string;
+    data: T | null;
+    timestamp: string;
+}
+```
+
+- [ ] **Step 2: `page-response.model.ts`**
+
+```typescript
+export interface PageResponse<T> {
+    items: T[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+}
+```
+
+- [ ] **Step 3: `user.model.ts`**
+
+```typescript
+export type Role = 'USER' | 'ADMIN';
+
+export interface User {
+    id: number;
+    username: string;
+    name: string;
+    email: string | null;
+    role: Role;
+}
+
+export interface LoginRequest {
+    username: string;
+    password: string;
+}
+
+export interface LoginResponse {
+    accessToken: string;
+    tokenType: 'Bearer';
+    expiresIn: number;
+    user: User;
+}
+```
+
+- [ ] **Step 4: 빌드·lint 검증**
+
+```bash
+cd frontend
+npm run build
+npm run lint
+```
+Expected: 0 errors.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add frontend/src/app/core/models/
+git commit -m "feat(C2): core/models — ApiResponse / PageResponse / User / LoginRequest / LoginResponse"
+```
+
+---
+
+### Task 5: `LoadingService` (TDD)
+
+**Files:**
+- Create: `frontend/src/app/core/services/loading.service.ts`
+- Create: `frontend/src/app/core/services/loading.service.spec.ts`
+
+- [ ] **Step 1: 테스트 파일 먼저 (failing)**
+
+`frontend/src/app/core/services/loading.service.spec.ts`:
+
+```typescript
+import { TestBed } from '@angular/core/testing';
+import { firstValueFrom } from 'rxjs';
+import { LoadingService } from './loading.service';
+
+describe('LoadingService', () => {
+    let service: LoadingService;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+        service = TestBed.inject(LoadingService);
+    });
+
+    it('should start with isLoading$ = false', async () => {
+        await expectAsync(firstValueFrom(service.isLoading$)).toBeResolvedTo(false);
+    });
+
+    it('should emit true after start() and false after matching stop()', async () => {
+        const states: boolean[] = [];
+        const sub = service.isLoading$.subscribe((v) => states.push(v));
+
+        service.start();
+        service.stop();
+
+        sub.unsubscribe();
+        expect(states).toEqual([false, true, false]);
+    });
+
+    it('should remain true while count > 0 (nested start)', async () => {
+        const states: boolean[] = [];
+        const sub = service.isLoading$.subscribe((v) => states.push(v));
+
+        service.start();
+        service.start();
+        service.stop();
+        // 카운트가 1 → still true
+        sub.unsubscribe();
+        expect(states[states.length - 1]).toBe(true);
+    });
+
+    it('should defend against negative count (extra stop) — clamped to 0', async () => {
+        service.stop();
+        service.stop();
+        await expectAsync(firstValueFrom(service.isLoading$)).toBeResolvedTo(false);
+
+        service.start();
+        await expectAsync(firstValueFrom(service.isLoading$)).toBeResolvedTo(true);
+    });
+});
+```
+
+- [ ] **Step 2: 테스트 실행 → 실패 확인**
+
+```bash
+cd frontend
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/loading.service.spec.ts'
+```
+Expected: `Cannot find module './loading.service'` 또는 컴파일 에러로 fail. 의도된 fail.
+
+- [ ] **Step 3: `loading.service.ts` 구현**
+
+```typescript
+import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable, distinctUntilChanged, map } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class LoadingService {
+    private readonly count$ = new BehaviorSubject<number>(0);
+
+    readonly isLoading$: Observable<boolean> = this.count$.pipe(
+        map((c) => c > 0),
+        distinctUntilChanged()
+    );
+
+    start(): void {
+        this.count$.next(this.count$.value + 1);
+    }
+
+    stop(): void {
+        const next = Math.max(0, this.count$.value - 1);
+        this.count$.next(next);
+    }
+}
+```
+
+- [ ] **Step 4: 테스트 실행 → 통과 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/loading.service.spec.ts'
+```
+Expected: `Tests: 4, Failures: 0`. 그린.
+
+- [ ] **Step 5: 전체 단위 테스트 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 0 failures. (default `app.component.spec.ts` 3 + `loading.service.spec.ts` 4 = 7 또는 동등.)
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add frontend/src/app/core/services/loading.service.ts \
+        frontend/src/app/core/services/loading.service.spec.ts
+git commit -m "feat(C2): LoadingService — 누적 카운트 BehaviorSubject (TDD, 4 cases)"
+```
+
+---
+
+### Task 6: `ApiService` (TDD — `unwrap` 헬퍼)
+
+**Files:**
+- Create: `frontend/src/app/core/services/api.service.ts`
+- Create: `frontend/src/app/core/services/api.service.spec.ts`
+
+- [ ] **Step 1: 테스트 파일 먼저 (failing)**
+
+`frontend/src/app/core/services/api.service.spec.ts`:
+
+```typescript
+import { TestBed } from '@angular/core/testing';
+import { firstValueFrom, of, throwError } from 'rxjs';
+import { ApiService } from './api.service';
+import { ApiResponse } from '../models/api-response.model';
+
+describe('ApiService', () => {
+    let service: ApiService;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+        service = TestBed.inject(ApiService);
+    });
+
+    it('unwrap() should extract data from success response', async () => {
+        const res: ApiResponse<{ id: number }> = {
+            success: true,
+            code: 'SUCCESS',
+            message: 'OK',
+            data: { id: 42 },
+            timestamp: '2026-05-03T12:00:00.000+09:00',
+        };
+        const result = await firstValueFrom(service.unwrap(of(res)));
+        expect(result).toEqual({ id: 42 });
+    });
+
+    it('unwrap() should throw with code+message when success=false', async () => {
+        const res: ApiResponse<unknown> = {
+            success: false,
+            code: 'COMMON_0002',
+            message: '요청 처리 중 오류가 발생했습니다.',
+            data: null,
+            timestamp: '2026-05-03T12:00:00.000+09:00',
+        };
+        await expectAsync(firstValueFrom(service.unwrap(of(res)))).toBeRejectedWithError(
+            /COMMON_0002/
+        );
+    });
+});
+```
+
+- [ ] **Step 2: 테스트 실행 → 실패 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/api.service.spec.ts'
+```
+Expected: 컴파일 에러로 fail (구현 부재). 의도된 fail.
+
+- [ ] **Step 3: `api.service.ts` 구현**
+
+```typescript
+import { Injectable } from '@angular/core';
+import { Observable, map } from 'rxjs';
+import { ApiResponse } from '../models/api-response.model';
+
+@Injectable({ providedIn: 'root' })
+export class ApiService {
+    unwrap<T>(res$: Observable<ApiResponse<T>>): Observable<T> {
+        return res$.pipe(
+            map((res) => {
+                if (!res.success) {
+                    throw new Error(`${res.code}: ${res.message}`);
+                }
+                return res.data as T;
+            })
+        );
+    }
+}
+```
+
+- [ ] **Step 4: 테스트 실행 → 통과 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/api.service.spec.ts'
+```
+Expected: `Tests: 2, Failures: 0`.
+
+- [ ] **Step 5: 전체 단위 테스트 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 누적 9 (3+4+2). 0 failures.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add frontend/src/app/core/services/api.service.ts \
+        frontend/src/app/core/services/api.service.spec.ts
+git commit -m "feat(C2): ApiService — ApiResponse<T> 해체 unwrap 헬퍼 (TDD, 2 cases)"
+```
+
+---
+
+### Task 7: `AuthService` + `core.module.ts` (TDD)
+
+**Files:**
+- Create: `frontend/src/app/core/services/auth.service.ts`
+- Create: `frontend/src/app/core/services/auth.service.spec.ts`
+- Create: `frontend/src/app/core/core.module.ts`
+
+- [ ] **Step 1: 테스트 파일 먼저 (failing)**
+
+`frontend/src/app/core/services/auth.service.spec.ts`:
+
+```typescript
+import { TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { firstValueFrom } from 'rxjs';
+import { AuthService } from './auth.service';
+import { ApiResponse } from '../models/api-response.model';
+import { LoginResponse, User } from '../models/user.model';
+import { environment } from '../../../environments/environment';
+
+const STORAGE_KEY = 'trmdict_token';
+
+describe('AuthService', () => {
+    let service: AuthService;
+    let httpMock: HttpTestingController;
+
+    beforeEach(() => {
+        localStorage.removeItem(STORAGE_KEY);
+        TestBed.configureTestingModule({
+            imports: [HttpClientTestingModule],
+        });
+        service = TestBed.inject(AuthService);
+        httpMock = TestBed.inject(HttpTestingController);
+    });
+
+    afterEach(() => {
+        httpMock.verify();
+        localStorage.removeItem(STORAGE_KEY);
+    });
+
+    it('login() success should store token and update me$', async () => {
+        const fakeUser: User = {
+            id: 1,
+            username: 'admin',
+            name: '로컬관리자',
+            email: null,
+            role: 'ADMIN',
+        };
+        const loginPromise = firstValueFrom(
+            service.login({ username: 'admin', password: 'Admin123!' })
+        );
+
+        const req = httpMock.expectOne(`${environment.apiBaseUrl}/v1/auth/login`);
+        expect(req.request.method).toBe('POST');
+        const fakeRes: ApiResponse<LoginResponse> = {
+            success: true,
+            code: 'SUCCESS',
+            message: 'OK',
+            data: {
+                accessToken: 'jwt-token-xyz',
+                tokenType: 'Bearer',
+                expiresIn: 28800,
+                user: fakeUser,
+            },
+            timestamp: '2026-05-03T12:00:00.000+09:00',
+        };
+        req.flush(fakeRes);
+
+        const user = await loginPromise;
+        expect(user).toEqual(fakeUser);
+        expect(service.token).toBe('jwt-token-xyz');
+        expect(service.isAuthenticated).toBe(true);
+        expect(localStorage.getItem(STORAGE_KEY)).toBe('jwt-token-xyz');
+
+        const meEmitted = await firstValueFrom(service.me$);
+        expect(meEmitted).toEqual(fakeUser);
+    });
+
+    it('logout() should clear token and emit null on me$', async () => {
+        localStorage.setItem(STORAGE_KEY, 'existing-token');
+        // 새 service 인스턴스로 부트 흐름 재현
+        const fresh = TestBed.inject(AuthService);
+        // 초기 상태에선 me$ 미로딩 — null
+        expect(fresh.token).toBe('existing-token');
+
+        fresh.logout();
+        expect(fresh.token).toBeNull();
+        expect(fresh.isAuthenticated).toBe(false);
+        expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+        const me = await firstValueFrom(fresh.me$);
+        expect(me).toBeNull();
+    });
+
+    it('loadMe() should call GET /api/v1/auth/me and update me$', async () => {
+        localStorage.setItem(STORAGE_KEY, 'existing-token');
+        const fakeUser: User = {
+            id: 2,
+            username: 'user',
+            name: '로컬일반사용자',
+            email: null,
+            role: 'USER',
+        };
+        const promise = firstValueFrom(service.loadMe());
+        const req = httpMock.expectOne(`${environment.apiBaseUrl}/v1/auth/me`);
+        expect(req.request.method).toBe('GET');
+        const fakeRes: ApiResponse<User> = {
+            success: true,
+            code: 'SUCCESS',
+            message: 'OK',
+            data: fakeUser,
+            timestamp: '2026-05-03T12:00:00.000+09:00',
+        };
+        req.flush(fakeRes);
+
+        const user = await promise;
+        expect(user).toEqual(fakeUser);
+        const meEmitted = await firstValueFrom(service.me$);
+        expect(meEmitted).toEqual(fakeUser);
+    });
+});
+```
+
+- [ ] **Step 2: 테스트 실행 → 실패 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/auth.service.spec.ts'
+```
+Expected: 컴파일 에러로 fail. 의도된 fail.
+
+- [ ] **Step 3: `auth.service.ts` 구현**
+
+```typescript
+import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable, map, tap } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { ApiResponse } from '../models/api-response.model';
+import { LoginRequest, LoginResponse, User } from '../models/user.model';
+
+const STORAGE_KEY = 'trmdict_token';
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+    private readonly meSubject = new BehaviorSubject<User | null>(null);
+    readonly me$: Observable<User | null> = this.meSubject.asObservable();
+
+    constructor(private readonly http: HttpClient) {}
+
+    get token(): string | null {
+        return localStorage.getItem(STORAGE_KEY);
+    }
+
+    get isAuthenticated(): boolean {
+        return this.token !== null;
+    }
+
+    login(req: LoginRequest): Observable<User> {
+        return this.http
+            .post<ApiResponse<LoginResponse>>(`${environment.apiBaseUrl}/v1/auth/login`, req)
+            .pipe(
+                map((res) => {
+                    if (!res.success || !res.data) {
+                        throw new Error(`${res.code}: ${res.message}`);
+                    }
+                    return res.data;
+                }),
+                tap((data) => {
+                    localStorage.setItem(STORAGE_KEY, data.accessToken);
+                    this.meSubject.next(data.user);
+                }),
+                map((data) => data.user)
+            );
+    }
+
+    logout(): void {
+        localStorage.removeItem(STORAGE_KEY);
+        this.meSubject.next(null);
+    }
+
+    loadMe(): Observable<User> {
+        return this.http
+            .get<ApiResponse<User>>(`${environment.apiBaseUrl}/v1/auth/me`)
+            .pipe(
+                map((res) => {
+                    if (!res.success || !res.data) {
+                        throw new Error(`${res.code}: ${res.message}`);
+                    }
+                    return res.data;
+                }),
+                tap((user) => this.meSubject.next(user))
+            );
+    }
+}
+```
+
+- [ ] **Step 4: `core.module.ts` 신규**
+
+```typescript
+import { CommonModule } from '@angular/common';
+import { HttpClientModule } from '@angular/common/http';
+import { NgModule, Optional, SkipSelf } from '@angular/core';
+
+@NgModule({
+    imports: [CommonModule, HttpClientModule],
+    exports: [HttpClientModule],
+})
+export class CoreModule {
+    constructor(@Optional() @SkipSelf() parent?: CoreModule) {
+        if (parent) {
+            throw new Error('CoreModule must be imported only in AppModule.');
+        }
+    }
+}
+```
+
+> 인터셉터·가드는 `@Injectable({ providedIn: 'root' })` 또는 추후 Stage 3에서 `HTTP_INTERCEPTORS` provider로 등록. CoreModule 자체는 가벼운 fail-fast guard.
+
+- [ ] **Step 5: 테스트 실행 → 통과 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/auth.service.spec.ts'
+```
+Expected: `Tests: 3, Failures: 0`.
+
+- [ ] **Step 6: 전체 단위 테스트 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 누적 12 (default 3 + LoadingService 4 + ApiService 2 + AuthService 3). 0 failures.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add frontend/src/app/core/services/auth.service.ts \
+        frontend/src/app/core/services/auth.service.spec.ts \
+        frontend/src/app/core/core.module.ts
+git commit -m "feat(C2): AuthService + CoreModule — login/logout/me$/loadMe (TDD, 3 cases)"
+```
+
+---
+
+## Stage 3 — interceptors + guards
+
+### Task 8: `JwtInterceptor` (TDD)
+
+**Files:**
+- Create: `frontend/src/app/core/interceptors/jwt.interceptor.ts`
+- Create: `frontend/src/app/core/interceptors/jwt.interceptor.spec.ts`
+
+- [ ] **Step 1: 테스트 파일 먼저 (failing)**
+
+`frontend/src/app/core/interceptors/jwt.interceptor.spec.ts`:
+
+```typescript
+import { HTTP_INTERCEPTORS, HttpClient } from '@angular/common/http';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { JwtInterceptor } from './jwt.interceptor';
+import { LoadingService } from '../services/loading.service';
+import { environment } from '../../../environments/environment';
+
+const STORAGE_KEY = 'trmdict_token';
+
+describe('JwtInterceptor', () => {
+    let http: HttpClient;
+    let httpMock: HttpTestingController;
+    let loading: LoadingService;
+
+    beforeEach(() => {
+        localStorage.removeItem(STORAGE_KEY);
+        TestBed.configureTestingModule({
+            imports: [HttpClientTestingModule],
+            providers: [{ provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true }],
+        });
+        http = TestBed.inject(HttpClient);
+        httpMock = TestBed.inject(HttpTestingController);
+        loading = TestBed.inject(LoadingService);
+    });
+
+    afterEach(() => {
+        httpMock.verify();
+        localStorage.removeItem(STORAGE_KEY);
+    });
+
+    it('should attach Authorization header when token is present and URL matches apiBaseUrl', () => {
+        localStorage.setItem(STORAGE_KEY, 'jwt-xyz');
+        http.get(`${environment.apiBaseUrl}/v1/foo`).subscribe();
+        const req = httpMock.expectOne(`${environment.apiBaseUrl}/v1/foo`);
+        expect(req.request.headers.get('Authorization')).toBe('Bearer jwt-xyz');
+        req.flush({});
+    });
+
+    it('should NOT attach Authorization for external URLs', () => {
+        localStorage.setItem(STORAGE_KEY, 'jwt-xyz');
+        http.get('https://external.example.com/data').subscribe();
+        const req = httpMock.expectOne('https://external.example.com/data');
+        expect(req.request.headers.has('Authorization')).toBe(false);
+        req.flush({});
+    });
+
+    it('should NOT attach Authorization when token is absent', () => {
+        http.get(`${environment.apiBaseUrl}/v1/public`).subscribe();
+        const req = httpMock.expectOne(`${environment.apiBaseUrl}/v1/public`);
+        expect(req.request.headers.has('Authorization')).toBe(false);
+        req.flush({});
+    });
+
+    it('should call LoadingService.start before request and stop after response', (done) => {
+        const startSpy = spyOn(loading, 'start').and.callThrough();
+        const stopSpy = spyOn(loading, 'stop').and.callThrough();
+        http.get(`${environment.apiBaseUrl}/v1/x`).subscribe({
+            complete: () => {
+                expect(startSpy).toHaveBeenCalledTimes(1);
+                expect(stopSpy).toHaveBeenCalledTimes(1);
+                done();
+            },
+        });
+        const req = httpMock.expectOne(`${environment.apiBaseUrl}/v1/x`);
+        req.flush({});
+    });
+});
+```
+
+- [ ] **Step 2: 실패 확인**
+
+```bash
+cd frontend
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/jwt.interceptor.spec.ts'
+```
+Expected: 컴파일 에러로 fail.
+
+- [ ] **Step 3: `jwt.interceptor.ts` 구현**
+
+```typescript
+import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable, finalize } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { LoadingService } from '../services/loading.service';
+
+const STORAGE_KEY = 'trmdict_token';
+
+@Injectable()
+export class JwtInterceptor implements HttpInterceptor {
+    constructor(private readonly loading: LoadingService) {}
+
+    intercept(req: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
+        let outgoing = req;
+        const isApiCall = req.url.startsWith(environment.apiBaseUrl);
+        const token = localStorage.getItem(STORAGE_KEY);
+
+        if (isApiCall && token) {
+            outgoing = req.clone({
+                setHeaders: { Authorization: `Bearer ${token}` },
+            });
+        }
+
+        this.loading.start();
+        return next.handle(outgoing).pipe(finalize(() => this.loading.stop()));
+    }
+}
+```
+
+- [ ] **Step 4: 통과 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/jwt.interceptor.spec.ts'
+```
+Expected: `Tests: 4, Failures: 0`.
+
+- [ ] **Step 5: 전체 단위 테스트 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 누적 16. 0 failures.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add frontend/src/app/core/interceptors/jwt.interceptor.ts \
+        frontend/src/app/core/interceptors/jwt.interceptor.spec.ts
+git commit -m "feat(C2): JwtInterceptor — Bearer 헤더 + LoadingService start/stop (TDD, 4 cases)"
+```
+
+---
+
+### Task 9: `ErrorInterceptor` (TDD) + MatSnackBar 통합
+
+**Files:**
+- Create: `frontend/src/app/core/interceptors/error.interceptor.ts`
+- Create: `frontend/src/app/core/interceptors/error.interceptor.spec.ts`
+
+> ErrorInterceptor는 `MatSnackBar` + `Router` + `AuthService`를 의존. 테스트에서 모두 spy로 주입.
+
+- [ ] **Step 1: 테스트 파일 먼저 (failing)**
+
+`frontend/src/app/core/interceptors/error.interceptor.spec.ts`:
+
+```typescript
+import { HTTP_INTERCEPTORS, HttpClient } from '@angular/common/http';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { ErrorInterceptor } from './error.interceptor';
+import { AuthService } from '../services/auth.service';
+import { ApiResponse } from '../models/api-response.model';
+import { environment } from '../../../environments/environment';
+
+describe('ErrorInterceptor', () => {
+    let http: HttpClient;
+    let httpMock: HttpTestingController;
+    let snackBar: jasmine.SpyObj<MatSnackBar>;
+    let router: jasmine.SpyObj<Router>;
+    let auth: jasmine.SpyObj<AuthService>;
+
+    beforeEach(() => {
+        snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
+        router = jasmine.createSpyObj('Router', ['navigate']);
+        auth = jasmine.createSpyObj('AuthService', ['logout']);
+        Object.defineProperty(router, 'url', { value: '/home', configurable: true });
+
+        TestBed.configureTestingModule({
+            imports: [HttpClientTestingModule],
+            providers: [
+                { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true },
+                { provide: MatSnackBar, useValue: snackBar },
+                { provide: Router, useValue: router },
+                { provide: AuthService, useValue: auth },
+            ],
+        });
+        http = TestBed.inject(HttpClient);
+        httpMock = TestBed.inject(HttpTestingController);
+    });
+
+    afterEach(() => httpMock.verify());
+
+    it('should logout + redirect to /login on AUTH_1002 (success=false)', (done) => {
+        http.get<ApiResponse<unknown>>(`${environment.apiBaseUrl}/v1/x`).subscribe({
+            error: () => {
+                expect(auth.logout).toHaveBeenCalled();
+                expect(router.navigate).toHaveBeenCalledWith(['/login'], {
+                    queryParams: { returnUrl: '/home' },
+                });
+                expect(snackBar.open).toHaveBeenCalled();
+                done();
+            },
+        });
+        const req = httpMock.expectOne(`${environment.apiBaseUrl}/v1/x`);
+        req.flush({
+            success: false,
+            code: 'AUTH_1002',
+            message: '인증이 필요합니다.',
+            data: null,
+            timestamp: '',
+        });
+    });
+
+    it('should toast and stay on page for COMMON_0003 (403)', (done) => {
+        http.get<ApiResponse<unknown>>(`${environment.apiBaseUrl}/v1/x`).subscribe({
+            error: () => {
+                expect(auth.logout).not.toHaveBeenCalled();
+                expect(router.navigate).not.toHaveBeenCalled();
+                expect(snackBar.open).toHaveBeenCalled();
+                done();
+            },
+        });
+        const req = httpMock.expectOne(`${environment.apiBaseUrl}/v1/x`);
+        req.flush({
+            success: false,
+            code: 'COMMON_0003',
+            message: '권한이 없습니다.',
+            data: null,
+            timestamp: '',
+        });
+    });
+
+    it('should toast and throw for other success=false', (done) => {
+        http.get<ApiResponse<unknown>>(`${environment.apiBaseUrl}/v1/x`).subscribe({
+            error: (err) => {
+                expect(snackBar.open).toHaveBeenCalled();
+                expect(err.message).toContain('COMMON_0002');
+                done();
+            },
+        });
+        const req = httpMock.expectOne(`${environment.apiBaseUrl}/v1/x`);
+        req.flush({
+            success: false,
+            code: 'COMMON_0002',
+            message: '요청 처리 중 오류가 발생했습니다.',
+            data: null,
+            timestamp: '',
+        });
+    });
+
+    it('should toast common message and throw for HttpErrorResponse 5xx', (done) => {
+        http.get(`${environment.apiBaseUrl}/v1/x`).subscribe({
+            error: () => {
+                expect(snackBar.open).toHaveBeenCalledWith(
+                    '서버 통신 오류가 발생했습니다.',
+                    '확인',
+                    jasmine.any(Object)
+                );
+                done();
+            },
+        });
+        const req = httpMock.expectOne(`${environment.apiBaseUrl}/v1/x`);
+        req.flush('server down', { status: 500, statusText: 'Server Error' });
+    });
+});
+```
+
+- [ ] **Step 2: 실패 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/error.interceptor.spec.ts'
+```
+Expected: 컴파일 에러로 fail.
+
+- [ ] **Step 3: `error.interceptor.ts` 구현**
+
+```typescript
+import {
+    HttpErrorResponse,
+    HttpEvent,
+    HttpHandler,
+    HttpInterceptor,
+    HttpRequest,
+    HttpResponse,
+} from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
+import { Observable, catchError, map, throwError } from 'rxjs';
+import { ApiResponse } from '../models/api-response.model';
+import { AuthService } from '../services/auth.service';
+
+@Injectable()
+export class ErrorInterceptor implements HttpInterceptor {
+    constructor(
+        private readonly snackBar: MatSnackBar,
+        private readonly router: Router,
+        private readonly auth: AuthService
+    ) {}
+
+    intercept(req: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
+        return next.handle(req).pipe(
+            map((event) => {
+                if (event instanceof HttpResponse) {
+                    const body = event.body as ApiResponse<unknown> | null;
+                    if (body && body.success === false) {
+                        this.handleApiFailure(body);
+                        throw new Error(`${body.code}: ${body.message}`);
+                    }
+                }
+                return event;
+            }),
+            catchError((err) => {
+                if (err instanceof HttpErrorResponse) {
+                    this.toast('서버 통신 오류가 발생했습니다.');
+                    return throwError(() => err);
+                }
+                return throwError(() => err);
+            })
+        );
+    }
+
+    private handleApiFailure(body: ApiResponse<unknown>): void {
+        if (body.code === 'AUTH_1002') {
+            this.auth.logout();
+            this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+            this.toast(body.message);
+            return;
+        }
+        this.toast(body.message);
+    }
+
+    private toast(message: string): void {
+        this.snackBar.open(message, '확인', { duration: 4000 });
+    }
+}
+```
+
+- [ ] **Step 4: 통과 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/error.interceptor.spec.ts'
+```
+Expected: `Tests: 4, Failures: 0`.
+
+- [ ] **Step 5: 전체 단위 테스트 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 누적 20. 0 failures.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add frontend/src/app/core/interceptors/error.interceptor.ts \
+        frontend/src/app/core/interceptors/error.interceptor.spec.ts
+git commit -m "feat(C2): ErrorInterceptor — 401/403/그외 분기 + MatSnackBar (TDD, 4 cases)"
+```
+
+---
+
+### Task 10: `AuthGuard` (TDD)
+
+**Files:**
+- Create: `frontend/src/app/core/guards/auth.guard.ts`
+- Create: `frontend/src/app/core/guards/auth.guard.spec.ts`
+
+- [ ] **Step 1: 테스트 파일 먼저 (failing)**
+
+`frontend/src/app/core/guards/auth.guard.spec.ts`:
+
+```typescript
+import { TestBed } from '@angular/core/testing';
+import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
+import { AuthGuard } from './auth.guard';
+import { AuthService } from '../services/auth.service';
+
+describe('AuthGuard', () => {
+    let guard: AuthGuard;
+    let auth: jasmine.SpyObj<AuthService>;
+    let router: jasmine.SpyObj<Router>;
+
+    beforeEach(() => {
+        auth = jasmine.createSpyObj('AuthService', [], { isAuthenticated: false });
+        router = jasmine.createSpyObj('Router', ['createUrlTree', 'navigate']);
+        TestBed.configureTestingModule({
+            providers: [
+                AuthGuard,
+                { provide: AuthService, useValue: auth },
+                { provide: Router, useValue: router },
+            ],
+        });
+        guard = TestBed.inject(AuthGuard);
+    });
+
+    it('canActivate should return true when authenticated', () => {
+        Object.defineProperty(auth, 'isAuthenticated', { get: () => true });
+        const result = guard.canActivate(
+            {} as ActivatedRouteSnapshot,
+            { url: '/home' } as RouterStateSnapshot
+        );
+        expect(result).toBe(true);
+    });
+
+    it('canActivate should return UrlTree to /login with returnUrl when not authenticated', () => {
+        Object.defineProperty(auth, 'isAuthenticated', { get: () => false });
+        const fakeTree = {} as UrlTree;
+        router.createUrlTree.and.returnValue(fakeTree);
+
+        const result = guard.canActivate(
+            {} as ActivatedRouteSnapshot,
+            { url: '/home' } as RouterStateSnapshot
+        );
+
+        expect(router.createUrlTree).toHaveBeenCalledWith(['/login'], {
+            queryParams: { returnUrl: '/home' },
+        });
+        expect(result).toBe(fakeTree);
+    });
+
+    it('canLoad should navigate to /login and return false when not authenticated', () => {
+        Object.defineProperty(auth, 'isAuthenticated', { get: () => false });
+        const result = guard.canLoad();
+        expect(router.navigate).toHaveBeenCalledWith(['/login']);
+        expect(result).toBe(false);
+    });
+});
+```
+
+- [ ] **Step 2: 실패 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/auth.guard.spec.ts'
+```
+Expected: 컴파일 에러로 fail.
+
+- [ ] **Step 3: `auth.guard.ts` 구현**
+
+```typescript
+import { Injectable } from '@angular/core';
+import {
+    ActivatedRouteSnapshot,
+    CanActivate,
+    CanLoad,
+    Router,
+    RouterStateSnapshot,
+    UrlTree,
+} from '@angular/router';
+import { AuthService } from '../services/auth.service';
+
+@Injectable({ providedIn: 'root' })
+export class AuthGuard implements CanActivate, CanLoad {
+    constructor(private readonly auth: AuthService, private readonly router: Router) {}
+
+    canActivate(
+        _route: ActivatedRouteSnapshot,
+        state: RouterStateSnapshot
+    ): boolean | UrlTree {
+        if (this.auth.isAuthenticated) {
+            return true;
+        }
+        return this.router.createUrlTree(['/login'], {
+            queryParams: { returnUrl: state.url },
+        });
+    }
+
+    canLoad(): boolean {
+        if (this.auth.isAuthenticated) {
+            return true;
+        }
+        this.router.navigate(['/login']);
+        return false;
+    }
+}
+```
+
+- [ ] **Step 4: 통과 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/auth.guard.spec.ts'
+```
+Expected: `Tests: 3, Failures: 0`.
+
+- [ ] **Step 5: 전체 단위 테스트 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 누적 23. 0 failures.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add frontend/src/app/core/guards/auth.guard.ts \
+        frontend/src/app/core/guards/auth.guard.spec.ts
+git commit -m "feat(C2): AuthGuard — canActivate + canLoad with returnUrl (TDD, 3 cases)"
+```
+
+---
+
+## Stage 4 — shared 컴포넌트 5종 + material module
+
+### Task 11: `material.module.ts` + `shared.module.ts` 골격
+
+**Files:**
+- Create: `frontend/src/app/shared/material.module.ts`
+- Create: `frontend/src/app/shared/shared.module.ts`
+
+- [ ] **Step 1: `material.module.ts` 작성**
+
+```typescript
+import { NgModule } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSortModule } from '@angular/material/sort';
+import { MatTableModule } from '@angular/material/table';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+
+const MATERIAL_MODULES = [
+    MatButtonModule,
+    MatCardModule,
+    MatCheckboxModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatPaginatorModule,
+    MatProgressBarModule,
+    MatProgressSpinnerModule,
+    MatSelectModule,
+    MatSidenavModule,
+    MatSnackBarModule,
+    MatSortModule,
+    MatTableModule,
+    MatToolbarModule,
+    MatTooltipModule,
+];
+
+@NgModule({
+    exports: MATERIAL_MODULES,
+})
+export class MaterialModule {}
+```
+
+- [ ] **Step 2: `shared.module.ts` 작성 (컴포넌트는 Stage 4 Task 12~16에서 추가)**
+
+```typescript
+import { CommonModule } from '@angular/common';
+import { NgModule } from '@angular/core';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { MaterialModule } from './material.module';
+
+@NgModule({
+    declarations: [],
+    imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, MaterialModule],
+    exports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        RouterModule,
+        MaterialModule,
+    ],
+})
+export class SharedModule {}
+```
+
+> declarations / exports의 컴포넌트 항목은 후속 Task(12~16)에서 컴포넌트 추가 시 함께 등록.
+
+- [ ] **Step 3: 빌드·lint 검증**
+
+```bash
+cd frontend
+npm run build
+npm run lint
+```
+Expected: 0 errors.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add frontend/src/app/shared/material.module.ts \
+        frontend/src/app/shared/shared.module.ts
+git commit -m "feat(C2): MaterialModule + SharedModule 골격 — Material 모듈 일괄 re-export"
+```
+
+---
+
+### Task 12: `SearchFormComponent` (TDD)
+
+**Files:**
+- Create: `frontend/src/app/shared/components/search-form/search-form.component.{html,ts,scss}`
+- Create: `frontend/src/app/shared/components/search-form/search-form.component.spec.ts`
+- Modify: `frontend/src/app/shared/shared.module.ts`
+
+- [ ] **Step 1: 테스트 파일 먼저 (failing)**
+
+`frontend/src/app/shared/components/search-form/search-form.component.spec.ts`:
+
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { SearchFormComponent } from './search-form.component';
+import { MaterialModule } from '../../material.module';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+
+describe('SearchFormComponent', () => {
+    let fixture: ComponentFixture<SearchFormComponent>;
+    let component: SearchFormComponent;
+
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            declarations: [SearchFormComponent],
+            imports: [MaterialModule, NoopAnimationsModule],
+        }).compileComponents();
+        fixture = TestBed.createComponent(SearchFormComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should render submit and reset labels with defaults', () => {
+        const compiled = fixture.nativeElement as HTMLElement;
+        expect(compiled.textContent).toContain('검색');
+        expect(compiled.textContent).toContain('초기화');
+    });
+
+    it('should override labels via @Input', () => {
+        component.submitLabel = '조회';
+        component.resetLabel = '리셋';
+        fixture.detectChanges();
+        const compiled = fixture.nativeElement as HTMLElement;
+        expect(compiled.textContent).toContain('조회');
+        expect(compiled.textContent).toContain('리셋');
+    });
+
+    it('should emit formSubmit on submit click', () => {
+        spyOn(component.formSubmit, 'emit');
+        component.onSubmit();
+        expect(component.formSubmit.emit).toHaveBeenCalled();
+    });
+
+    it('should emit formReset on reset click', () => {
+        spyOn(component.formReset, 'emit');
+        component.onReset();
+        expect(component.formReset.emit).toHaveBeenCalled();
+    });
+});
+```
+
+- [ ] **Step 2: 실패 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/search-form.component.spec.ts'
+```
+Expected: 컴파일 에러로 fail.
+
+- [ ] **Step 3: `search-form.component.ts` 구현**
+
+```typescript
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+
+@Component({
+    selector: 'app-search-form',
+    templateUrl: './search-form.component.html',
+    styleUrls: ['./search-form.component.scss'],
+})
+export class SearchFormComponent {
+    @Input() submitLabel = '검색';
+    @Input() resetLabel = '초기화';
+    @Output() formSubmit = new EventEmitter<void>();
+    @Output() formReset = new EventEmitter<void>();
+
+    onSubmit(): void {
+        this.formSubmit.emit();
+    }
+
+    onReset(): void {
+        this.formReset.emit();
+    }
+}
+```
+
+- [ ] **Step 4: `search-form.component.html`**
+
+```html
+<div class="search-form">
+    <div class="search-form__fields">
+        <ng-content></ng-content>
+    </div>
+    <div class="search-form__actions">
+        <button mat-stroked-button type="button" (click)="onReset()">{{ resetLabel }}</button>
+        <button mat-raised-button color="primary" type="button" (click)="onSubmit()">
+            {{ submitLabel }}
+        </button>
+    </div>
+</div>
+```
+
+- [ ] **Step 5: `search-form.component.scss`**
+
+```scss
+.search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+    &__fields {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+    }
+
+    &__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+}
+```
+
+- [ ] **Step 6: `shared.module.ts`에 SearchFormComponent 등록**
+
+`declarations`와 `exports`에 `SearchFormComponent` 추가:
+
+```typescript
+import { SearchFormComponent } from './components/search-form/search-form.component';
+
+@NgModule({
+    declarations: [SearchFormComponent],
+    imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, MaterialModule],
+    exports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        RouterModule,
+        MaterialModule,
+        SearchFormComponent,
+    ],
+})
+export class SharedModule {}
+```
+
+- [ ] **Step 7: 통과 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/search-form.component.spec.ts'
+```
+Expected: `Tests: 4, Failures: 0`.
+
+- [ ] **Step 8: 전체 단위 테스트 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 누적 27. 0 failures.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add frontend/src/app/shared/components/search-form/ \
+        frontend/src/app/shared/shared.module.ts
+git commit -m "feat(C2): SearchFormComponent — ng-content 슬롯 + formSubmit/formReset (TDD, 4 cases)"
+```
+
+---
+
+### Task 13: `DataGridComponent` + `ColumnDef` + `column-resize.directive` (TDD)
+
+**Files:**
+- Create: `frontend/src/app/shared/components/data-grid/column-def.model.ts`
+- Create: `frontend/src/app/shared/components/data-grid/data-grid.component.{html,ts,scss}`
+- Create: `frontend/src/app/shared/components/data-grid/data-grid.component.spec.ts`
+- Create: `frontend/src/app/shared/components/data-grid/column-resize.directive.ts`
+- Create: `frontend/src/app/shared/components/data-grid/column-resize.directive.spec.ts`
+- Modify: `frontend/src/app/shared/shared.module.ts`
+
+- [ ] **Step 1: `column-def.model.ts` 작성**
+
+```typescript
+import { TemplateRef } from '@angular/core';
+
+export interface ColumnDef {
+    key: string;
+    header: string;
+    sortable: boolean;
+    width?: number;
+    minWidth?: number;
+    align?: 'start' | 'center' | 'end';
+    cellTemplate?: TemplateRef<{ $implicit: unknown; row: unknown }>;
+}
+```
+
+- [ ] **Step 2: `data-grid.component.spec.ts` 먼저 (failing)**
+
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { DataGridComponent } from './data-grid.component';
+import { MaterialModule } from '../../material.module';
+import { ColumnDef } from './column-def.model';
+import { PageResponse } from '../../../core/models/page-response.model';
+
+describe('DataGridComponent', () => {
+    let fixture: ComponentFixture<DataGridComponent<unknown>>;
+    let component: DataGridComponent<unknown>;
+
+    const cols: ColumnDef[] = [
+        { key: 'id', header: 'ID', sortable: true },
+        { key: 'name', header: '이름', sortable: true },
+    ];
+    const page: PageResponse<{ id: number; name: string }> = {
+        items: [{ id: 1, name: 'foo' }],
+        page: 1,
+        size: 20,
+        totalElements: 1,
+        totalPages: 1,
+    };
+
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            declarations: [DataGridComponent],
+            imports: [MaterialModule, NoopAnimationsModule],
+        }).compileComponents();
+        fixture = TestBed.createComponent(DataGridComponent);
+        component = fixture.componentInstance;
+        component.columns = cols;
+        component.pageData = page;
+        fixture.detectChanges();
+    });
+
+    it('should render columns and rows', () => {
+        const html = (fixture.nativeElement as HTMLElement).innerHTML;
+        expect(html).toContain('ID');
+        expect(html).toContain('이름');
+        expect(html).toContain('foo');
+    });
+
+    it('should emit pageChange', () => {
+        spyOn(component.pageChange, 'emit');
+        component.onPage({ pageIndex: 1, pageSize: 50, length: 100 } as never);
+        expect(component.pageChange.emit).toHaveBeenCalledWith({ page: 2, size: 50 });
+    });
+
+    it('should emit sortChange', () => {
+        spyOn(component.sortChange, 'emit');
+        component.onSort({ active: 'name', direction: 'asc' } as never);
+        expect(component.sortChange.emit).toHaveBeenCalledWith({ active: 'name', direction: 'asc' });
+    });
+
+    it('should emit rowClick', () => {
+        spyOn(component.rowClick, 'emit');
+        component.onRowClick({ id: 1, name: 'foo' });
+        expect(component.rowClick.emit).toHaveBeenCalledWith({ id: 1, name: 'foo' });
+    });
+
+    it('should emit selectionChange when selectable=true and toggle', () => {
+        component.selectable = true;
+        spyOn(component.selectionChange, 'emit');
+        component.toggleRow({ id: 1, name: 'foo' });
+        expect(component.selectionChange.emit).toHaveBeenCalled();
+    });
+});
+```
+
+- [ ] **Step 3: 실패 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/data-grid.component.spec.ts'
+```
+Expected: 컴파일 에러로 fail.
+
+- [ ] **Step 4: `data-grid.component.ts` 구현**
+
+```typescript
+import { SelectionModel } from '@angular/cdk/collections';
+import {
+    Component,
+    EventEmitter,
+    Input,
+    Output,
+    TrackByFunction,
+} from '@angular/core';
+import { PageEvent } from '@angular/material/paginator';
+import { Sort } from '@angular/material/sort';
+import { PageResponse } from '../../../core/models/page-response.model';
+import { ColumnDef } from './column-def.model';
+
+@Component({
+    selector: 'app-data-grid',
+    templateUrl: './data-grid.component.html',
+    styleUrls: ['./data-grid.component.scss'],
+})
+export class DataGridComponent<T> {
+    @Input() columns: ColumnDef[] = [];
+    @Input() pageData: PageResponse<T> | null = null;
+    @Input() pageSizeOptions: number[] = [10, 20, 50, 100];
+    @Input() selectable = false;
+    @Input() trackBy: TrackByFunction<T> = (_, item) => (item as { id?: unknown }).id as never;
+
+    @Output() pageChange = new EventEmitter<{ page: number; size: number }>();
+    @Output() sortChange = new EventEmitter<{ active: string; direction: 'asc' | 'desc' | '' }>();
+    @Output() selectionChange = new EventEmitter<T[]>();
+    @Output() rowClick = new EventEmitter<T>();
+
+    readonly selection = new SelectionModel<T>(true, []);
+
+    get displayedColumns(): string[] {
+        const base = this.columns.map((c) => c.key);
+        return this.selectable ? ['__select', ...base] : base;
+    }
+
+    onPage(e: PageEvent): void {
+        this.pageChange.emit({ page: e.pageIndex + 1, size: e.pageSize });
+    }
+
+    onSort(e: Sort): void {
+        this.sortChange.emit({ active: e.active, direction: e.direction as 'asc' | 'desc' | '' });
+    }
+
+    onRowClick(row: T): void {
+        this.rowClick.emit(row);
+    }
+
+    toggleRow(row: T): void {
+        this.selection.toggle(row);
+        this.selectionChange.emit(this.selection.selected);
+    }
+
+    isSelected(row: T): boolean {
+        return this.selection.isSelected(row);
+    }
+
+    isAllSelected(): boolean {
+        const rows = this.pageData?.items ?? [];
+        return rows.length > 0 && rows.every((r) => this.selection.isSelected(r));
+    }
+
+    toggleAll(): void {
+        const rows = this.pageData?.items ?? [];
+        if (this.isAllSelected()) {
+            rows.forEach((r) => this.selection.deselect(r));
+        } else {
+            rows.forEach((r) => this.selection.select(r));
+        }
+        this.selectionChange.emit(this.selection.selected);
+    }
+}
+```
+
+- [ ] **Step 5: `data-grid.component.html`**
+
+```html
+<div class="data-grid">
+    <table mat-table [dataSource]="pageData?.items ?? []" matSort (matSortChange)="onSort($event)">
+        <ng-container *ngIf="selectable" matColumnDef="__select">
+            <th mat-header-cell *matHeaderCellDef>
+                <mat-checkbox
+                    [checked]="isAllSelected()"
+                    (change)="toggleAll()"
+                ></mat-checkbox>
+            </th>
+            <td mat-cell *matCellDef="let row">
+                <mat-checkbox
+                    [checked]="isSelected(row)"
+                    (click)="$event.stopPropagation()"
+                    (change)="toggleRow(row)"
+                ></mat-checkbox>
+            </td>
+        </ng-container>
+
+        <ng-container *ngFor="let col of columns" [matColumnDef]="col.key">
+            <th
+                mat-header-cell
+                *matHeaderCellDef
+                [mat-sort-header]="col.sortable ? col.key : ''"
+                [disabled]="!col.sortable"
+                appColumnResize
+                [minWidth]="col.minWidth ?? 60"
+                [style.width.px]="col.width"
+            >
+                {{ col.header }}
+            </th>
+            <td
+                mat-cell
+                *matCellDef="let row"
+                [style.text-align]="col.align ?? 'start'"
+            >
+                <ng-container *ngIf="col.cellTemplate; else plain">
+                    <ng-container
+                        *ngTemplateOutlet="col.cellTemplate; context: { $implicit: row[col.key], row: row }"
+                    ></ng-container>
+                </ng-container>
+                <ng-template #plain>{{ row[col.key] }}</ng-template>
+            </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+            mat-row
+            *matRowDef="let row; columns: displayedColumns; trackBy: trackBy"
+            (click)="onRowClick(row)"
+        ></tr>
+    </table>
+
+    <mat-paginator
+        *ngIf="pageData"
+        [length]="pageData.totalElements"
+        [pageSize]="pageData.size"
+        [pageIndex]="pageData.page - 1"
+        [pageSizeOptions]="pageSizeOptions"
+        (page)="onPage($event)"
+    ></mat-paginator>
+</div>
+```
+
+- [ ] **Step 6: `data-grid.component.scss`**
+
+```scss
+.data-grid {
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+    table {
+        width: 100%;
+    }
+
+    tr.mat-row {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+
+        &:hover {
+            background: #f5f5f5;
+        }
+    }
+}
+```
+
+- [ ] **Step 7: `column-resize.directive.spec.ts` 먼저 (failing)**
+
+```typescript
+import { Component } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ColumnResizeDirective } from './column-resize.directive';
+
+@Component({
+    template: `<th appColumnResize [minWidth]="40" style="width: 100px; display: inline-block;">
+        Header
+    </th>`,
+})
+class HostComponent {}
+
+describe('ColumnResizeDirective', () => {
+    let fixture: ComponentFixture<HostComponent>;
+
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            declarations: [HostComponent, ColumnResizeDirective],
+        }).compileComponents();
+        fixture = TestBed.createComponent(HostComponent);
+        fixture.detectChanges();
+    });
+
+    it('should change width on mousedown → mousemove → mouseup', () => {
+        const th = fixture.nativeElement.querySelector('th') as HTMLElement;
+        th.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, bubbles: true }));
+        document.dispatchEvent(new MouseEvent('mousemove', { clientX: 150 }));
+        document.dispatchEvent(new MouseEvent('mouseup', { clientX: 150 }));
+        // 너비 100 → +50 = 150
+        expect(th.style.width).toBe('150px');
+    });
+
+    it('should clamp to minWidth', () => {
+        const th = fixture.nativeElement.querySelector('th') as HTMLElement;
+        th.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, bubbles: true }));
+        document.dispatchEvent(new MouseEvent('mousemove', { clientX: 30 }));
+        document.dispatchEvent(new MouseEvent('mouseup', { clientX: 30 }));
+        // 100 - 70 = 30 → minWidth 40으로 clamp
+        expect(th.style.width).toBe('40px');
+    });
+});
+```
+
+- [ ] **Step 8: 실패 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/column-resize.directive.spec.ts'
+```
+Expected: 컴파일 에러로 fail.
+
+- [ ] **Step 9: `column-resize.directive.ts` 구현**
+
+```typescript
+import {
+    Directive,
+    ElementRef,
+    HostListener,
+    Input,
+    OnDestroy,
+} from '@angular/core';
+
+@Directive({
+    selector: '[appColumnResize]',
+})
+export class ColumnResizeDirective implements OnDestroy {
+    @Input() minWidth = 60;
+
+    private startX = 0;
+    private startWidth = 0;
+    private resizing = false;
+
+    private readonly onMove = (e: MouseEvent) => {
+        if (!this.resizing) return;
+        const dx = e.clientX - this.startX;
+        const next = Math.max(this.minWidth, this.startWidth + dx);
+        this.host.nativeElement.style.width = `${next}px`;
+    };
+
+    private readonly onUp = () => {
+        this.resizing = false;
+        document.removeEventListener('mousemove', this.onMove);
+        document.removeEventListener('mouseup', this.onUp);
+    };
+
+    constructor(private readonly host: ElementRef<HTMLElement>) {}
+
+    @HostListener('mousedown', ['$event'])
+    onDown(e: MouseEvent): void {
+        this.startX = e.clientX;
+        this.startWidth = this.host.nativeElement.getBoundingClientRect().width;
+        this.resizing = true;
+        document.addEventListener('mousemove', this.onMove);
+        document.addEventListener('mouseup', this.onUp);
+    }
+
+    ngOnDestroy(): void {
+        document.removeEventListener('mousemove', this.onMove);
+        document.removeEventListener('mouseup', this.onUp);
+    }
+}
+```
+
+- [ ] **Step 10: `shared.module.ts`에 DataGrid + Directive 등록**
+
+```typescript
+import { DataGridComponent } from './components/data-grid/data-grid.component';
+import { ColumnResizeDirective } from './components/data-grid/column-resize.directive';
+
+@NgModule({
+    declarations: [SearchFormComponent, DataGridComponent, ColumnResizeDirective],
+    imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, MaterialModule],
+    exports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        RouterModule,
+        MaterialModule,
+        SearchFormComponent,
+        DataGridComponent,
+        ColumnResizeDirective,
+    ],
+})
+export class SharedModule {}
+```
+
+- [ ] **Step 11: 통과 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/data-grid.component.spec.ts'
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/column-resize.directive.spec.ts'
+```
+Expected: 각각 그린 (DataGrid 5, ColumnResize 2).
+
+- [ ] **Step 12: 전체 단위 테스트 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 누적 34. 0 failures.
+
+- [ ] **Step 13: Commit**
+
+```bash
+git add frontend/src/app/shared/components/data-grid/ \
+        frontend/src/app/shared/shared.module.ts
+git commit -m "feat(C2): DataGridComponent + ColumnDef + column-resize.directive (TDD, 5+2 cases)"
+```
+
+---
+
+### Task 14: `FileUploadComponent` (TDD)
+
+**Files:**
+- Create: `frontend/src/app/shared/components/file-upload/file-upload.component.{html,ts,scss}`
+- Create: `frontend/src/app/shared/components/file-upload/file-upload.component.spec.ts`
+- Modify: `frontend/src/app/shared/shared.module.ts`
+
+- [ ] **Step 1: 테스트 파일 먼저 (failing)**
+
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MaterialModule } from '../../material.module';
+import { FileUploadComponent } from './file-upload.component';
+
+describe('FileUploadComponent', () => {
+    let fixture: ComponentFixture<FileUploadComponent>;
+    let component: FileUploadComponent;
+
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            declarations: [FileUploadComponent],
+            imports: [MaterialModule, NoopAnimationsModule],
+        }).compileComponents();
+        fixture = TestBed.createComponent(FileUploadComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should emit fileSelected when valid CSV under maxSize', () => {
+        spyOn(component.fileSelected, 'emit');
+        const file = new File(['a,b,c\n1,2,3'], 'data.csv', { type: 'text/csv' });
+        component.handleFile(file);
+        expect(component.fileSelected.emit).toHaveBeenCalledWith(file);
+    });
+
+    it('should emit fileRejected with TYPE when extension does not match', () => {
+        spyOn(component.fileRejected, 'emit');
+        const file = new File(['x'], 'image.png', { type: 'image/png' });
+        component.handleFile(file);
+        expect(component.fileRejected.emit).toHaveBeenCalledWith(
+            jasmine.objectContaining({ reason: 'TYPE' })
+        );
+    });
+
+    it('should emit fileRejected with SIZE when file exceeds maxSizeMB', () => {
+        spyOn(component.fileRejected, 'emit');
+        component.maxSizeMB = 0.001; // 1KB
+        const big = new File([new Uint8Array(2048)], 'big.csv', { type: 'text/csv' });
+        component.handleFile(big);
+        expect(component.fileRejected.emit).toHaveBeenCalledWith(
+            jasmine.objectContaining({ reason: 'SIZE' })
+        );
+    });
+
+    it('should render label from @Input', () => {
+        component.label = '업로드';
+        fixture.detectChanges();
+        const text = (fixture.nativeElement as HTMLElement).textContent;
+        expect(text).toContain('업로드');
+    });
+});
+```
+
+- [ ] **Step 2: 실패 확인**
+
+```bash
+cd frontend
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/file-upload.component.spec.ts'
+```
+Expected: fail.
+
+- [ ] **Step 3: `file-upload.component.ts` 구현**
+
+```typescript
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+
+export type RejectReason = 'TYPE' | 'SIZE';
+
+@Component({
+    selector: 'app-file-upload',
+    templateUrl: './file-upload.component.html',
+    styleUrls: ['./file-upload.component.scss'],
+})
+export class FileUploadComponent {
+    @Input() accept = '.csv';
+    @Input() maxSizeMB = 50;
+    @Input() label = '파일 선택';
+    @Output() fileSelected = new EventEmitter<File>();
+    @Output() fileRejected = new EventEmitter<{ reason: RejectReason; message: string }>();
+
+    onChange(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+        this.handleFile(file);
+        input.value = '';
+    }
+
+    handleFile(file: File): void {
+        const lower = file.name.toLowerCase();
+        const accepted = this.accept
+            .split(',')
+            .map((s) => s.trim().toLowerCase())
+            .some((ext) => lower.endsWith(ext));
+        if (!accepted) {
+            this.fileRejected.emit({
+                reason: 'TYPE',
+                message: `허용되지 않는 파일 형식입니다 (${this.accept}만 허용).`,
+            });
+            return;
+        }
+        const maxBytes = this.maxSizeMB * 1024 * 1024;
+        if (file.size > maxBytes) {
+            this.fileRejected.emit({
+                reason: 'SIZE',
+                message: `파일 크기가 ${this.maxSizeMB}MB를 초과합니다.`,
+            });
+            return;
+        }
+        this.fileSelected.emit(file);
+    }
+}
+```
+
+- [ ] **Step 4: `file-upload.component.html`**
+
+```html
+<div class="file-upload">
+    <input
+        #fileInput
+        type="file"
+        [accept]="accept"
+        (change)="onChange($event)"
+        hidden
+    />
+    <button mat-stroked-button type="button" (click)="fileInput.click()">
+        <mat-icon>upload_file</mat-icon>
+        <span class="file-upload__label">{{ label }}</span>
+    </button>
+</div>
+```
+
+- [ ] **Step 5: `file-upload.component.scss`**
+
+```scss
+.file-upload {
+    display: inline-flex;
+    align-items: center;
+
+    &__label {
+        margin-left: 4px;
+    }
+}
+```
+
+- [ ] **Step 6: `shared.module.ts`에 FileUploadComponent 등록**
+
+`declarations`와 `exports`에 `FileUploadComponent` 추가 (기존 SearchForm/DataGrid/ColumnResize와 함께):
+
+```typescript
+import { FileUploadComponent } from './components/file-upload/file-upload.component';
+
+declarations: [SearchFormComponent, DataGridComponent, ColumnResizeDirective, FileUploadComponent],
+exports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    RouterModule,
+    MaterialModule,
+    SearchFormComponent,
+    DataGridComponent,
+    ColumnResizeDirective,
+    FileUploadComponent,
+],
+```
+
+- [ ] **Step 7: 통과 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/file-upload.component.spec.ts'
+```
+Expected: `Tests: 4, Failures: 0`.
+
+- [ ] **Step 8: 전체 단위 테스트 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 누적 38. 0 failures.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add frontend/src/app/shared/components/file-upload/ \
+        frontend/src/app/shared/shared.module.ts
+git commit -m "feat(C2): FileUploadComponent — CSV accept + maxSize 검증 (TDD, 4 cases)"
+```
+
+---
+
+### Task 15: `DetailPanelComponent` (TDD)
+
+**Files:**
+- Create: `frontend/src/app/shared/components/detail-panel/detail-panel.component.{html,ts,scss}`
+- Create: `frontend/src/app/shared/components/detail-panel/detail-panel.component.spec.ts`
+- Modify: `frontend/src/app/shared/shared.module.ts`
+
+- [ ] **Step 1: 테스트 파일 먼저 (failing)**
+
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MaterialModule } from '../../material.module';
+import { DetailPanelComponent } from './detail-panel.component';
+
+describe('DetailPanelComponent', () => {
+    let fixture: ComponentFixture<DetailPanelComponent>;
+    let component: DetailPanelComponent;
+
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            declarations: [DetailPanelComponent],
+            imports: [MaterialModule, NoopAnimationsModule],
+        }).compileComponents();
+        fixture = TestBed.createComponent(DetailPanelComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should default position to right and open to false', () => {
+        expect(component.position).toBe('right');
+        expect(component.open).toBe(false);
+    });
+
+    it('should render title', () => {
+        component.title = '도메인 상세';
+        component.open = true;
+        fixture.detectChanges();
+        const text = (fixture.nativeElement as HTMLElement).textContent;
+        expect(text).toContain('도메인 상세');
+    });
+
+    it('should emit openChange when close() called', () => {
+        spyOn(component.openChange, 'emit');
+        component.open = true;
+        component.close();
+        expect(component.openChange.emit).toHaveBeenCalledWith(false);
+    });
+
+    it('should toggle position class between right and bottom', () => {
+        component.position = 'bottom';
+        component.open = true;
+        fixture.detectChanges();
+        const root = (fixture.nativeElement as HTMLElement).querySelector('.detail-panel');
+        expect(root?.classList.contains('detail-panel--bottom')).toBe(true);
+    });
+});
+```
+
+- [ ] **Step 2: 실패 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/detail-panel.component.spec.ts'
+```
+Expected: fail.
+
+- [ ] **Step 3: `detail-panel.component.ts` 구현**
+
+```typescript
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+
+export type DetailPanelPosition = 'right' | 'bottom';
+
+@Component({
+    selector: 'app-detail-panel',
+    templateUrl: './detail-panel.component.html',
+    styleUrls: ['./detail-panel.component.scss'],
+})
+export class DetailPanelComponent {
+    @Input() position: DetailPanelPosition = 'right';
+    @Input() open = false;
+    @Input() title = '';
+    @Output() openChange = new EventEmitter<boolean>();
+
+    close(): void {
+        this.open = false;
+        this.openChange.emit(false);
+    }
+}
+```
+
+- [ ] **Step 4: `detail-panel.component.html`**
+
+```html
+<div
+    class="detail-panel"
+    [class.detail-panel--open]="open"
+    [class.detail-panel--right]="position === 'right'"
+    [class.detail-panel--bottom]="position === 'bottom'"
+    *ngIf="open"
+>
+    <header class="detail-panel__header">
+        <h3 class="detail-panel__title">{{ title }}</h3>
+        <button mat-icon-button type="button" (click)="close()" aria-label="닫기">
+            <mat-icon>close</mat-icon>
+        </button>
+    </header>
+    <div class="detail-panel__body">
+        <ng-content></ng-content>
+    </div>
+</div>
+```
+
+- [ ] **Step 5: `detail-panel.component.scss`**
+
+```scss
+.detail-panel {
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    display: flex;
+    flex-direction: column;
+
+    &--right {
+        position: sticky;
+        top: 0;
+        width: 420px;
+        min-height: 100%;
+        border-left: 1px solid #e0e0e0;
+    }
+
+    &--bottom {
+        width: 100%;
+        max-height: 40vh;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    &__title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+    }
+
+    &__body {
+        flex: 1;
+        padding: 16px;
+        overflow: auto;
+    }
+}
+```
+
+- [ ] **Step 6: `shared.module.ts` 등록**
+
+`declarations` / `exports`에 `DetailPanelComponent` 추가.
+
+- [ ] **Step 7: 통과 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/detail-panel.component.spec.ts'
+```
+Expected: `Tests: 4, Failures: 0`.
+
+- [ ] **Step 8: 전체 단위 테스트 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 누적 42. 0 failures.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add frontend/src/app/shared/components/detail-panel/ \
+        frontend/src/app/shared/shared.module.ts
+git commit -m "feat(C2): DetailPanelComponent — position right/bottom + openChange (TDD, 4 cases)"
+```
+
+---
+
+### Task 16: `EditDrawerComponent` (TDD)
+
+**Files:**
+- Create: `frontend/src/app/shared/components/edit-drawer/edit-drawer.component.{html,ts,scss}`
+- Create: `frontend/src/app/shared/components/edit-drawer/edit-drawer.component.spec.ts`
+- Modify: `frontend/src/app/shared/shared.module.ts`
+
+- [ ] **Step 1: 테스트 파일 먼저 (failing)**
+
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MaterialModule } from '../../material.module';
+import { EditDrawerComponent } from './edit-drawer.component';
+
+describe('EditDrawerComponent', () => {
+    let fixture: ComponentFixture<EditDrawerComponent>;
+    let component: EditDrawerComponent;
+
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            declarations: [EditDrawerComponent],
+            imports: [MaterialModule, NoopAnimationsModule],
+        }).compileComponents();
+        fixture = TestBed.createComponent(EditDrawerComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should start closed', () => {
+        expect(component.isOpen).toBe(false);
+    });
+
+    it('open() should set isOpen=true and emit opened', () => {
+        spyOn(component.opened, 'emit');
+        component.open();
+        expect(component.isOpen).toBe(true);
+        expect(component.opened.emit).toHaveBeenCalled();
+    });
+
+    it('close() should set isOpen=false and emit closed', () => {
+        spyOn(component.closed, 'emit');
+        component.open();
+        component.close();
+        expect(component.isOpen).toBe(false);
+        expect(component.closed.emit).toHaveBeenCalled();
+    });
+
+    it('should render title input', () => {
+        component.title = '도메인 보강';
+        component.open();
+        fixture.detectChanges();
+        const text = (fixture.nativeElement as HTMLElement).textContent;
+        expect(text).toContain('도메인 보강');
+    });
+});
+```
+
+- [ ] **Step 2: 실패 확인**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/edit-drawer.component.spec.ts'
+```
+Expected: fail.
+
+- [ ] **Step 3: `edit-drawer.component.ts` 구현**
+
+```typescript
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+
+@Component({
+    selector: 'app-edit-drawer',
+    templateUrl: './edit-drawer.component.html',
+    styleUrls: ['./edit-drawer.component.scss'],
+})
+export class EditDrawerComponent {
+    @Input() title = '';
+    @Input() width = '480px';
+    @Output() opened = new EventEmitter<void>();
+    @Output() closed = new EventEmitter<void>();
+
+    isOpen = false;
+
+    open(): void {
+        this.isOpen = true;
+        this.opened.emit();
+    }
+
+    close(): void {
+        this.isOpen = false;
+        this.closed.emit();
+    }
+}
+```
+
+- [ ] **Step 4: `edit-drawer.component.html`**
+
+```html
+<div
+    class="edit-drawer"
+    [class.edit-drawer--open]="isOpen"
+    *ngIf="isOpen"
+    [style.width]="width"
+>
+    <header class="edit-drawer__header">
+        <h3 class="edit-drawer__title">{{ title }}</h3>
+        <button mat-icon-button type="button" (click)="close()" aria-label="닫기">
+            <mat-icon>close</mat-icon>
+        </button>
+    </header>
+    <div class="edit-drawer__body">
+        <ng-content></ng-content>
+    </div>
+    <footer class="edit-drawer__footer">
+        <ng-content select="[footer]"></ng-content>
+    </footer>
+</div>
+
+<div class="edit-drawer__backdrop" *ngIf="isOpen" (click)="close()"></div>
+```
+
+- [ ] **Step 5: `edit-drawer.component.scss`**
+
+```scss
+.edit-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    background: #fff;
+    box-shadow: -2px 0 6px rgba(0, 0, 0, 0.12);
+    display: flex;
+    flex-direction: column;
+    z-index: 1001;
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    &__title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+    }
+
+    &__body {
+        flex: 1;
+        padding: 16px;
+        overflow: auto;
+    }
+
+    &__footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px 16px;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    &__backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.32);
+        z-index: 1000;
+    }
+}
+```
+
+- [ ] **Step 6: `shared.module.ts` 등록**
+
+`declarations` / `exports`에 `EditDrawerComponent` 추가.
+
+- [ ] **Step 7: 통과 확인 + 전체 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/edit-drawer.component.spec.ts'
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: EditDrawer 4 그린, 누적 46 그린.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add frontend/src/app/shared/components/edit-drawer/ \
+        frontend/src/app/shared/shared.module.ts
+git commit -m "feat(C2): EditDrawerComponent — open/close + body/footer 슬롯 (TDD, 4 cases)"
+```
+
+---
+
+## Stage 5 — layouts + auth + home + app wiring
+
+### Task 17: `BlankLayoutComponent` + `LoginComponent` + `auth.module.ts` (TDD)
+
+**Files:**
+- Create: `frontend/src/app/layouts/blank-layout/blank-layout.component.{html,ts,scss}`
+- Create: `frontend/src/app/layouts/blank-layout/blank-layout.component.spec.ts`
+- Create: `frontend/src/app/auth/login/login.component.{html,ts,scss}`
+- Create: `frontend/src/app/auth/login/login.component.spec.ts`
+- Create: `frontend/src/app/auth/auth.module.ts`
+
+- [ ] **Step 1: `blank-layout.component.spec.ts` (failing)**
+
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { BlankLayoutComponent } from './blank-layout.component';
+
+describe('BlankLayoutComponent', () => {
+    let fixture: ComponentFixture<BlankLayoutComponent>;
+
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            declarations: [BlankLayoutComponent],
+            imports: [RouterTestingModule],
+        }).compileComponents();
+        fixture = TestBed.createComponent(BlankLayoutComponent);
+        fixture.detectChanges();
+    });
+
+    it('should render router-outlet', () => {
+        const outlet = (fixture.nativeElement as HTMLElement).querySelector('router-outlet');
+        expect(outlet).toBeTruthy();
+    });
+});
+```
+
+- [ ] **Step 2: `blank-layout.component.ts`**
+
+```typescript
+import { Component } from '@angular/core';
+
+@Component({
+    selector: 'app-blank-layout',
+    templateUrl: './blank-layout.component.html',
+    styleUrls: ['./blank-layout.component.scss'],
+})
+export class BlankLayoutComponent {}
+```
+
+- [ ] **Step 3: `blank-layout.component.html`**
+
+```html
+<div class="blank-layout">
+    <router-outlet></router-outlet>
+</div>
+```
+
+- [ ] **Step 4: `blank-layout.component.scss`**
+
+```scss
+.blank-layout {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fafafa;
+}
+```
+
+- [ ] **Step 5: `login.component.spec.ts` 먼저 (failing)**
+
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { of } from 'rxjs';
+import { MaterialModule } from '../../shared/material.module';
+import { AuthService } from '../../core/services/auth.service';
+import { LoginComponent } from './login.component';
+import { User } from '../../core/models/user.model';
+
+describe('LoginComponent', () => {
+    let fixture: ComponentFixture<LoginComponent>;
+    let component: LoginComponent;
+    let auth: jasmine.SpyObj<AuthService>;
+    let router: jasmine.SpyObj<Router>;
+    let route: { snapshot: { queryParamMap: { get: (k: string) => string | null } } };
+
+    beforeEach(async () => {
+        auth = jasmine.createSpyObj('AuthService', ['login']);
+        router = jasmine.createSpyObj('Router', ['navigateByUrl']);
+        route = {
+            snapshot: { queryParamMap: { get: (_k: string) => null } },
+        };
+        await TestBed.configureTestingModule({
+            declarations: [LoginComponent],
+            imports: [ReactiveFormsModule, MaterialModule, NoopAnimationsModule],
+            providers: [
+                { provide: AuthService, useValue: auth },
+                { provide: Router, useValue: router },
+                { provide: ActivatedRoute, useValue: route },
+            ],
+        }).compileComponents();
+        fixture = TestBed.createComponent(LoginComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should not call auth.login when form is empty', () => {
+        component.onSubmit();
+        expect(auth.login).not.toHaveBeenCalled();
+    });
+
+    it('should call auth.login with form values when valid', () => {
+        component.form.setValue({ username: 'admin', password: 'Admin123!' });
+        const fakeUser: User = {
+            id: 1,
+            username: 'admin',
+            name: '로컬관리자',
+            email: null,
+            role: 'ADMIN',
+        };
+        auth.login.and.returnValue(of(fakeUser));
+        component.onSubmit();
+        expect(auth.login).toHaveBeenCalledWith({ username: 'admin', password: 'Admin123!' });
+    });
+
+    it('should navigate to /home on success when no returnUrl', () => {
+        component.form.setValue({ username: 'admin', password: 'Admin123!' });
+        const fakeUser: User = {
+            id: 1,
+            username: 'admin',
+            name: '로컬관리자',
+            email: null,
+            role: 'ADMIN',
+        };
+        auth.login.and.returnValue(of(fakeUser));
+        component.onSubmit();
+        expect(router.navigateByUrl).toHaveBeenCalledWith('/home');
+    });
+
+    it('should navigate to returnUrl when present', () => {
+        route.snapshot.queryParamMap.get = (k: string) => (k === 'returnUrl' ? '/word' : null);
+        // 새 fixture로 ngOnInit 재실행
+        fixture = TestBed.createComponent(LoginComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+        component.form.setValue({ username: 'admin', password: 'Admin123!' });
+        const fakeUser: User = {
+            id: 1,
+            username: 'admin',
+            name: '로컬관리자',
+            email: null,
+            role: 'ADMIN',
+        };
+        auth.login.and.returnValue(of(fakeUser));
+        component.onSubmit();
+        expect(router.navigateByUrl).toHaveBeenCalledWith('/word');
+    });
+});
+```
+
+- [ ] **Step 6: `login.component.ts`**
+
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
+
+@Component({
+    selector: 'app-login',
+    templateUrl: './login.component.html',
+    styleUrls: ['./login.component.scss'],
+})
+export class LoginComponent implements OnInit {
+    form!: FormGroup;
+    private returnUrl = '/home';
+
+    constructor(
+        private readonly fb: FormBuilder,
+        private readonly auth: AuthService,
+        private readonly router: Router,
+        private readonly route: ActivatedRoute
+    ) {}
+
+    ngOnInit(): void {
+        this.form = this.fb.group({
+            username: ['', [Validators.required]],
+            password: ['', [Validators.required]],
+        });
+        const r = this.route.snapshot.queryParamMap.get('returnUrl');
+        if (r) {
+            this.returnUrl = r;
+        }
+    }
+
+    onSubmit(): void {
+        if (this.form.invalid) {
+            this.form.markAllAsTouched();
+            return;
+        }
+        const { username, password } = this.form.value;
+        this.auth.login({ username, password }).subscribe({
+            next: () => this.router.navigateByUrl(this.returnUrl),
+        });
+    }
+}
+```
+
+- [ ] **Step 7: `login.component.html`**
+
+```html
+<mat-card class="login-card">
+    <mat-card-header>
+        <mat-card-title>TrmWordDict</mat-card-title>
+        <mat-card-subtitle>행정표준 용어 사전 시스템</mat-card-subtitle>
+    </mat-card-header>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form">
+        <mat-form-field appearance="outline" class="login-form__field">
+            <mat-label>아이디</mat-label>
+            <input matInput type="text" formControlName="username" autocomplete="username" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="login-form__field">
+            <mat-label>비밀번호</mat-label>
+            <input matInput type="password" formControlName="password" autocomplete="current-password" />
+        </mat-form-field>
+        <button mat-raised-button color="primary" type="submit" class="login-form__submit">
+            로그인
+        </button>
+    </form>
+</mat-card>
+```
+
+- [ ] **Step 8: `login.component.scss`**
+
+```scss
+.login-card {
+    width: 360px;
+    padding: 24px;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    margin-top: 16px;
+
+    &__field {
+        width: 100%;
+    }
+
+    &__submit {
+        margin-top: 8px;
+    }
+}
+```
+
+- [ ] **Step 9: `auth.module.ts`**
+
+```typescript
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { SharedModule } from '../shared/shared.module';
+import { BlankLayoutComponent } from '../layouts/blank-layout/blank-layout.component';
+import { LoginComponent } from './login/login.component';
+
+const routes: Routes = [
+    {
+        path: '',
+        component: BlankLayoutComponent,
+        children: [{ path: '', component: LoginComponent }],
+    },
+];
+
+@NgModule({
+    declarations: [LoginComponent, BlankLayoutComponent],
+    imports: [SharedModule, RouterModule.forChild(routes)],
+})
+export class AuthModule {}
+```
+
+- [ ] **Step 10: 통과 확인**
+
+```bash
+cd frontend
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/blank-layout.component.spec.ts'
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/login.component.spec.ts'
+```
+Expected: BlankLayout 1 + Login 4 그린.
+
+- [ ] **Step 11: 전체 단위 테스트 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 누적 51. 0 failures.
+
+- [ ] **Step 12: Commit**
+
+```bash
+git add frontend/src/app/auth/ frontend/src/app/layouts/blank-layout/
+git commit -m "feat(C2): LoginComponent + BlankLayoutComponent + AuthModule (TDD, 4+1 cases)"
+```
+
+---
+
+### Task 18: `MainLayoutComponent` + `menu-items.ts` (TDD)
+
+**Files:**
+- Create: `frontend/src/app/layouts/main-layout/main-layout.component.{html,ts,scss}`
+- Create: `frontend/src/app/layouts/main-layout/main-layout.component.spec.ts`
+- Create: `frontend/src/app/layouts/main-layout/menu-items.ts`
+
+- [ ] **Step 1: `menu-items.ts` 작성**
+
+```typescript
+import { Role } from '../../core/models/user.model';
+
+export interface SidenavMenuItem {
+    label: string;
+    route: string;
+    icon: string;
+    requiredRole?: Role;
+}
+
+export const MENU_ITEMS: SidenavMenuItem[] = [];
+```
+
+- [ ] **Step 2: `main-layout.component.spec.ts` (failing)**
+
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { Router } from '@angular/router';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { BehaviorSubject } from 'rxjs';
+import { MainLayoutComponent } from './main-layout.component';
+import { MaterialModule } from '../../shared/material.module';
+import { AuthService } from '../../core/services/auth.service';
+import { User } from '../../core/models/user.model';
+
+describe('MainLayoutComponent', () => {
+    let fixture: ComponentFixture<MainLayoutComponent>;
+    let component: MainLayoutComponent;
+    let auth: jasmine.SpyObj<AuthService>;
+    let router: jasmine.SpyObj<Router>;
+    const me$ = new BehaviorSubject<User | null>(null);
+
+    beforeEach(async () => {
+        auth = jasmine.createSpyObj('AuthService', ['logout'], { me$ });
+        router = jasmine.createSpyObj('Router', ['navigate']);
+        await TestBed.configureTestingModule({
+            declarations: [MainLayoutComponent],
+            imports: [RouterTestingModule, MaterialModule, NoopAnimationsModule],
+            providers: [
+                { provide: AuthService, useValue: auth },
+                { provide: Router, useValue: router },
+            ],
+        }).compileComponents();
+        fixture = TestBed.createComponent(MainLayoutComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should display username from me$', () => {
+        me$.next({
+            id: 1,
+            username: 'admin',
+            name: '로컬관리자',
+            email: null,
+            role: 'ADMIN',
+        });
+        fixture.detectChanges();
+        const text = (fixture.nativeElement as HTMLElement).textContent;
+        expect(text).toContain('로컬관리자');
+    });
+
+    it('should call auth.logout and navigate to /login on logout()', () => {
+        component.logout();
+        expect(auth.logout).toHaveBeenCalled();
+        expect(router.navigate).toHaveBeenCalledWith(['/login']);
+    });
+
+    it('should render empty sidenav when MENU_ITEMS is empty', () => {
+        const items = (fixture.nativeElement as HTMLElement).querySelectorAll(
+            '.main-layout__menu-item'
+        );
+        expect(items.length).toBe(0);
+    });
+});
+```
+
+- [ ] **Step 3: `main-layout.component.ts`**
+
+```typescript
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { Observable } from 'rxjs';
+import { AuthService } from '../../core/services/auth.service';
+import { User } from '../../core/models/user.model';
+import { MENU_ITEMS, SidenavMenuItem } from './menu-items';
+
+@Component({
+    selector: 'app-main-layout',
+    templateUrl: './main-layout.component.html',
+    styleUrls: ['./main-layout.component.scss'],
+})
+export class MainLayoutComponent {
+    readonly me$: Observable<User | null>;
+    readonly menuItems: SidenavMenuItem[] = MENU_ITEMS;
+
+    constructor(private readonly auth: AuthService, private readonly router: Router) {
+        this.me$ = this.auth.me$;
+    }
+
+    isVisible(item: SidenavMenuItem, role: 'USER' | 'ADMIN' | undefined): boolean {
+        if (!item.requiredRole) {
+            return true;
+        }
+        return item.requiredRole === role;
+    }
+
+    logout(): void {
+        this.auth.logout();
+        this.router.navigate(['/login']);
+    }
+}
+```
+
+- [ ] **Step 4: `main-layout.component.html`**
+
+```html
+<mat-sidenav-container class="main-layout">
+    <mat-sidenav mode="side" opened class="main-layout__sidenav">
+        <div class="main-layout__brand">TrmWordDict</div>
+        <nav class="main-layout__nav">
+            <a
+                *ngFor="let item of menuItems"
+                class="main-layout__menu-item"
+                [hidden]="!isVisible(item, ((me$ | async)?.role))"
+                [routerLink]="item.route"
+                routerLinkActive="main-layout__menu-item--active"
+            >
+                <mat-icon>{{ item.icon }}</mat-icon>
+                <span class="main-layout__menu-label">{{ item.label }}</span>
+            </a>
+        </nav>
+    </mat-sidenav>
+    <mat-sidenav-content>
+        <mat-toolbar class="main-layout__toolbar" color="primary">
+            <span class="main-layout__spacer"></span>
+            <ng-container *ngIf="me$ | async as user">
+                <span class="main-layout__user">{{ user.name }}</span>
+                <button mat-icon-button type="button" (click)="logout()" aria-label="로그아웃">
+                    <mat-icon>logout</mat-icon>
+                </button>
+            </ng-container>
+        </mat-toolbar>
+        <main class="main-layout__content">
+            <router-outlet></router-outlet>
+        </main>
+    </mat-sidenav-content>
+</mat-sidenav-container>
+```
+
+- [ ] **Step 5: `main-layout.component.scss`**
+
+```scss
+.main-layout {
+    height: 100vh;
+
+    &__sidenav {
+        width: 220px;
+        background: #263238;
+        color: #fff;
+    }
+
+    &__brand {
+        padding: 16px;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    &__nav {
+        display: flex;
+        flex-direction: column;
+    }
+
+    &__menu-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        color: #cfd8dc;
+        text-decoration: none;
+        cursor: pointer;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        &--active {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+    }
+
+    &__toolbar {
+        display: flex;
+        align-items: center;
+    }
+
+    &__spacer {
+        flex: 1;
+    }
+
+    &__user {
+        margin-right: 8px;
+    }
+
+    &__content {
+        padding: 16px;
+    }
+}
+```
+
+- [ ] **Step 6: 통과 + 전체 그린**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless --include='**/main-layout.component.spec.ts'
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: MainLayout 3 그린, 누적 54.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add frontend/src/app/layouts/main-layout/
+git commit -m "feat(C2): MainLayoutComponent + MENU_ITEMS — 헤더/사이드바/content slot (TDD, 3 cases)"
+```
+
+---
+
+### Task 19: `HomePageComponent` + `home.module.ts` + `app.module` / `app-routing.module` / `app.component` 와이어링
+
+**Files:**
+- Create: `frontend/src/app/features/home/home-page.component.{html,ts,scss}`
+- Create: `frontend/src/app/features/home/home-page.component.spec.ts`
+- Create: `frontend/src/app/features/home/home.module.ts`
+- Modify: `frontend/src/app/app.module.ts`
+- Modify: `frontend/src/app/app-routing.module.ts`
+- Modify: `frontend/src/app/app.component.{html,ts}`
+
+- [ ] **Step 1: `home-page.component.spec.ts` (failing)**
+
+```typescript
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { BehaviorSubject } from 'rxjs';
+import { HomePageComponent } from './home-page.component';
+import { AuthService } from '../../core/services/auth.service';
+import { User } from '../../core/models/user.model';
+
+describe('HomePageComponent', () => {
+    let fixture: ComponentFixture<HomePageComponent>;
+    const me$ = new BehaviorSubject<User | null>({
+        id: 1,
+        username: 'admin',
+        name: '로컬관리자',
+        email: null,
+        role: 'ADMIN',
+    });
+
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            declarations: [HomePageComponent],
+            providers: [{ provide: AuthService, useValue: { me$ } }],
+        }).compileComponents();
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+    });
+
+    it('should render welcome message', () => {
+        const text = (fixture.nativeElement as HTMLElement).textContent;
+        expect(text).toContain('환영합니다');
+    });
+
+    it('should render current user name', () => {
+        const text = (fixture.nativeElement as HTMLElement).textContent;
+        expect(text).toContain('로컬관리자');
+    });
+});
+```
+
+- [ ] **Step 2: `home-page.component.ts`**
+
+```typescript
+import { Component } from '@angular/core';
+import { Observable } from 'rxjs';
+import { AuthService } from '../../core/services/auth.service';
+import { User } from '../../core/models/user.model';
+
+@Component({
+    selector: 'app-home-page',
+    templateUrl: './home-page.component.html',
+    styleUrls: ['./home-page.component.scss'],
+})
+export class HomePageComponent {
+    readonly me$: Observable<User | null>;
+
+    constructor(auth: AuthService) {
+        this.me$ = auth.me$;
+    }
+}
+```
+
+- [ ] **Step 3: `home-page.component.html`**
+
+```html
+<section class="home-page">
+    <h2>환영합니다</h2>
+    <p *ngIf="me$ | async as user">
+        <strong>{{ user.name }}</strong>님, 모듈 진입은 좌측 메뉴에서.
+    </p>
+    <p *ngIf="!(me$ | async)">로딩 중...</p>
+</section>
+```
+
+- [ ] **Step 4: `home-page.component.scss`**
+
+```scss
+.home-page {
+    padding: 24px;
+}
+```
+
+- [ ] **Step 5: `home.module.ts`**
+
+```typescript
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { SharedModule } from '../../shared/shared.module';
+import { HomePageComponent } from './home-page.component';
+
+const routes: Routes = [{ path: '', component: HomePageComponent }];
+
+@NgModule({
+    declarations: [HomePageComponent],
+    imports: [SharedModule, RouterModule.forChild(routes)],
+})
+export class HomeModule {}
+```
+
+- [ ] **Step 6: `app-routing.module.ts` 갱신**
+
+```typescript
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { AuthGuard } from './core/guards/auth.guard';
+import { MainLayoutComponent } from './layouts/main-layout/main-layout.component';
+
+const routes: Routes = [
+    {
+        path: 'login',
+        loadChildren: () => import('./auth/auth.module').then((m) => m.AuthModule),
+    },
+    {
+        path: '',
+        component: MainLayoutComponent,
+        canActivate: [AuthGuard],
+        children: [
+            { path: '', redirectTo: 'home', pathMatch: 'full' },
+            {
+                path: 'home',
+                loadChildren: () => import('./features/home/home.module').then((m) => m.HomeModule),
+            },
+        ],
+    },
+    { path: '**', redirectTo: 'home' },
+];
+
+@NgModule({
+    imports: [RouterModule.forRoot(routes)],
+    exports: [RouterModule],
+})
+export class AppRoutingModule {}
+```
+
+- [ ] **Step 7: `app.module.ts` 갱신**
+
+```typescript
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { CoreModule } from './core/core.module';
+import { ErrorInterceptor } from './core/interceptors/error.interceptor';
+import { JwtInterceptor } from './core/interceptors/jwt.interceptor';
+import { MainLayoutComponent } from './layouts/main-layout/main-layout.component';
+import { SharedModule } from './shared/shared.module';
+
+@NgModule({
+    declarations: [AppComponent, MainLayoutComponent],
+    imports: [BrowserModule, BrowserAnimationsModule, AppRoutingModule, CoreModule, SharedModule],
+    providers: [
+        { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },
+        { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true },
+    ],
+    bootstrap: [AppComponent],
+})
+export class AppModule {}
+```
+
+> `MainLayoutComponent`는 라우팅에서 직접 component로 참조되므로 AppModule.declarations에 등록. AuthModule이 BlankLayoutComponent를 declare함과 다른 패턴이지만 동작 동일.
+
+- [ ] **Step 8: `app.component.ts` 갱신**
+
+```typescript
+import { Component } from '@angular/core';
+import { Observable } from 'rxjs';
+import { AuthService } from './core/services/auth.service';
+import { LoadingService } from './core/services/loading.service';
+
+@Component({
+    selector: 'app-root',
+    templateUrl: './app.component.html',
+    styleUrls: ['./app.component.scss'],
+})
+export class AppComponent {
+    readonly isLoading$: Observable<boolean>;
+
+    constructor(loading: LoadingService, auth: AuthService) {
+        this.isLoading$ = loading.isLoading$;
+        if (auth.token) {
+            auth.loadMe().subscribe({ error: () => auth.logout() });
+        }
+    }
+}
+```
+
+- [ ] **Step 9: `app.component.html` 갱신**
+
+```html
+<mat-progress-bar
+    *ngIf="isLoading$ | async"
+    mode="indeterminate"
+    class="app-progress"
+></mat-progress-bar>
+<router-outlet></router-outlet>
+```
+
+- [ ] **Step 10: `app.component.scss` 갱신 (이미 있다면 append)**
+
+```scss
+.app-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2000;
+}
+```
+
+- [ ] **Step 11: `app.component.spec.ts` 갱신 (default test 깨질 수 있음)**
+
+```typescript
+import { TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { BehaviorSubject, of } from 'rxjs';
+import { AppComponent } from './app.component';
+import { LoadingService } from './core/services/loading.service';
+import { AuthService } from './core/services/auth.service';
+import { MaterialModule } from './shared/material.module';
+
+describe('AppComponent', () => {
+    beforeEach(async () => {
+        const loading = { isLoading$: new BehaviorSubject(false) };
+        const auth = {
+            token: null,
+            me$: new BehaviorSubject(null),
+            loadMe: () => of(null),
+            logout: () => void 0,
+        };
+        await TestBed.configureTestingModule({
+            declarations: [AppComponent],
+            imports: [
+                RouterTestingModule,
+                HttpClientTestingModule,
+                NoopAnimationsModule,
+                MaterialModule,
+            ],
+            providers: [
+                { provide: LoadingService, useValue: loading },
+                { provide: AuthService, useValue: auth },
+            ],
+        }).compileComponents();
+    });
+
+    it('should create the app', () => {
+        const fixture = TestBed.createComponent(AppComponent);
+        const app = fixture.componentInstance;
+        expect(app).toBeTruthy();
+    });
+});
+```
+
+- [ ] **Step 12: 빌드 + 단위 테스트 + lint**
+
+```bash
+cd frontend
+npm run build
+npm run lint
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 빌드 성공, lint 0 error, 단위 테스트 누적 56 그린 (HomePage 2 + 기존 54).
+
+- [ ] **Step 13: 부트 smoke 검증 (수동, 선택)**
+
+> backend가 부트되어 있다면(별도 터미널 `--profiles=local`):
+
+```bash
+npm start
+```
+
+브라우저에서 `http://localhost:4200`:
+- `/`로 접근 시 미인증 → `/login?returnUrl=%2Fhome`로 redirect.
+- LoginComponent 렌더 (Material outline 폼 + 로그인 버튼).
+- `admin` / `Admin123!` 입력 후 로그인 → `/home` redirect → 헤더에 `로컬관리자` + 로그아웃 아이콘.
+- 로그아웃 클릭 → `/login`으로 redirect.
+
+확인 후 Ctrl+C 종료. 본 단계가 깨지면 Stage 7 G2-d에서 잡힘 — 진행 가능.
+
+- [ ] **Step 14: Commit**
+
+```bash
+git add frontend/src/app/features/home/ \
+        frontend/src/app/app.module.ts \
+        frontend/src/app/app-routing.module.ts \
+        frontend/src/app/app.component.ts \
+        frontend/src/app/app.component.html \
+        frontend/src/app/app.component.scss \
+        frontend/src/app/app.component.spec.ts
+git commit -m "feat(C2): HomePage + AppRouting + AppModule 인터셉터 등록 + 글로벌 progress-bar 와이어링"
+```
+
+---
+
+## Stage 6 — Playwright E2E (4 시나리오)
+
+### Task 20: `e2e/auth.spec.ts` 4 시나리오 작성
+
+**Files:**
+- Create: `frontend/e2e/auth.spec.ts`
+
+> 본 시나리오는 backend(`--profiles=local`) 부트 + frontend `npm start` 둘 다 실행 중일 때만 통과한다. 본 Task의 Step 6 검증은 그 환경 가정.
+
+**Files:**
+- Create: `frontend/e2e/auth.spec.ts`
+
+- [ ] **Step 1: `auth.spec.ts` 작성**
+
+```typescript
+import { expect, test } from '@playwright/test';
+
+const STORAGE_KEY = 'trmdict_token';
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'Admin123!';
+
+test.describe('C2 인증 흐름', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.goto('/login');
+        await page.evaluate((key) => localStorage.removeItem(key), STORAGE_KEY);
+    });
+
+    test('1. 로그인 성공 → /home redirect + 헤더에 사용자명 + token 저장', async ({ page }) => {
+        await page.goto('/login');
+        await page.getByLabel('아이디').fill(ADMIN_USER);
+        await page.getByLabel('비밀번호').fill(ADMIN_PASS);
+        await page.getByRole('button', { name: '로그인' }).click();
+
+        await expect(page).toHaveURL(/\/home$/);
+        await expect(page.locator('.main-layout__user')).toContainText('로컬관리자');
+
+        const token = await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY);
+        expect(token).toBeTruthy();
+    });
+
+    test('2. 잘못된 비번 → toast + /login 유지 + token 미저장', async ({ page }) => {
+        await page.goto('/login');
+        await page.getByLabel('아이디').fill(ADMIN_USER);
+        await page.getByLabel('비밀번호').fill('WrongPass!');
+        await page.getByRole('button', { name: '로그인' }).click();
+
+        await expect(page.locator('snack-bar-container')).toBeVisible();
+        await expect(page).toHaveURL(/\/login/);
+
+        const token = await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY);
+        expect(token).toBeNull();
+    });
+
+    test('3. 위조 token으로 /home 접근 → 첫 API 호출 시 401 → /login redirect + token clear', async ({
+        page,
+    }) => {
+        await page.goto('/login');
+        await page.evaluate(
+            ([key, val]) => localStorage.setItem(key, val),
+            [STORAGE_KEY, 'forged.token.xyz']
+        );
+
+        await page.goto('/home');
+        // /api/v1/auth/me에서 401 응답 → ErrorInterceptor가 logout + redirect
+        await expect(page).toHaveURL(/\/login\?returnUrl=%2Fhome/);
+
+        const token = await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY);
+        expect(token).toBeNull();
+    });
+
+    test('4. token 없이 /home 직접 진입 → AuthGuard 차단 → /login?returnUrl=%2Fhome', async ({
+        page,
+    }) => {
+        await page.goto('/login');
+        await page.evaluate((key) => localStorage.removeItem(key), STORAGE_KEY);
+
+        await page.goto('/home');
+        await expect(page).toHaveURL(/\/login\?returnUrl=%2Fhome/);
+    });
+});
+```
+
+> 시나리오 3은 위조 token 주입 후 `/home` 진입 시 lazy-loaded HomeModule이 발동되며 동시에 `app.component`의 `auth.loadMe()`가 호출됨 → backend가 위조 token으로 401 → ErrorInterceptor가 logout + navigate. 위조 token 자체로 `AuthGuard`는 통과해버린다는 점이 핵심(`isAuthenticated`는 단순 token 존재 여부).
+
+- [ ] **Step 2: 패키지 script 확인**
+
+`frontend/package.json`의 `scripts.e2e`가 `playwright test`인지 확인. Stage 1 Task 3에서 등록됐으나 재확인:
+
+```bash
+cd frontend
+cat package.json | grep -A 1 '"e2e"'
+```
+Expected: `"e2e": "playwright test"` 매치.
+
+- [ ] **Step 3: 사전 조건 — backend 부트 (별도 터미널)**
+
+```bash
+cd ../
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 C:\Dev\dev_codeDaemon\bin\apache-maven-3.3.9\bin\mvn.cmd -f backend/pom.xml package -DskipTests
+java -jar backend/target/trmdict-1.0.0-SNAPSHOT.jar --spring.profiles.active=local
+```
+
+부트 로그에서 `Started TrmDictApplication` 확인 후 다음 단계. 본 단계는 자동화 안 함 — 운영자 수동.
+
+- [ ] **Step 4: 사전 조건 — frontend `npm start` (별도 터미널)**
+
+```bash
+cd frontend
+npm start
+```
+
+`Compiled successfully` + `Local: http://localhost:4200` 확인 후 다음 단계.
+
+- [ ] **Step 5: Playwright 실행**
+
+또 다른 터미널에서:
+
+```bash
+cd frontend
+npm run e2e
+```
+Expected: `Running 4 tests using 1 worker` → `4 passed (XXs)`. 0 failures.
+
+문제 발생 시:
+- `chromium` 미설치 — `npx playwright install chromium`.
+- timeout — backend/frontend 부트 완료 확인 후 재실행.
+- Material 라벨 변경 시 `getByLabel('아이디')` / `getByLabel('비밀번호')` 셀렉터 정정.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add frontend/e2e/auth.spec.ts
+git commit -m "test(C2): Playwright E2E — 인증 흐름 4 시나리오"
+```
+
+---
+
+## Stage 7 — G2-d 검증 게이트 (Hard Stop)
+
+### Task 21: 빌드·lint·단위·E2E·부트 smoke + 정적 점검 일괄 통과
+
+> spec §7 검증 게이트 일괄. 이 Task가 그린이 아니면 사이클 완료 선언 불가.
+
+**Files:**
+- (코드 변경 없음 — 검증만)
+
+- [ ] **Step 1: 클린 install + build**
+
+```bash
+cd frontend
+rm -rf node_modules dist .angular
+npm install
+npm run build
+```
+Expected: `BUILD SUCCESS` 또는 `Compiled successfully`. `dist/frontend/` artifact 생성.
+
+> Windows PowerShell에서 `rm -rf` 미지원 시 `Remove-Item -Recurse -Force node_modules,dist,.angular`.
+
+- [ ] **Step 2: lint 그린**
+
+```bash
+npm run lint
+```
+Expected: `All files pass linting.` 0 errors.
+
+- [ ] **Step 3: format 검증**
+
+```bash
+npm run format:check
+```
+Expected: 모든 파일 통과.
+
+- [ ] **Step 4: 단위 테스트 그린 (G2-d 핵심 게이트)**
+
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Expected: 누적 ~56 (정확 수치 환경마다 ±2 변동 가능). `Tests run: 56, Failures: 0`. `BUILD SUCCESS`.
+
+내역:
+- default `app.component.spec.ts` 1 (Stage 5 Task 19에서 갱신)
+- LoadingService 4
+- ApiService 2
+- AuthService 3
+- JwtInterceptor 4
+- ErrorInterceptor 4
+- AuthGuard 3
+- SearchForm 4
+- DataGrid 5
+- ColumnResize 2
+- FileUpload 4
+- DetailPanel 4
+- EditDrawer 4
+- BlankLayout 1
+- Login 4
+- MainLayout 3
+- HomePage 2
+- 합계: 1+4+2+3+4+4+3+4+5+2+4+4+4+1+4+3+2 = **54**
+
+> 위 합계는 spec.md §7.2 표의 컴포넌트 케이스 수와 정합. 실 실행 시 ±2 차이 무방 (환경별 default 변동).
+
+- [ ] **Step 5: backend 부트 smoke (별도 터미널)**
+
+```bash
+java -jar backend/target/trmdict-1.0.0-SNAPSHOT.jar --spring.profiles.active=local
+```
+
+부트 로그에서 다음 모두 확인:
+- [ ] `Started TrmDictApplication` 출력
+- [ ] `HikariPool-1 - Start completed`
+- [ ] 부트 후 컨테이너 정상 동작
+
+- [ ] **Step 6: frontend `npm start` smoke (별도 터미널)**
+
+```bash
+cd frontend
+npm start
+```
+
+브라우저 `http://localhost:4200`:
+- [ ] 미인증 상태 `/` 접근 시 `/login` 자동 redirect
+- [ ] LoginComponent 렌더, Material 테마 적용
+- [ ] 콘솔에 4xx/5xx HTTP 에러 부재
+- [ ] 좌상단 Material `<mat-progress-bar>` 진행 중 표시 (요청 시 visible, 완료 시 hidden)
+
+- [ ] **Step 7: Playwright E2E 그린**
+
+```bash
+cd frontend
+npm run e2e
+```
+Expected: `4 passed`. 0 failures.
+
+- [ ] **Step 8: 정적 점검 체크리스트**
+
+```bash
+# 1) features 모듈 부재 (home 외)
+ls frontend/src/app/features/ 2>/dev/null
+```
+Expected: `home/` 디렉터리 1개만 존재.
+
+```bash
+# 2) admin.guard.ts 부재
+ls frontend/src/app/core/guards/admin.guard.ts 2>/dev/null
+```
+Expected: `No such file or directory`.
+
+```bash
+# 3) MENU_ITEMS = []
+grep "export const MENU_ITEMS" frontend/src/app/layouts/main-layout/menu-items.ts
+```
+Expected: `export const MENU_ITEMS: SidenavMenuItem[] = [];`
+
+```bash
+# 4) proxy.conf.json 키
+cat frontend/proxy.conf.json | grep -E "(target|/api)"
+```
+Expected: `"/api"` 키와 `"target": "http://localhost:8080"` 라인 모두 매치.
+
+```bash
+# 5) environment apiBaseUrl
+grep "apiBaseUrl" frontend/src/environments/environment.ts
+```
+Expected: `apiBaseUrl: '/api'`.
+
+```bash
+# 6) Material indigo-pink import
+grep "indigo-pink" frontend/src/styles.scss
+```
+Expected: 1 매치 (Material prebuilt theme import 라인).
+
+- [ ] **Step 9: 게이트 통과 — 코드 변경 없음, commit 생략**
+
+> 본 Task는 검증 게이트만 — 다음 Task 22의 status.md 갱신에서 게이트 통과 사실을 영구 기록.
+
+---
+
+## Stage 8 — 사이클 마감 + master 머지
+
+### Task 22: `status.md` 사이클 완료 섹션 + `handoff.md` / `worklog.md` 마감 갱신
+
+**Files:**
+- Modify: `docs/cycles/03-c2-frontend-core/status.md` (사이클 완료 섹션 추가)
+- Modify: `docs/handoff.md`
+- Modify: `docs/worklog.md`
+
+- [ ] **Step 1: `status.md` 마감 갱신**
+
+`docs/cycles/03-c2-frontend-core/status.md`의 "현재 단계" 섹션을 `[Stage 7] G2-d 검증 게이트`로 갱신하고, 파일 끝에 다음 추가:
+
+```markdown
+
+---
+
+## 🏁 사이클 완료
+**완료 일시**: YYYY-MM-DD HH:MM (실제 완료 시각으로 채움)
+**총 단계 수**: 9 Stage / 23 Task
+**다음 사이클**: I0 (Import 백엔드)
+**비고**:
+- G2-d 검증 게이트 통과 — `npm test` ~54/54 그린, `npm run lint` 0 error, `npm run build` 성공, Playwright E2E 4/4 그린, 부트 smoke OK.
+- 산출물: Frontend 골격(Angular 15 + Material 15 indigo-pink + ESLint/Prettier/Playwright) + `core/` 인터셉터 2 + 가드 1 + 서비스 3 + 모델 3 + `shared/components/` 5종 + `column-resize.directive` + `layouts/{main,blank}` + `auth/login` + `features/home` placeholder + `app` wiring + `decisions.md` 3 결정 + `e2e/auth.spec.ts` 4 시나리오.
+- backend 테스트 카운트: 52/52 변동 없음 (frontend만 추가).
+- 첫 모듈 사이클(M-D-R)이 본 사이클의 `MENU_ITEMS`에 1줄 추가하면서 진입.
+```
+
+- [ ] **Step 2: `docs/handoff.md` 마감 갱신**
+
+다음 항목들을 갱신:
+1. "다음 세션 시작 가이드" §2: C0/C1/C2 모두 완료 상태로 갱신. 다음 액션 = **I0 (Import 백엔드)** spec.md 작성 진입.
+   - 작성 대상 파일: `docs/cycles/04-i0-import-backend/spec.md`
+   - 입력 자료: `cycle-decomposition-design.md` §4.1 행 4 (I0 = Import 백엔드), `code-structure-design.md` §3.3·§5.1 (I0 매핑), C1 spec/decisions.md (TRM_*_HISTORY 11컬럼 컨벤션 + JobStatus + AsyncConfig 의존)
+   - 신규 브랜치 권장: `cycles/04-i0-import-backend` (master에서 분기)
+2. "Current Goal": **C2 사이클 완료 + master 머지 완료**(commit hash는 Task 23에서 박힘). 다음 사이클 = **I0 (Import 백엔드)** spec.md 작성 진입.
+3. "Done (2026-05-03)" 끝에 다음 항목 추가:
+   - `C2 사이클 9 Stage / 23 Task 완료 — npm test ~54/54 그린, Playwright E2E 4/4 그린, 부트 smoke OK`
+   - `frontend/ 신규 골격 (Angular 15 + Material 15 indigo-pink + ESLint/Prettier/Playwright)`
+   - `core/ 인터셉터 2 + 가드 1 + 서비스 3 + 모델 3 / shared/components/ 5종 + column-resize.directive / layouts/{main,blank} / auth/login / features/home placeholder`
+   - `decisions.md C2 결정 3건 등재 (Frontend 인증 흐름 / Playwright / Material indigo-pink)`
+   - `master에 머지 완료 (commit ${MERGE_HASH}, --no-ff). cycles/03-c2-frontend-core 브랜치 보존.`
+   - (Task 23에서 `${MERGE_HASH}`를 실 hash로 정정)
+4. "In Progress": 비움.
+5. "Next Steps":
+   - §1: 원격 push 안내(선택, 사용자 결정).
+   - §2: I0 사이클 진입 — `/superpowers:brainstorming` + 입력 자료 안내.
+   - §3 이후: 후속 사이클 순서 (직렬) — C0(완료) → C1(완료) → C2(완료) → I0 → I1 → M-D-R → M-D-W → M-W-R → M-W-W → M-T-R → M-T-W → M-F-R → M-F-W → N0 → N1 → N2 → Z0.
+6. "Working Tree": master HEAD 갱신, untracked는 동일.
+7. 이전 "C0 이월 minor 4건은 모두 C1 Stage 4에서 처리 완료" 같은 줄들은 그대로 유지.
+
+- [ ] **Step 3: `docs/worklog.md` 마감 갱신**
+
+다음 항목들을 갱신:
+1. "Current Status": "C0 / C1 / C2 세 사이클 모두 완료, master 머지 완료. 다음 사이클 = I0 (Import 백엔드) spec 작성 진입."
+2. "Today (2026-05-03)" 끝에 추가:
+   - `C2 사이클 9 Stage / 23 Task 완료 — npm test ~54/54 그린, Playwright E2E 4/4 그린, 부트 smoke OK`
+   - `frontend/ 신규 골격 + 5종 shared 컴포넌트 + 인증 인터셉터·가드·서비스 풀 동작`
+   - `decisions.md C2 결정 3건 등재 (Frontend 인증 흐름 / Playwright / Material indigo-pink)`
+   - `cycles/03-c2-frontend-core → master 머지 (commit ${MERGE_HASH}, --no-ff). 브랜치 보존.`
+3. "In Progress": 비움 ("C2 종료. 다음 세션에서 I0 진입.").
+4. "Next" §1: I0 사이클 spec.md 작성.
+5. "Recent Changes" 끝에 "C2 사이클 23 task / 9 stage 완료 — frontend 골격 + 5종 컴포넌트 + 인증 흐름 + Playwright E2E, master 머지 ${MERGE_HASH}".
+6. "TODO (Short-term)": "I0 사이클 spec.md 작성 (별도 brainstorming 세션)."
+
+- [ ] **Step 4: 정적 검증**
+
+```bash
+grep -c "## 🏁 사이클 완료" docs/cycles/03-c2-frontend-core/status.md
+```
+Expected: `1`.
+
+```bash
+grep -c "I0 (Import 백엔드)" docs/handoff.md
+```
+Expected: 1 이상.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add docs/cycles/03-c2-frontend-core/status.md docs/handoff.md docs/worklog.md
+git commit -m "docs(C2): 사이클 마감 — status.md 완료 섹션 + handoff/worklog 반영"
+```
+
+---
+
+### Task 23: master 머지 (사용자 승인 후)
+
+> 머지는 **사용자 명시적 승인** 후에만 수행한다. C0/C1 패턴(`--no-ff`)을 따른다.
+
+**Files:**
+- (Git 작업만 — 코드 변경 없음, 단 Step 5에서 handoff.md commit hash 정정)
+
+- [ ] **Step 1: 사용자 승인 대기**
+
+> 다음 메시지를 사용자에게 보낸다:
+>
+> "C2 사이클 모든 단계 완료 (Stage 0~7). `cycles/03-c2-frontend-core` → `master` 머지(`--no-ff`)를 진행할까요? 거부 시 다음 세션에서 사용자가 직접 머지하거나 추가 점검 후 진행합니다."
+>
+> 승인 시 다음 단계로, 거부/보류 시 본 Task만 미완료로 남기고 사이클은 "코드 완료, 머지 대기" 상태.
+
+- [ ] **Step 2: master로 체크아웃 + 머지**
+
+```bash
+git checkout master
+git merge --no-ff cycles/03-c2-frontend-core -m "Merge branch 'cycles/03-c2-frontend-core' — C2 사이클 완료"
+```
+Expected: `Fast-forward` 아닌 명시적 머지 commit 생성.
+
+- [ ] **Step 3: 머지 결과 확인**
+
+```bash
+git log --oneline -5
+git status
+```
+Expected:
+- 가장 위 commit이 `Merge branch 'cycles/03-c2-frontend-core' — C2 사이클 완료`
+- `git status`: `On branch master`, `nothing to commit, working tree clean`.
+
+- [ ] **Step 4: 머지 후 회귀 검증**
+
+backend (별도 터미널):
+```bash
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 C:\Dev\dev_codeDaemon\bin\apache-maven-3.3.9\bin\mvn.cmd test
+```
+Expected: `Tests run: 52, Failures: 0`.
+
+frontend:
+```bash
+cd frontend
+npm test -- --watch=false --browsers=ChromeHeadless
+npm run lint
+npm run build
+```
+Expected: 모두 그린.
+
+- [ ] **Step 5: handoff.md / worklog.md에 머지 commit hash 박기 (정정 commit)**
+
+```bash
+MERGE_HASH=$(git log -1 --format=%h)
+echo "merge hash: $MERGE_HASH"
+```
+
+`docs/handoff.md`와 `docs/worklog.md`의 `${MERGE_HASH}` placeholder를 실 hash로 치환:
+
+```bash
+# 또는 수동 편집 (Edit tool 사용 권장)
+# Done 섹션 / Recent Changes 섹션의 ${MERGE_HASH} → 실 hash
+git add docs/handoff.md docs/worklog.md
+git commit -m "docs(C2): handoff/worklog — master 머지 commit hash 반영"
+```
+
+- [ ] **Step 6: 사이클 브랜치 보존 (삭제하지 않음)**
+
+> C0/C1 패턴 동일 — 사이클 브랜치는 참고용으로 보존한다. 사용자가 명시적으로 삭제 요청 전까지 유지.
+
+- [ ] **Step 7: 원격 push (선택, 사용자 결정)**
+
+> 사용자에게 묻는다: "현재 `master`는 origin/master 대비 N commit ahead. `git push origin master`를 실행할까요?" 사용자 승인 시 push, 거부 시 미수행.
+
+---
+
+## Self-Review 체크리스트 (plan 작성자 직접 검증)
+
+> 본 plan을 commit하기 전 작성자 셀프리뷰. 이 체크리스트는 plan 자체를 검증한다.
+
+- [x] **Spec 커버리지** — spec §2.1.1 ~ §2.1.9 모든 In 항목이 Task 1~23에 매핑됨.
+  - 2.1.1 빌드 골격 → T03
+  - 2.1.2 src/app 루트 → T19 (app wiring)
+  - 2.1.3 core/ → T04(models), T05(LoadingService), T06(ApiService), T07(AuthService+CoreModule), T08(JwtInterceptor), T09(ErrorInterceptor), T10(AuthGuard)
+  - 2.1.4 shared/ → T11(material+shared module), T12(SearchForm), T13(DataGrid+Resize), T14(FileUpload), T15(DetailPanel), T16(EditDrawer)
+  - 2.1.5 layouts/ → T17(BlankLayout), T18(MainLayout)
+  - 2.1.6 auth/ → T17(LoginComponent + AuthModule)
+  - 2.1.7 features/home/ → T19(HomePageComponent + HomeModule)
+  - 2.1.8 단위 테스트 → 각 Task의 `*.spec.ts` (TDD 패턴)
+  - 2.1.9 자동 E2E → T20(Playwright 4 시나리오)
+- [x] **검증 게이트** spec §7 → T21 일괄 매핑.
+- [x] **선행/후속 갱신** spec §8 → T01(working tree), T02(decisions+handoff+worklog+status), T22(마감 갱신), T23(머지 hash 정정).
+- [x] **Placeholder 스캔** — TBD/TODO 없음. `${MERGE_HASH}` 1건은 실 머지 hash로 치환되는 명시적 placeholder (T22 Step 2/3, T23 Step 5에 처리 명시).
+- [x] **Type 일관성** — `ApiResponse<T>` / `PageResponse<T>` / `User.role: 'USER'|'ADMIN'` / `LoadingService.start/stop` / `AuthService.me$` 시그니처가 모든 Task에서 동일.
+- [x] **컴포넌트 시그니처 일관성** — spec §4.6 Input/Output 시그니처와 plan의 컴포넌트 구현이 정합:
+  - SearchForm: `submitLabel`/`resetLabel`/`formSubmit`/`formReset` ✓
+  - DataGrid: `columns`/`pageData`/`pageSizeOptions`/`selectable`/`trackBy` + `pageChange`/`sortChange`/`selectionChange`/`rowClick` ✓
+  - FileUpload: `accept`/`maxSizeMB`/`label` + `fileSelected`/`fileRejected({reason,message})` ✓
+  - DetailPanel: `position`/`open`/`title` + `openChange` ✓
+  - EditDrawer: `title`/`width` + `open()`/`close()` 메소드 + `opened`/`closed` ✓
+- [x] **테스트 카운트 일관성** — 각 Task의 누적 카운트 추적 (Stage 2 후 12 / Stage 3 후 23 / Stage 4 후 46 / Stage 5 후 56). G2-d 게이트 ~54 (default `app.component.spec.ts` 갱신 후 -1, 컴포넌트 변동 ±2). 본문 명시.
+- [x] **머지 절차** — T23이 사용자 승인 게이트로 시작 (자동 머지 금지).
+- [x] **의존성 그래프** — Stage 의존성 명시: 0 → 1(install 필요) → 2(core models 먼저) → 3(interceptors는 service 의존) → 4(shared는 core 무관 — 병렬 가능하지만 직렬 진행) → 5(layouts는 service+shared 의존) → 6(E2E는 모든 코드 통합 후) → 7(검증) → 8(마감).
+- [x] **TDD 패턴** — 각 코드 Task에서 test 먼저 → 실패 → 구현 → 통과 → 회귀 → commit (5~6 Step).
+
+---
+
+## 변경 이력
+
+- 2026-05-03 초안 작성 — spec.md(commit `bb74e30`)을 입력으로 9 Stage / 23 Task 분해. C0/C1 plan 패턴 준용 (TDD + 단계별 commit + status.md 운영 + master 머지 시 사용자 승인 게이트). Frontend 사이클이라 컴포넌트당 TDD 케이스 3~5개로 단위 테스트 명세.

@@ -1,0 +1,950 @@
+# USER/ADMIN 화면 분리 구현 계획
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** USER(`/app/*`)와 ADMIN(`/admin/*`) 레이아웃을 완전 분리하고, 샘플 HTML(`docs/sampleHtml/termbase-atlas-project/`) 기반 전체 화면을 구현한다.
+
+**Architecture:** Big Bang 방식 — 기존 `/home`, `/word`, `/domain`, `/forbidden`, `/import` 경로를 일괄 제거하고 `/app/*` + `/admin/*` 이중 레이아웃 구조로 교체. UserLayout은 현재 TermBase Atlas 스타일 유지, AdminLayout은 샘플 `admin/_shared.css` 기반.
+
+**Tech Stack:** React 19 + React Router v7 + Zustand + TanStack Query v5 + shadcn/ui + Tailwind CSS + AG Grid v35 + chart.js + react-chartjs-2
+
+**샘플 참조 경로:** `D:\20. POC\TrmWordDict2\docs\sampleHtml\termbase-atlas-project\`
+
+---
+
+## Phase 1: 아키텍처 기반
+
+### Task 1: AdminRoute 가드 신설
+
+**Files:**
+- Create: `src/app/AdminRoute.jsx`
+
+**Step 1: AdminRoute 작성**
+
+```jsx
+// src/app/AdminRoute.jsx
+import { Navigate } from 'react-router-dom';
+import { useAuthStore } from '@/store/useAuthStore';
+
+export const AdminRoute = ({ children }) => {
+    const user = useAuthStore((state) => state.user);
+    if (user?.role !== 'ADMIN') {
+        return <Navigate to='/app/home' replace />;
+    }
+    return children;
+};
+```
+
+**Step 2: 빌드 확인**
+
+```bash
+cd frontend && npm run build 2>&1 | tail -5
+```
+Expected: `✓ built in`
+
+**Step 3: Commit**
+
+```
+git add src/app/AdminRoute.jsx
+git commit -m "feat: AdminRoute 가드 신설"
+```
+
+---
+
+### Task 2: UserLayout + UserSidebar
+
+**Files:**
+- Create: `src/layouts/UserLayout.jsx`
+- Create: `src/layouts/components/UserSidebar.jsx`
+- Modify: `src/layouts/components/LayoutHeader.jsx` — `homeRoute` + `SidebarComponent` prop 추가
+
+**Step 1: UserSidebar 작성**
+
+```jsx
+// src/layouts/components/UserSidebar.jsx
+import { NavLink } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+
+const USER_MENU = [
+    { group: null,      label: '홈',      route: '/app/home' },
+    { group: '용어사전', label: '단어 사전', route: '/app/words' },
+    { group: '용어사전', label: '도메인',   route: '/app/domains' },
+    { group: '용어사전', label: '금칙어',   route: '/app/forbidden' },
+];
+
+const navClass = ({ isActive }) =>
+    cn(
+        'flex items-center py-2 px-4 text-[13px] no-underline transition-all border-l-2',
+        isActive
+            ? 'font-semibold text-accent border-l-accent bg-accent-soft'
+            : 'font-normal text-muted-foreground border-l-transparent hover:bg-surface hover:text-fg',
+    );
+
+export const UserSidebar = ({ user, onNavigate }) => {
+    const initials = user?.name?.charAt(0) ?? 'U';
+
+    return (
+        <div className='flex flex-col h-full'>
+            <nav className='py-4 flex-1 overflow-y-auto' aria-label='사용자 메뉴'>
+                {USER_MENU.filter((i) => !i.group).map((item) => (
+                    <NavLink key={item.route} to={item.route} onClick={onNavigate} className={navClass}>
+                        {item.label}
+                    </NavLink>
+                ))}
+                <section className='mb-5 mt-2'>
+                    <p className='px-4 mb-1.5 text-[10px] font-bold tracking-[0.1em] uppercase text-muted-foreground'>
+                        용어사전
+                    </p>
+                    {USER_MENU.filter((i) => i.group === '용어사전').map((item) => (
+                        <NavLink key={item.route} to={item.route} onClick={onNavigate} className={navClass}>
+                            {item.label}
+                        </NavLink>
+                    ))}
+                </section>
+            </nav>
+            <div className='p-3 border-t border-border-lt'>
+                <div className='flex items-center gap-2.5 px-1 py-2'>
+                    <div className='w-7 h-7 rounded-full bg-accent text-white flex items-center justify-center text-[12px] font-bold shrink-0'>
+                        {initials}
+                    </div>
+                    <div className='min-w-0 flex-1'>
+                        <p className='m-0 text-[12.5px] font-medium text-fg truncate'>{user?.name}</p>
+                        <p className='m-0 text-[11px] text-muted-foreground truncate'>{user?.role}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+```
+
+**Step 2: UserLayout 작성**
+
+```jsx
+// src/layouts/UserLayout.jsx
+import { useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
+import { logout as logoutApi } from '@/features/auth/authApi';
+import { useAuthStore } from '@/store/useAuthStore';
+import { LayoutHeader } from './components/LayoutHeader';
+import { UserSidebar } from './components/UserSidebar';
+import { Breadcrumbs } from './Breadcrumbs';
+
+export const UserLayout = () => {
+    const navigate = useNavigate();
+    const user = useAuthStore((state) => state.user);
+    const logout = useAuthStore((state) => state.logout);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    const handleLogout = async () => {
+        try { await logoutApi(); } finally {
+            logout();
+            navigate('/login');
+        }
+    };
+
+    return (
+        <div className='min-h-screen bg-background text-foreground'>
+            <LayoutHeader
+                homeRoute='/app/home'
+                mobileMenuOpen={mobileMenuOpen}
+                onMobileMenuOpenChange={setMobileMenuOpen}
+                onLogout={handleLogout}
+                user={user}
+                SidebarComponent={UserSidebar}
+            />
+            <div className='flex mt-[var(--nav-h)] min-h-[calc(100vh-var(--nav-h))]'>
+                <aside className='hidden lg:flex flex-col shrink-0 bg-card border-r-[1.5px] border-border w-[var(--sidebar-w)] sticky top-[var(--nav-h)] h-[calc(100vh-var(--nav-h))] overflow-y-auto'>
+                    <UserSidebar user={user} />
+                </aside>
+                <main className='flex-1 min-w-0 p-8 px-10'>
+                    <div className='mb-7'><Breadcrumbs /></div>
+                    <Outlet />
+                </main>
+            </div>
+        </div>
+    );
+};
+```
+
+**Step 3: LayoutHeader — prop 확장**
+
+`src/layouts/components/LayoutHeader.jsx` 수정:
+- `({ mobileMenuOpen, onMobileMenuOpenChange, onLogout, user })` →
+  `({ homeRoute = '/app/home', SidebarComponent, mobileMenuOpen, onMobileMenuOpenChange, onLogout, user })`
+- `NavLink to='/home'` → `NavLink to={homeRoute}`
+- `SheetContent` 내부: `<SidebarSurface ...>` → `<SidebarComponent user={user} onNavigate={...} />`
+- 상단 nav의 `visibleItems` 루프는 제거 (사이드바로 대체됨)
+
+**Step 4: 빌드 확인**
+
+```bash
+npm run build 2>&1 | tail -5
+```
+
+**Step 5: Commit**
+
+```
+git add src/layouts/UserLayout.jsx src/layouts/components/UserSidebar.jsx src/layouts/components/LayoutHeader.jsx
+git commit -m "feat: UserLayout + UserSidebar 신설, LayoutHeader prop 확장"
+```
+
+---
+
+### Task 3: AdminLayout + AdminSidebar
+
+**Files:**
+- Create: `src/layouts/AdminLayout.jsx`
+- Create: `src/layouts/components/AdminSidebar.jsx`
+
+**Step 1: AdminSidebar 작성**
+참조: `docs/sampleHtml/termbase-atlas-project/admin/_shared.css` (디자인 참고)
+
+```jsx
+// src/layouts/components/AdminSidebar.jsx
+import { NavLink } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+
+const ADMIN_MENU = [
+    { group: null,        label: '대시보드',    route: '/admin/dashboard' },
+    { group: '관리',      label: '데이터 관리', route: '/admin/data' },
+    { group: '관리',      label: 'MCP 서버',    route: '/admin/mcp' },
+    { group: '관리',      label: '통계',         route: '/admin/stats' },
+    { group: '관리',      label: '설정',         route: '/admin/settings' },
+    { group: '용어 관리', label: '단어',         route: '/admin/words' },
+    { group: '용어 관리', label: '도메인',       route: '/admin/domains' },
+    { group: '용어 관리', label: '금칙어',       route: '/admin/forbidden' },
+];
+
+const navClass = ({ isActive }) =>
+    cn(
+        'flex items-center py-2 px-4 text-[13px] no-underline transition-all border-l-2',
+        isActive
+            ? 'font-semibold text-accent border-l-accent bg-accent-soft'
+            : 'font-normal text-muted-foreground border-l-transparent hover:bg-surface hover:text-fg',
+    );
+
+export const AdminSidebar = ({ user, onNavigate }) => {
+    const initials = user?.name?.charAt(0) ?? 'A';
+    const groups = ['관리', '용어 관리'];
+
+    return (
+        <div className='flex flex-col h-full'>
+            <nav className='py-4 flex-1 overflow-y-auto' aria-label='관리자 메뉴'>
+                {ADMIN_MENU.filter((i) => !i.group).map((item) => (
+                    <NavLink key={item.route} to={item.route} onClick={onNavigate} className={navClass}>
+                        {item.label}
+                    </NavLink>
+                ))}
+                {groups.map((group) => (
+                    <section key={group} className='mb-5 mt-2'>
+                        <p className='px-4 mb-1.5 text-[10px] font-bold tracking-[0.1em] uppercase text-muted-foreground'>
+                            {group}
+                        </p>
+                        {ADMIN_MENU.filter((i) => i.group === group).map((item) => (
+                            <NavLink key={item.route} to={item.route} onClick={onNavigate} className={navClass}>
+                                {item.label}
+                            </NavLink>
+                        ))}
+                    </section>
+                ))}
+                <section className='mb-5 mt-2'>
+                    <p className='px-4 mb-1.5 text-[10px] font-bold tracking-[0.1em] uppercase text-muted-foreground'>
+                        바로가기
+                    </p>
+                    <a
+                        href='/app/home'
+                        target='_blank'
+                        rel='noreferrer'
+                        className='flex items-center py-2 px-4 text-[13px] no-underline text-muted-foreground border-l-2 border-l-transparent hover:bg-surface hover:text-fg transition-all'
+                    >
+                        사용자 화면 ↗
+                    </a>
+                </section>
+            </nav>
+            <div className='p-3 border-t border-border-lt'>
+                <div className='flex items-center gap-2.5 px-1 py-2'>
+                    <div className='w-7 h-7 rounded-full bg-accent text-white flex items-center justify-center text-[12px] font-bold shrink-0'>
+                        {initials}
+                    </div>
+                    <div className='min-w-0 flex-1'>
+                        <p className='m-0 text-[12.5px] font-medium text-fg truncate'>{user?.name}</p>
+                        <p className='m-0 text-[11px] text-muted-foreground truncate'>{user?.role}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+```
+
+**Step 2: AdminLayout 작성**
+
+```jsx
+// src/layouts/AdminLayout.jsx
+import { useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
+import { logout as logoutApi } from '@/features/auth/authApi';
+import { useAuthStore } from '@/store/useAuthStore';
+import { LayoutHeader } from './components/LayoutHeader';
+import { AdminSidebar } from './components/AdminSidebar';
+import { Breadcrumbs } from './Breadcrumbs';
+
+export const AdminLayout = () => {
+    const navigate = useNavigate();
+    const user = useAuthStore((state) => state.user);
+    const logout = useAuthStore((state) => state.logout);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    const handleLogout = async () => {
+        try { await logoutApi(); } finally {
+            logout();
+            navigate('/login');
+        }
+    };
+
+    return (
+        <div className='min-h-screen bg-background text-foreground'>
+            <LayoutHeader
+                homeRoute='/admin/dashboard'
+                mobileMenuOpen={mobileMenuOpen}
+                onMobileMenuOpenChange={setMobileMenuOpen}
+                onLogout={handleLogout}
+                user={user}
+                SidebarComponent={AdminSidebar}
+            />
+            <div className='flex mt-[var(--nav-h)] min-h-[calc(100vh-var(--nav-h))]'>
+                <aside className='hidden lg:flex flex-col shrink-0 bg-card border-r-[1.5px] border-border w-[var(--sidebar-w)] sticky top-[var(--nav-h)] h-[calc(100vh-var(--nav-h))] overflow-y-auto'>
+                    <AdminSidebar user={user} />
+                </aside>
+                <main className='flex-1 min-w-0 p-8 px-10'>
+                    <div className='mb-7'><Breadcrumbs /></div>
+                    <Outlet />
+                </main>
+            </div>
+        </div>
+    );
+};
+```
+
+**Step 3: 빌드 확인**
+
+```bash
+npm run build 2>&1 | tail -5
+```
+
+**Step 4: Commit**
+
+```
+git add src/layouts/AdminLayout.jsx src/layouts/components/AdminSidebar.jsx
+git commit -m "feat: AdminLayout + AdminSidebar 신설"
+```
+
+---
+
+### Task 4: 플레이스홀더 페이지 + Router 전면 교체
+
+**Files:**
+- Create: 14개 플레이스홀더 페이지
+- Modify: `src/app/router.jsx`
+- Modify: `src/features/auth/LoginPage.jsx`
+
+**Step 1: 플레이스홀더 14개 일괄 생성**
+
+각 파일을 최소 내용으로 생성 (라우터 import 오류 방지):
+
+```jsx
+// src/features/app/home/AppHomePage.jsx
+export const AppHomePage = () => <div className='p-6 text-sm text-muted-foreground'>AppHomePage — 구현 예정</div>;
+```
+
+동일 패턴으로 생성할 파일:
+```
+src/features/app/word/WordListPage.jsx         → export const WordListPage
+src/features/app/word/WordDetailPage.jsx       → export const WordDetailPage
+src/features/app/domain/DomainListPage.jsx     → export const DomainListPage
+src/features/app/domain/DomainDetailPage.jsx   → export const DomainDetailPage
+src/features/app/forbidden/ForbiddenPage.jsx   → export const ForbiddenPage
+src/features/admin/dashboard/DashboardPage.jsx → export const DashboardPage
+src/features/admin/data/DataManagePage.jsx     → export const DataManagePage
+src/features/admin/mcp/McpPage.jsx             → export const McpPage
+src/features/admin/stats/StatsPage.jsx         → export const StatsPage
+src/features/admin/settings/SettingsPage.jsx   → export const SettingsPage
+src/features/admin/word/AdminWordPage.jsx      → export const AdminWordPage
+src/features/admin/domain/AdminDomainPage.jsx  → export const AdminDomainPage
+src/features/admin/forbidden/AdminForbiddenPage.jsx → export const AdminForbiddenPage
+```
+
+**Step 2: router.jsx 재작성**
+
+```jsx
+// src/app/router.jsx
+import { lazy, Suspense } from 'react';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { BlankLayout } from '@/layouts/BlankLayout';
+import { UserLayout } from '@/layouts/UserLayout';
+import { AdminLayout } from '@/layouts/AdminLayout';
+import { ProtectedRoute } from './ProtectedRoute';
+import { AdminRoute } from './AdminRoute';
+
+const lazyNamed = (loader, exportName) =>
+    lazy(() => loader().then((m) => ({ default: m[exportName] })));
+
+const loadingFallback = <div className='p-6 text-sm text-muted-foreground'>불러오는 중...</div>;
+const ws = (el) => <Suspense fallback={loadingFallback}>{el}</Suspense>;
+
+const LoginPage           = lazyNamed(() => import('@/features/auth/LoginPage'), 'LoginPage');
+
+const AppHomePage         = lazyNamed(() => import('@/features/app/home/AppHomePage'), 'AppHomePage');
+const AppWordListPage     = lazyNamed(() => import('@/features/app/word/WordListPage'), 'WordListPage');
+const AppWordDetailPage   = lazyNamed(() => import('@/features/app/word/WordDetailPage'), 'WordDetailPage');
+const AppDomainListPage   = lazyNamed(() => import('@/features/app/domain/DomainListPage'), 'DomainListPage');
+const AppDomainDetailPage = lazyNamed(() => import('@/features/app/domain/DomainDetailPage'), 'DomainDetailPage');
+const AppForbiddenPage    = lazyNamed(() => import('@/features/app/forbidden/ForbiddenPage'), 'ForbiddenPage');
+
+const DashboardPage      = lazyNamed(() => import('@/features/admin/dashboard/DashboardPage'), 'DashboardPage');
+const DataManagePage     = lazyNamed(() => import('@/features/admin/data/DataManagePage'), 'DataManagePage');
+const McpPage            = lazyNamed(() => import('@/features/admin/mcp/McpPage'), 'McpPage');
+const StatsPage          = lazyNamed(() => import('@/features/admin/stats/StatsPage'), 'StatsPage');
+const SettingsPage       = lazyNamed(() => import('@/features/admin/settings/SettingsPage'), 'SettingsPage');
+const AdminWordPage      = lazyNamed(() => import('@/features/admin/word/AdminWordPage'), 'AdminWordPage');
+const AdminDomainPage    = lazyNamed(() => import('@/features/admin/domain/AdminDomainPage'), 'AdminDomainPage');
+const AdminForbiddenPage = lazyNamed(() => import('@/features/admin/forbidden/AdminForbiddenPage'), 'AdminForbiddenPage');
+
+export const router = createBrowserRouter([
+    {
+        element: <BlankLayout />,
+        children: [{ path: '/login', element: ws(<LoginPage />) }],
+    },
+    {
+        element: <ProtectedRoute><UserLayout /></ProtectedRoute>,
+        children: [
+            { path: '/app/home',        element: ws(<AppHomePage />) },
+            { path: '/app/words',       element: ws(<AppWordListPage />) },
+            { path: '/app/words/:id',   element: ws(<AppWordDetailPage />) },
+            { path: '/app/domains',     element: ws(<AppDomainListPage />) },
+            { path: '/app/domains/:id', element: ws(<AppDomainDetailPage />) },
+            { path: '/app/forbidden',   element: ws(<AppForbiddenPage />) },
+        ],
+    },
+    {
+        element: <ProtectedRoute><AdminRoute><AdminLayout /></AdminRoute></ProtectedRoute>,
+        children: [
+            { path: '/admin/dashboard', element: ws(<DashboardPage />) },
+            { path: '/admin/data',      element: ws(<DataManagePage />) },
+            { path: '/admin/mcp',       element: ws(<McpPage />) },
+            { path: '/admin/stats',     element: ws(<StatsPage />) },
+            { path: '/admin/settings',  element: ws(<SettingsPage />) },
+            { path: '/admin/words',     element: ws(<AdminWordPage />) },
+            { path: '/admin/domains',   element: ws(<AdminDomainPage />) },
+            { path: '/admin/forbidden', element: ws(<AdminForbiddenPage />) },
+        ],
+    },
+    { path: '/',  element: <Navigate to='/app/home' replace /> },
+    { path: '*',  element: <Navigate to='/app/home' replace /> },
+]);
+```
+
+**Step 3: LoginPage — 역할별 리다이렉트**
+
+`src/features/auth/LoginPage.jsx`에서 로그인 성공 처리 부분 수정:
+```js
+// 기존: navigate(returnUrl || '/home')
+// 변경:
+const destination = data.role === 'ADMIN' ? '/admin/dashboard' : '/app/home';
+navigate(returnUrl || destination);
+```
+(실제 변수명은 LoginPage.jsx 읽어서 맞춤)
+
+**Step 4: 빌드 확인**
+
+```bash
+npm run build 2>&1 | tail -5
+```
+Expected: `✓ built in`
+
+**Step 5: Commit**
+
+```
+git add -A
+git commit -m "feat: 라우터 /app/* /admin/* 이중 구조 전환 + 플레이스홀더 페이지"
+```
+
+---
+
+### Task 5: 구 파일 제거
+
+**Step 1: 구 경로 파일 삭제**
+
+```powershell
+Remove-Item "src\features\home\HomePage.jsx"
+Remove-Item "src\features\word\WordListPage.jsx"
+Remove-Item "src\features\word\WordDetailDialog.jsx"
+Remove-Item "src\features\domain\DomainListPage.jsx"
+Remove-Item "src\features\domain\DomainDetailDialog.jsx"
+Remove-Item "src\features\forbidden\ForbiddenListPage.jsx"
+Remove-Item "src\features\forbidden\ForbiddenDetailDialog.jsx"
+Remove-Item "src\features\import\UploadPage.jsx"
+Remove-Item "src\features\import\DetailPage.jsx"
+Remove-Item "src\layouts\MainLayout.jsx"
+Remove-Item "src\layouts\components\SidebarSurface.jsx"
+Remove-Item "src\layouts\menuItems.js"
+```
+
+**Step 2: 빌드 확인**
+
+```bash
+npm run build 2>&1 | tail -10
+```
+
+**Step 3: Commit**
+
+```
+git add -A
+git commit -m "chore: 구 경로 파일 일괄 제거 (/home /word /domain /forbidden /import)"
+```
+
+---
+
+## Phase 2: USER 화면
+
+### Task 6: AppHomePage (`/app/home`)
+
+**참조:** `docs/sampleHtml/termbase-atlas-project/index.html` — 상단 히어로 + 카테고리 섹션
+
+**Files:**
+- Modify: `src/features/app/home/AppHomePage.jsx`
+
+**핵심 구성:**
+- 큰 검색 Input + 조회 Button → `/app/words?q=검색어` 이동
+- 카테고리 Card 6개 (전체/개인정보/보안/인프라/규정준수/데이터) → 클릭 시 `/app/words?category=값`
+- 통계 Badge 3개 (총 용어 / 도메인 / 금칙어) — API 없으면 `—` 표시
+
+```jsx
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Input } from '@/shared/components/ui/input';
+import { Button } from '@/shared/components/ui/button';
+import { Card } from '@/shared/components/ui/card';
+import { Badge } from '@/shared/components/ui/badge';
+
+const CATEGORIES = [
+    { label: '전체',     value: '',           color: '#6b7280' },
+    { label: '개인정보', value: 'privacy',    color: '#ef4444' },
+    { label: '보안',     value: 'security',   color: '#f59e0b' },
+    { label: '인프라',   value: 'infra',      color: '#2563eb' },
+    { label: '규정 준수', value: 'compliance', color: '#10b981' },
+    { label: '데이터',   value: 'data',       color: '#8b5cf6' },
+];
+
+export const AppHomePage = () => {
+    const [query, setQuery] = useState('');
+    const navigate = useNavigate();
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        navigate(`/app/words${query ? `?q=${encodeURIComponent(query)}` : ''}`);
+    };
+
+    return (
+        <div className='space-y-10 max-w-3xl mx-auto'>
+            <header className='text-center space-y-3 pt-6'>
+                <p className='text-[11px] font-bold tracking-[0.15em] uppercase text-muted-foreground'>
+                    행정표준용어 사전 시스템
+                </p>
+                <h1 className='font-display italic font-bold text-[36px] m-0' style={{ letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                    TermBase <span style={{ color: 'hsl(var(--accent))' }}>Atlas</span>
+                </h1>
+                <p className='text-[14px] text-muted-foreground'>행정안전부 표준 용어를 검색하고 관리합니다</p>
+                <form onSubmit={handleSearch} className='flex gap-2 mt-4'>
+                    <Input
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder='용어명, 영문약어, 도메인으로 검색...'
+                        className='text-[14px] h-10'
+                    />
+                    <Button type='submit' className='shrink-0 h-10 px-5'>검색</Button>
+                </form>
+            </header>
+
+            <section>
+                <p className='text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground mb-3'>카테고리</p>
+                <div className='grid grid-cols-3 gap-2'>
+                    {CATEGORIES.map((cat) => (
+                        <Card
+                            key={cat.value}
+                            className='p-4 cursor-pointer border-[1.5px] border-border-lt hover:border-accent transition-colors rounded-sm bg-bg'
+                            onClick={() => navigate(`/app/words${cat.value ? `?category=${cat.value}` : ''}`)}
+                        >
+                            <span className='w-2 h-2 rounded-full inline-block mr-2' style={{ background: cat.color }} />
+                            <span className='text-[13px] font-medium'>{cat.label}</span>
+                        </Card>
+                    ))}
+                </div>
+            </section>
+
+            <section className='flex gap-3 justify-center'>
+                <Badge variant='secondary' className='text-[12px] px-3 py-1'>총 용어 —</Badge>
+                <Badge variant='secondary' className='text-[12px] px-3 py-1'>도메인 —</Badge>
+                <Badge variant='secondary' className='text-[12px] px-3 py-1'>금칙어 —</Badge>
+            </section>
+        </div>
+    );
+};
+```
+
+**Step 2: 빌드 확인 후 Commit**
+
+```bash
+npm run build 2>&1 | tail -5
+git add src/features/app/home/AppHomePage.jsx
+git commit -m "feat: AppHomePage 검색 히어로 + 카테고리 카드"
+```
+
+---
+
+### Task 7: User WordListPage (`/app/words`)
+
+**참조:** `docs/sampleHtml/termbase-atlas-project/index.html`
+
+**Files:**
+- Modify: `src/features/app/word/WordListPage.jsx`
+
+**핵심 구성:**
+- `useSearchParams()`로 `q`, `category` 파라미터 읽기
+- 카테고리 필터 탭 (Button 그룹)
+- 알파벳 인덱스 버튼 (ㄱ~ㅎ + A~Z)
+- 뷰 전환 토글 (카드 / 테이블)
+- **카드 뷰:** shadcn Card + font-display 용어명 + 카테고리 Badge + 클릭 → `/app/words/:id`
+- **테이블 뷰:** AG Grid (컬럼: 용어명/영문약어/도메인/데이터타입/사용여부) + 행 클릭 → `/app/words/:id`
+- 검색 Input (SearchForm 재사용 또는 인라인)
+- 페이지네이션: CardList 재사용
+
+기존 `src/features/word/` 의 API 훅(`useQuery`) 패턴 그대로 이전.
+
+**Step 2: 빌드 확인 후 Commit**
+
+```bash
+npm run build 2>&1 | tail -5
+git add src/features/app/word/WordListPage.jsx
+git commit -m "feat: User WordListPage 카드/테이블 뷰 + 카테고리 필터"
+```
+
+---
+
+### Task 8: WordDetailPage (`/app/words/:id`)
+
+**참조:** `docs/sampleHtml/termbase-atlas-project/term-detail.html`
+
+**Files:**
+- Modify: `src/features/app/word/WordDetailPage.jsx`
+
+**핵심 구성:**
+- `useParams()` → id → `/api/v1/word/{id}` GET (TanStack Query)
+- **3컬럼 레이아웃** `grid-cols-[200px_1fr_180px]`
+  - 좌: TOC 사이드바 (`sticky`, 앵커 링크)
+  - 중: 정의 / 속성 테이블 / MCP 코드블록(`pre font-mono`) / 관련 용어 카드
+  - 우: 액션 Button 3개 (PDF / JSON / 금칙어검사 Link)
+- 뒤로가기: `Link to='/app/words'` — `← 목록으로`
+
+**Step 2: 빌드 확인 후 Commit**
+
+```bash
+npm run build 2>&1 | tail -5
+git add src/features/app/word/WordDetailPage.jsx
+git commit -m "feat: WordDetailPage 3컬럼 전체 페이지 (TOC/본문/액션)"
+```
+
+---
+
+### Task 9: User DomainListPage + DomainDetailPage
+
+**Files:**
+- Modify: `src/features/app/domain/DomainListPage.jsx`
+- Modify: `src/features/app/domain/DomainDetailPage.jsx`
+
+**DomainListPage:**
+- 기존 도메인 목록 API 훅 이전 (SearchForm 5필드 + CardList 재사용)
+- Card 클릭 → `navigate('/app/domains/:id')`
+
+**DomainDetailPage:**
+- `useParams()` → id → `/api/v1/domain/{id}` GET
+- 좌: 메타정보 테이블 (그룹명/분류명/데이터타입/길이/사용여부)
+- 우: 속한 단어 목록 (AG Grid 또는 간단 ul)
+
+**Step 2: 빌드 확인 후 Commit**
+
+```bash
+npm run build 2>&1 | tail -5
+git add src/features/app/domain/
+git commit -m "feat: User DomainListPage + DomainDetailPage"
+```
+
+---
+
+### Task 10: ForbiddenPage — 목록 + 실시간 스캐너 (`/app/forbidden`)
+
+**참조:** `docs/sampleHtml/termbase-atlas-project/forbidden-words.html`
+
+**Files:**
+- Modify: `src/features/app/forbidden/ForbiddenPage.jsx`
+
+**핵심 구성:**
+
+```jsx
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Textarea } from '@/shared/components/ui/textarea';  // shadcn Textarea
+import { Card } from '@/shared/components/ui/card';
+import { Badge } from '@/shared/components/ui/badge';
+
+// 전체 금칙어 목록 캐싱 (size=9999)
+const { data: forbiddenAll = [] } = useQuery({
+    queryKey: ['forbidden-all'],
+    queryFn: () => axiosInstance.get('/api/v1/forbidden?size=9999').then(r => r.data.data?.items ?? []),
+    staleTime: 5 * 60 * 1000,
+});
+
+// 입력 텍스트에서 위반 단어 추출
+const violations = useMemo(() =>
+    forbiddenAll.filter((f) => text.includes(f.forbiddenWordName)),
+    [text, forbiddenAll]
+);
+```
+
+**레이아웃:**
+1. **상단 — 실시간 스캐너:** `grid grid-cols-[1fr_280px]`
+   - 좌: Textarea (입력) + 위반 단어 하이라이트 (dangerouslySetInnerHTML 주의 — 순수 텍스트 대체 사용)
+   - 우: 위반 목록 Card (Badge로 단어명 표시)
+2. **하단 — 금칙어 목록:** SearchForm (금칙어명 + 사용여부) + CardList
+
+**Step 2: 빌드 확인 후 Commit**
+
+```bash
+npm run build 2>&1 | tail -5
+git add src/features/app/forbidden/ForbiddenPage.jsx
+git commit -m "feat: ForbiddenPage 실시간 스캐너 + 금칙어 목록"
+```
+
+---
+
+## Phase 3: ADMIN 화면
+
+### Task 11: DashboardPage (`/admin/dashboard`)
+
+**참조:** `docs/sampleHtml/termbase-atlas-project/admin/index.html`
+
+**Files:**
+- Modify: `src/features/admin/dashboard/DashboardPage.jsx`
+
+**핵심 구성:**
+- **동기화 상태 바:** `flex items-center gap-2` + 상태 뱃지(연결됨/오프라인) + 마지막 동기화 시각 (목업)
+- **지표 Card 4개:** 총 용어 수 / 도메인 수 / 금칙어 수 / 오류 건수
+  - `/api/v1/word?size=1` 응답의 `totalElements` 활용, 없으면 `—`
+- **최근 변경이력 테이블:** AG Grid (컬럼: 유형/용어명/변경자/일시/상태) — 목업 데이터
+
+**Step 2: 빌드 확인 후 Commit**
+
+```bash
+npm run build 2>&1 | tail -5
+git add src/features/admin/dashboard/DashboardPage.jsx
+git commit -m "feat: Admin DashboardPage 지표 카드 + 동기화 상태"
+```
+
+---
+
+### Task 12: DataManagePage (`/admin/data`)
+
+**참조:** `docs/sampleHtml/termbase-atlas-project/admin/data.html`
+
+**Files:**
+- Modify: `src/features/admin/data/DataManagePage.jsx`
+
+**핵심 구성 — shadcn Tabs 4개:**
+
+```jsx
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shared/components/ui/tabs';
+```
+
+1. **행안부 연동:** 동기화 상태/주기/마지막 동기화 정보 + 이력 테이블 (목업)
+2. **가져오기:** 기존 UploadPage 로직 이전 (FileUpload + 유형 선택 RadioGroup + 미리보기)
+3. **변경이력:** Import 이력 목록 (기존 `/api/v1/import/history` 활용)
+4. **검수대기:** 대기 목록 테이블 + 승인 Button / 반려 Button (목업)
+
+**Step 2: 빌드 확인 후 Commit**
+
+```bash
+npm run build 2>&1 | tail -5
+git add src/features/admin/data/DataManagePage.jsx
+git commit -m "feat: Admin DataManagePage 탭 4개"
+```
+
+---
+
+### Task 13: McpPage (`/admin/mcp`)
+
+**참조:** `docs/sampleHtml/termbase-atlas-project/admin/mcp.html`
+
+**Files:**
+- Modify: `src/features/admin/mcp/McpPage.jsx`
+
+**핵심 구성 — shadcn Tabs 5개:**
+
+1. **서버 상태:** 포트/프로토콜/업타임/클라이언트 수 — 행 카드 형태 (목업)
+2. **연결 클라이언트:** AG Grid (클라이언트명/연결시각/상태/호출수)
+3. **도구 명세:** Card 5개 (search_terms / get_term / check_forbidden / list_categories / get_forbidden_term) + 파라미터 설명
+4. **Playground:** Select(도구선택) + Input(파라미터JSON) + Button(실행) → `/api/v1/mcp/tools/call` POST → `pre`로 결과 출력
+5. **요청 로그:** 필터 Button 그룹(전체/성공/오류) + AG Grid (시각/도구/응답시간ms/상태 Badge)
+
+**Step 2: 빌드 확인 후 Commit**
+
+```bash
+npm run build 2>&1 | tail -5
+git add src/features/admin/mcp/McpPage.jsx
+git commit -m "feat: Admin McpPage 탭 5개"
+```
+
+---
+
+### Task 14: StatsPage (`/admin/stats`) — chart.js 설치
+
+**참조:** `docs/sampleHtml/termbase-atlas-project/admin/stats.html`
+
+**Step 1: 패키지 설치**
+
+```bash
+cd frontend && npm install chart.js react-chartjs-2
+```
+
+**Files:**
+- Modify: `src/features/admin/stats/StatsPage.jsx`
+
+**Step 2: StatsPage 작성**
+
+```jsx
+import { Line, Bar } from 'react-chartjs-2';
+import {
+    Chart as ChartJS, CategoryScale, LinearScale,
+    PointElement, LineElement, BarElement, Title, Tooltip, Legend,
+} from 'chart.js';
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
+
+// 목업 데이터
+const DAYS = ['5/21', '5/22', '5/23', '5/24', '5/25', '5/26', '5/27'];
+const searchData = { labels: DAYS, datasets: [{ label: '검색 수', data: [120,98,145,200,178,230,195], borderColor: 'hsl(14 55% 52%)' }] };
+const mcpData    = { labels: ['search_terms','get_term','check_forbidden','list_categories'], datasets: [{ label: 'MCP 호출', data: [320,145,89,56], backgroundColor: 'hsl(14 55% 52% / 0.7)' }] };
+```
+
+**핵심 구성:**
+- 7일 일별 검색수 Line 차트
+- MCP 도구별 호출수 Bar 차트
+- 인기 용어 Top5 수평 Bar (목업)
+
+**Step 3: 빌드 확인 후 Commit**
+
+```bash
+npm run build 2>&1 | tail -5
+git add src/features/admin/stats/StatsPage.jsx package.json package-lock.json
+git commit -m "feat: Admin StatsPage Chart.js 차트 (chart.js + react-chartjs-2)"
+```
+
+---
+
+### Task 15: SettingsPage (`/admin/settings`)
+
+**참조:** `docs/sampleHtml/termbase-atlas-project/admin/settings.html`
+
+**Files:**
+- Modify: `src/features/admin/settings/SettingsPage.jsx`
+
+**핵심 구성:**
+
+1. **API 키 관리 섹션**
+   - AG Grid 또는 간단 테이블 (키명 / 생성일 / 마지막사용 / 상태 Badge / 폐기 Button)
+   - 새 키 발급 폼: Input(키명) + Button(발급) — 목업
+
+2. **서버 설정 섹션**
+
+```jsx
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
+import { Button } from '@/shared/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+```
+
+   - 포트 Input, CORS Origins Textarea, Rate Limit Input, 로그레벨 Select
+   - 저장 Button (목업)
+
+**Step 2: 빌드 확인 후 Commit**
+
+```bash
+npm run build 2>&1 | tail -5
+git add src/features/admin/settings/SettingsPage.jsx
+git commit -m "feat: Admin SettingsPage API키 관리 + 서버 설정"
+```
+
+---
+
+### Task 16: Admin 용어 관리 3종
+
+**Files:**
+- Modify: `src/features/admin/word/AdminWordPage.jsx`
+- Modify: `src/features/admin/domain/AdminDomainPage.jsx`
+- Modify: `src/features/admin/forbidden/AdminForbiddenPage.jsx`
+
+**방침:** USER 화면의 목록 페이지와 동일 구조로 구현. 편집 기능은 M-D-W 사이클 이후 완성 예정.
+- 상단에 `Badge variant='secondary'`로 `"편집 기능 준비 중"` 안내 표시
+- 현재: 조회 전용 (SearchForm + CardList/AG Grid)
+
+**Step 2: 빌드 확인 후 Commit**
+
+```bash
+npm run build 2>&1 | tail -5
+git add src/features/admin/word/ src/features/admin/domain/ src/features/admin/forbidden/
+git commit -m "feat: Admin 용어관리 3종 (조회 전용, 편집은 M-D-W 사이클 예정)"
+```
+
+---
+
+## 최종 검증
+
+**Step 1: 전체 빌드 + 테스트**
+
+```bash
+npm run build && npm test 2>&1 | tail -20
+```
+
+**Step 2: 개발 서버 기동**
+
+```bash
+npm start
+# http://localhost:5173
+```
+
+**Step 3: 수동 검증 체크리스트**
+
+```
+[ ] /login 접근 → 로그인 화면
+[ ] USER 로그인 → /app/home 리다이렉트, 좌측 사이드바 확인
+[ ] ADMIN 로그인 → /admin/dashboard 리다이렉트, 관리 사이드바 확인
+[ ] /app/home → 검색 히어로 + 카테고리 카드 6개
+[ ] /app/words 검색 → 카드/테이블 뷰 전환
+[ ] /app/words/:id → 3컬럼 상세 페이지
+[ ] /app/domains → 도메인 목록
+[ ] /app/domains/:id → 도메인 상세
+[ ] /app/forbidden → 스캐너(텍스트 입력 시 위반 감지) + 목록
+[ ] USER로 /admin/dashboard 접근 → /app/home 리다이렉트
+[ ] /admin/dashboard → 지표 카드 + 동기화 상태
+[ ] /admin/data → 탭 4개 전환 정상
+[ ] /admin/mcp → 탭 5개 전환 정상
+[ ] /admin/stats → 차트 렌더링
+[ ] /admin/settings → API키 테이블 + 서버설정 폼
+[ ] 로그아웃 → /login 이동
+```
+
+**Step 4: docs 커밋**
+
+```bash
+git add docs/
+git commit -m "docs: USER/ADMIN 분리 설계 + 구현 계획 추가"
+```

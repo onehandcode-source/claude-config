@@ -1,0 +1,29 @@
+# 🚩 Project: React 19 신규 문법 조사
+
+**Current Status:** In Progress
+**Last Updated:** 2026-05-14
+
+## 🎯 Global Goal
+
+React 19에서 새롭게 추가된 문법 및 기능을 조사하여 정리한다.
+
+## 📋 Task Board
+
+| Task | Assigned To | Status | Result Link |
+| :--- | :--- | :--- | :--- |
+| React 19 신규 문법 및 기능 조사 | Gemini (Researcher) | [x] Done | .agents-dev/log/gemini-20260514-000001-result.md |
+| 조사 결과 정리 및 문서화 | Claude (PM) | [ ] Waiting | - |
+
+## 🧠 Current Context
+
+- Actions/Form, use API, RSC, Server Actions 등 주요 신규 문법 조사 완료
+- 상세 결과: `.agents-dev/log/gemini-20260514-000001-result.md`
+
+## 📝 Activity Log
+
+- [Gemini]: React 19 신규 문법 조사 완료. (2026-05-14)
+- [Claude]: React 19 조사 Task 할당. (2026-05-14)
+
+---
+
+> **규칙:** 상세 결과는 `.agents-dev/log/`에 저장. workspace.md에는 요약과 파일 경로만 기록. Activity Log는 최근 5개만 유지.

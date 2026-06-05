@@ -1,0 +1,110 @@
+# 멀티 에이전트 하네스 실행 가이드
+
+Claude · Gemini · Codex가 `workspace.md`를 공유 메모리로 협업하는 자동화 하네스입니다.
+
+---
+
+## 구조
+
+```
+project/
+├── workspace.md              ← 중앙 조정 파일 (Task Board + Shared Context)
+├── watch.py                  ← 대시보드 (Task Board 상태 실시간 표시)
+├── claude_listener.py        ← Claude 터미널 전용 리스너
+├── gemini_listener.py        ← Gemini 터미널 전용 리스너
+├── codex_listener.py         ← Codex 터미널 전용 리스너
+├── CLAUDE.md                 ← 하네스 행동 지침
+└── .agents-dev/
+    ├── scripts/              ← CLI 호출 래퍼 (수동 실행용)
+    ├── roles/                ← 에이전트 역할 프롬프트
+    └── log/                  ← 실행 로그 자동 저장
+```
+
+---
+
+## 사전 준비
+
+### Python 라이브러리 설치
+
+```bash
+pip install watchdog
+```
+
+### CLI 설치 확인
+
+| 에이전트 | CLI 확인 명령어    |
+|----------|--------------------|
+| Claude   | `claude --version` |
+| Gemini   | `gemini --version` |
+| Codex    | `codex --version`  |
+
+---
+
+## 터미널 구성 (VS Code 기준)
+
+터미널 4개를 열어 각각 실행합니다.
+
+| 터미널 | 실행 명령어                    | 역할                              |
+|--------|-------------------------------|-----------------------------------|
+| 1      | `python watch.py`             | 📊 대시보드 (Task Board 모니터링) |
+| 2      | `python claude_listener.py`   | 👑 Claude 작업 감지 + 실행        |
+| 3      | `python gemini_listener.py`   | 🔬 Gemini 작업 감지 + 실행        |
+| 4      | `python codex_listener.py`    | 💻 Codex 작업 감지 + 실행         |
+
+> 모든 터미널은 프로젝트 루트(`D:\21. harness\test`)에서 실행해야 합니다.
+
+---
+
+## 작업 흐름
+
+```
+1. 사용자 → Claude에게 요청 (터미널 2 또는 Claude Code 대화)
+2. Claude → workspace.md Task Board에 Task 할당 후 저장
+3. 각 리스너 → workspace.md 변경 감지
+     → 본인 이름이 Assigned To에 있고 Status가 [ ] 인 Task 발견
+     → 해당 터미널에서 CLI 직접 실행 (실시간 출력 확인 가능)
+4. 에이전트 → 작업 수행 → workspace.md 업데이트 ([x] Done으로 변경)
+5. 대시보드(watch.py) → Task Board 변경 즉시 반영
+6. 모든 Task 완료 → Claude가 결과 검수 후 사용자에게 보고
+```
+
+---
+
+## workspace.md Task Board 형식
+
+```markdown
+| Task | Assigned To | Status | Result Link |
+| :--- | :--- | :--- | :--- |
+| 조사 내용 | Gemini (Researcher) | [ ] Waiting | - |
+| 구현 내용 | Codex (Engineer)    | [ ] Waiting | - |
+| 검수 내용 | Claude (PM)         | [ ] Waiting | - |
+```
+
+**트리거 규칙:**
+- `[ ]` 상태 + Assigned To에 `claude`/`gemini`/`codex` 포함 → 해당 리스너 자동 실행
+- `[x]` 상태 → 완료, 트리거하지 않음
+- 같은 Task는 리스너 재시작 전까지 한 번만 실행
+
+---
+
+## 로그 확인
+
+에이전트 실행 로그는 `.agents-dev/log/`에 저장됩니다.
+
+```powershell
+# 최신 로그 확인
+Get-ChildItem ".agents-dev\log" | Sort-Object LastWriteTime -Descending | Select-Object -First 5
+```
+
+---
+
+## 트러블슈팅
+
+| 증상 | 원인 | 해결 |
+|------|------|------|
+| 리스너 실행 오류 | watchdog 미설치 | `pip install watchdog` |
+| `gemini` 명령 없음 | Gemini CLI 미설치 | Gemini CLI 설치 후 PATH 확인 |
+| `codex` 명령 없음 | Codex CLI 미설치 | Codex CLI 설치 후 PATH 확인 |
+| 트리거 안 됨 | Status가 `[ ]` 아님 | workspace.md Status 형식 확인 |
+| 트리거 안 됨 | Assigned To에 에이전트명 없음 | `claude`/`gemini`/`codex` 포함 여부 확인 |
+| 같은 Task 재실행 안 됨 | 세션 내 중복 방지 정책 | 해당 리스너 재시작 (`Ctrl+C` 후 재실행) |

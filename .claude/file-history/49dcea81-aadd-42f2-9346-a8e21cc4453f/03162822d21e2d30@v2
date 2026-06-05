@@ -1,0 +1,384 @@
+<p style="font-family:돋움체;font-size:16pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">Claude Code 하네스 비교: 명령어 카탈로그 &amp; 워크플로우 매핑</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">작성일: 2026-04-11 / 최종 수정: 2026-06-04</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">대상: SP (Superpowers) · OMC (oh-my-claudecode) · ECC (Everything Claude Code) · gs (gstack)</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:13pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">Part 0. Claude Code 네이티브 명령어</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">하네스와 무관하게 Claude Code CLI 자체에 내장된 명령어.</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">명령어</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">역할</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/goal</td><td style="border:1px solid rgb(0,0,0);padding:4px;">세션 목표 설정 + Stop hook 자동 활성화 (목표 달성 감시)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/model</td><td style="border:1px solid rgb(0,0,0);padding:4px;">모델 전환 — Opus / Sonnet / Haiku</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/hud</td><td style="border:1px solid rgb(0,0,0);padding:4px;">상태라인(HUD) 설정 및 표시 항목 구성</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/init</td><td style="border:1px solid rgb(0,0,0);padding:4px;">현재 디렉토리에 CLAUDE.md 초기화</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/loop</td><td style="border:1px solid rgb(0,0,0);padding:4px;">프롬프트·슬래시 명령을 지정 주기로 반복 실행</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/schedule</td><td style="border:1px solid rgb(0,0,0);padding:4px;">크론 기반 원격 에이전트 예약 실행 (1회 또는 반복)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/review</td><td style="border:1px solid rgb(0,0,0);padding:4px;">현재 브랜치 PR 코드리뷰 실행</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/config</td><td style="border:1px solid rgb(0,0,0);padding:4px;">테마·모델 등 Claude Code 기본 설정 변경</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:13pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">Part 1. 명령어 카탈로그</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">1. SP (Superpowers) — 14개 스킬</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">역할: 설계/의사결정/승인 레이어. 실행은 OMC에 위임.</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">스킬명</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">트리거</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">역할</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">using-superpowers</td><td style="border:1px solid rgb(0,0,0);padding:4px;">모든 대화 시작</td><td style="border:1px solid rgb(0,0,0);padding:4px;">SP 워크플로우 활성화, 스킬 호출 규칙 확립</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">brainstorming</td><td style="border:1px solid rgb(0,0,0);padding:4px;">기능/컴포넌트/동작 추가 전</td><td style="border:1px solid rgb(0,0,0);padding:4px;">아이디어→설계 변환, 요구사항 정제</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">writing-plans</td><td style="border:1px solid rgb(0,0,0);padding:4px;">설계 확정 후, 코드 작성 전</td><td style="border:1px solid rgb(0,0,0);padding:4px;">구현 계획 작성, 태스크 분해</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">executing-plans</td><td style="border:1px solid rgb(0,0,0);padding:4px;">별도 세션에서 계획 실행</td><td style="border:1px solid rgb(0,0,0);padding:4px;">계획 로드, 순차 태스크 실행</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">subagent-driven-development</td><td style="border:1px solid rgb(0,0,0);padding:4px;">같은 세션, 독립 태스크</td><td style="border:1px solid rgb(0,0,0);padding:4px;">태스크별 서브에이전트 파견, 2단계 리뷰</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">test-driven-development</td><td style="border:1px solid rgb(0,0,0);padding:4px;">기능/버그 수정 구현 전</td><td style="border:1px solid rgb(0,0,0);padding:4px;">RED-GREEN-REFACTOR 순환</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">systematic-debugging</td><td style="border:1px solid rgb(0,0,0);padding:4px;">버그/테스트 실패/예상치 못한 동작</td><td style="border:1px solid rgb(0,0,0);padding:4px;">근본 원인 조사 (4단계)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">requesting-code-review</td><td style="border:1px solid rgb(0,0,0);padding:4px;">태스크 완료 후, 병합 전</td><td style="border:1px solid rgb(0,0,0);padding:4px;">코드리뷰어 서브에이전트 파견</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">receiving-code-review</td><td style="border:1px solid rgb(0,0,0);padding:4px;">리뷰 피드백 수신 후</td><td style="border:1px solid rgb(0,0,0);padding:4px;">피드백 검증, 기술적 타당성 확인</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">verification-before-completion</td><td style="border:1px solid rgb(0,0,0);padding:4px;">완료 주장 전 (커밋/PR)</td><td style="border:1px solid rgb(0,0,0);padding:4px;">검증 명령 실행, 증거 확보</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">finishing-a-development-branch</td><td style="border:1px solid rgb(0,0,0);padding:4px;">구현 완료, 모든 테스트 통과 후</td><td style="border:1px solid rgb(0,0,0);padding:4px;">병합/PR/유지/폐기 옵션 제시</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">dispatching-parallel-agents</td><td style="border:1px solid rgb(0,0,0);padding:4px;">독립적 2개+ 태스크</td><td style="border:1px solid rgb(0,0,0);padding:4px;">병렬 에이전트 파견</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">using-git-worktrees</td><td style="border:1px solid rgb(0,0,0);padding:4px;">기능 작업 시작 전</td><td style="border:1px solid rgb(0,0,0);padding:4px;">격리된 워크스페이스 생성</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">writing-skills</td><td style="border:1px solid rgb(0,0,0);padding:4px;">새 스킬 생성/편집 시</td><td style="border:1px solid rgb(0,0,0);padding:4px;">TDD 기반 스킬 문서 작성</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">2. OMC (oh-my-claudecode)</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">역할: 오케스트레이션/실행 레이어. SP 지시를 실제로 수행.</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">2-1. 실행 모드 스킬 (9개)</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">스킬명</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">레벨</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">역할</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">autopilot</td><td style="border:1px solid rgb(0,0,0);padding:4px;">4</td><td style="border:1px solid rgb(0,0,0);padding:4px;">아이디어→동작 코드 완전 자동 실행 (요구사항→설계→계획→구현→QA→검증)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">ralph</td><td style="border:1px solid rgb(0,0,0);padding:4px;">4</td><td style="border:1px solid rgb(0,0,0);padding:4px;">작업 완료까지 자동 반복 루프 (PRD 기반, 검증 포함)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">ultrawork</td><td style="border:1px solid rgb(0,0,0);padding:4px;">4</td><td style="border:1px solid rgb(0,0,0);padding:4px;">고처량 병렬 실행 엔진 (스마트 모델 라우팅)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">team</td><td style="border:1px solid rgb(0,0,0);padding:4px;">4</td><td style="border:1px solid rgb(0,0,0);padding:4px;">N개 조율된 에이전트 (공유 작업 목록, 메시징, 의존성 지원)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">ultraqa</td><td style="border:1px solid rgb(0,0,0);padding:4px;">3</td><td style="border:1px solid rgb(0,0,0);padding:4px;">QA 사이클 반복 (테스트→검증→수정→반복)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">omc-plan</td><td style="border:1px solid rgb(0,0,0);padding:4px;">4</td><td style="border:1px solid rgb(0,0,0);padding:4px;">전략적 계획 (Interview/Direct/Consensus/Review 4가지 모드)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">ralplan</td><td style="border:1px solid rgb(0,0,0);padding:4px;">4</td><td style="border:1px solid rgb(0,0,0);padding:4px;">합의 계획 진입점 (Planner→Architect→Critic 루프)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">deep-interview</td><td style="border:1px solid rgb(0,0,0);padding:4px;">3</td><td style="border:1px solid rgb(0,0,0);padding:4px;">소크라테스식 심층 인터뷰 (명확도 70%+ 까지 반복)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">deep-dive</td><td style="border:1px solid rgb(0,0,0);padding:4px;">자동</td><td style="border:1px solid rgb(0,0,0);padding:4px;">trace(인과 조사) → deep-interview(요구사항 정련) 2단계</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">2-2. 에이전트 (19개)</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">에이전트</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">모델</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">역할</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">explore</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Haiku</td><td style="border:1px solid rgb(0,0,0);padding:4px;">코드베이스 검색, 파일/패턴 매핑 (읽기 전용)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">analyst</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Opus</td><td style="border:1px solid rgb(0,0,0);padding:4px;">요구사항 분석, 숨겨진 제약/엣지 케이스 발굴</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">planner</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Opus</td><td style="border:1px solid rgb(0,0,0);padding:4px;">전략적 계획, 명확하고 실행 가능한 태스크 계획</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">architect</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Opus</td><td style="border:1px solid rgb(0,0,0);padding:4px;">시스템 설계, 경계, 장기 트레이드오프 (읽기 전용)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">debugger</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Sonnet</td><td style="border:1px solid rgb(0,0,0);padding:4px;">근본 원인 분석, 버그 추적, 스택 트레이스</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">executor</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Sonnet</td><td style="border:1px solid rgb(0,0,0);padding:4px;">정확한 코드 변경, 구현 전문</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">verifier</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Sonnet</td><td style="border:1px solid rgb(0,0,0);padding:4px;">완료 증거, 테스트 적절성 검증</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">tracer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Sonnet</td><td style="border:1px solid rgb(0,0,0);padding:4px;">증거 기반 인과 추적, 경쟁 가설 수집</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">security-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Opus</td><td style="border:1px solid rgb(0,0,0);padding:4px;">OWASP Top 10, 암호, 위험 패턴 (읽기 전용)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">code-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Opus</td><td style="border:1px solid rgb(0,0,0);padding:4px;">심각도 평가, 논리 결함, SOLID 원칙 검사 (읽기 전용)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">test-engineer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Sonnet</td><td style="border:1px solid rgb(0,0,0);padding:4px;">테스트 전략, TDD, 불안정한 테스트 강화</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">designer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Sonnet</td><td style="border:1px solid rgb(0,0,0);padding:4px;">UI/UX, 시각적으로 뛰어난 인터페이스</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">document-specialist</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Sonnet</td><td style="border:1px solid rgb(0,0,0);padding:4px;">SDK/API/프레임워크 문서 조회 (읽기 전용)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">git-master</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Sonnet</td><td style="border:1px solid rgb(0,0,0);padding:4px;">원자적 커밋, 리베이싱, 스타일 감지</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">code-simplifier</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Opus</td><td style="border:1px solid rgb(0,0,0);padding:4px;">동작 보존 단순화, 명확성·유지보수성 향상</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">critic</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Opus</td><td style="border:1px solid rgb(0,0,0);padding:4px;">종합적·구조적·다각도 검토 (읽기 전용)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">scientist</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Sonnet</td><td style="border:1px solid rgb(0,0,0);padding:4px;">데이터 분석, 통계 추론 (읽기 전용)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">writer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Haiku</td><td style="border:1px solid rgb(0,0,0);padding:4px;">README, API 문서, 주석 작성</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">qa-tester</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Sonnet</td><td style="border:1px solid rgb(0,0,0);padding:4px;">대화형 CLI 테스트, tmux 세션 관리</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">2-3. 유틸리티 스킬 (주요)</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">스킬명</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">역할</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">sciomc</td><td style="border:1px solid rgb(0,0,0);padding:4px;">병렬 scientist 에이전트 조율 (연구 워크플로우)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">trace</td><td style="border:1px solid rgb(0,0,0);padding:4px;">증거 기반 인과 추적 (팀 모드)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">ccg</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Claude-Codex-Gemini 3모델 오케스트레이션</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">deepinit</td><td style="border:1px solid rgb(0,0,0);padding:4px;">계층적 AGENTS.md 문서 생성</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">self-improve</td><td style="border:1px solid rgb(0,0,0);padding:4px;">자동 진화 코드 개선 (토너먼트 선택)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">ai-slop-cleaner</td><td style="border:1px solid rgb(0,0,0);padding:4px;">AI 생성 코드 정리 (회귀 방지)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">learner</td><td style="border:1px solid rgb(0,0,0);padding:4px;">대화에서 스킬 추출 (자동 학습)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">wiki</td><td style="border:1px solid rgb(0,0,0);padding:4px;">LLM Wiki (세션 간 지식 누적)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">autoresearch</td><td style="border:1px solid rgb(0,0,0);padding:4px;">병렬 웹/문서 연구 자동화</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">omc-teams</td><td style="border:1px solid rgb(0,0,0);padding:4px;">tmux 기반 다모델 팀 (claude/codex/gemini 혼합)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">release</td><td style="border:1px solid rgb(0,0,0);padding:4px;">릴리즈 노트·태그·배포 워크플로우</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">remember</td><td style="border:1px solid rgb(0,0,0);padding:4px;">세션 간 기억 저장 (프로젝트 메모리)</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">3. ECC (Everything Claude Code)</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">역할: 지식/에이전트 자산 레이어. 언어별·도메인별 전문화.</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">3-1. Commands (3개)</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">명령어</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">역할</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/add-language-rules</td><td style="border:1px solid rgb(0,0,0);padding:4px;">새 언어 규칙 시스템 추가 (코딩 스타일/훅/패턴/보안/테스트)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/database-migration</td><td style="border:1px solid rgb(0,0,0);padding:4px;">DB 스키마 변경 및 마이그레이션 파일 관리</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/feature-development</td><td style="border:1px solid rgb(0,0,0);padding:4px;">표준 기능 구현 워크플로우 (매니페스트/스키마/테스트/API)</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">3-2. 언어별 코드 리뷰어 (8개)</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">에이전트</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">대상</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">typescript-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">TypeScript/JS 타입 안전성, 비동기 정확성, 보안</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">python-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Python PEP 8, 타입 힌트</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">java-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Java/Spring Boot</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">kotlin-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Kotlin</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">go-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Go 에러 처리, 성능</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">rust-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Rust 소유권, 수명, unsafe</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">flutter-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Flutter 위젯, 상태 관리</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">csharp-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">C# .NET, nullable</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">3-3. 언어별 빌드 에러 해결 (8개)</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">에이전트</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">대상</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">build-error-resolver</td><td style="border:1px solid rgb(0,0,0);padding:4px;">TypeScript/JavaScript</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">cpp-build-resolver</td><td style="border:1px solid rgb(0,0,0);padding:4px;">C++ CMake</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">rust-build-resolver</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Rust cargo</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">go-build-resolver</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Go 모듈</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">java-build-resolver</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Java/Maven/Gradle</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">kotlin-build-resolver</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Kotlin/Gradle</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">dart-build-resolver</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Dart/Flutter</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">pytorch-build-resolver</td><td style="border:1px solid rgb(0,0,0);padding:4px;">PyTorch/CUDA</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">3-4. 도메인 전문 에이전트 (주요)</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">에이전트</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">역할</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">database-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">PostgreSQL/Supabase 쿼리 최적화, 스키마 설계</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">security-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">보안 취약점 탐지/수정</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">performance-optimizer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">병목/번들 크기/메모리 누수/렌더링 최적화</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">code-explorer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">기존 코드베이스 실행 경로/아키텍처 분석</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">e2e-runner</td><td style="border:1px solid rgb(0,0,0);padding:4px;">Playwright E2E 테스트, 플레키한 테스트 관리</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">refactor-cleaner</td><td style="border:1px solid rgb(0,0,0);padding:4px;">죽은 코드 정리 (knip, depcheck, ts-prune)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">silent-failure-hunter</td><td style="border:1px solid rgb(0,0,0);padding:4px;">무시된 에러, 잘못된 폴백, 누락된 에러 전파 감지</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">4. gs (gstack) — 35개+ 스킬</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">역할: 스타트업 팀 역할 시뮬레이션. CEO/디자이너/엔지니어/QA/보안/릴리즈 엔지니어.</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">4-1. 계획 &amp; 설계</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">스킬</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">역할</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/office-hours</td><td style="border:1px solid rgb(0,0,0);padding:4px;">YC Office Hours — 6가지 질문으로 아이디어 재검토, 설계 문서 생성</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/plan-ceo-review</td><td style="border:1px solid rgb(0,0,0);padding:4px;">CEO 관점 — 범위 확대/축소, 10점짜리 제품 찾기</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/plan-eng-review</td><td style="border:1px solid rgb(0,0,0);padding:4px;">엔지니어 매니저 — 아키텍처/데이터 흐름/엣지 케이스 검토</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/plan-design-review</td><td style="border:1px solid rgb(0,0,0);padding:4px;">디자이너 눈 — 각 설계 차원 0-10점 평가</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/autoplan</td><td style="border:1px solid rgb(0,0,0);padding:4px;">CEO→디자인→엔지니어 검토 순차 자동 실행</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/spec</td><td style="border:1px solid rgb(0,0,0);padding:4px;">모호한 의도 → 정밀 실행 가능 스펙 (5단계 인터뷰)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/design-consultation</td><td style="border:1px solid rgb(0,0,0);padding:4px;">완전한 디자인 시스템 구축 (심미성/타이포/색상/레이아웃)</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">4-2. QA &amp; 보안</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">스킬</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">역할</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/qa</td><td style="border:1px solid rgb(0,0,0);padding:4px;">웹앱 QA 테스트 + 버그 수정 (Quick/Standard/Exhaustive 3모드)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/qa-only</td><td style="border:1px solid rgb(0,0,0);padding:4px;">QA 보고서만 (코드 수정 없음)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/cso</td><td style="border:1px solid rgb(0,0,0);padding:4px;">최고 보안 담당자 — OWASP Top 10, STRIDE, 공급망 보안</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/benchmark</td><td style="border:1px solid rgb(0,0,0);padding:4px;">성능 회귀 감지 (Core Web Vitals, 리소스 크기 기준선)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/health</td><td style="border:1px solid rgb(0,0,0);padding:4px;">코드 품질 대시보드 (타입체커/린터/테스트/데드코드 종합 점수)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/investigate</td><td style="border:1px solid rgb(0,0,0);padding:4px;">체계적 디버깅 — 조사→분석→가설→구현</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">4-3. 배포 &amp; 운영</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">스킬</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">역할</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/ship</td><td style="border:1px solid rgb(0,0,0);padding:4px;">배포 워크플로우 (병합→테스트→VERSION/CHANGELOG→커밋→PR)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/land-and-deploy</td><td style="border:1px solid rgb(0,0,0);padding:4px;">PR 병합→CI→배포→카나리 검증</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/canary</td><td style="border:1px solid rgb(0,0,0);padding:4px;">배포 후 모니터링 (콘솔 에러, 성능 회귀, 페이지 실패)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/document-release</td><td style="border:1px solid rgb(0,0,0);padding:4px;">README/ARCHITECTURE 등 배포 후 문서 자동 동기화</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/retro</td><td style="border:1px solid rgb(0,0,0);padding:4px;">주간 엔지니어링 회고 (커밋 히스토리/코드 품질/팀 기여도)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">/setup-deploy</td><td style="border:1px solid rgb(0,0,0);padding:4px;">배포 설정 (Fly.io/Render/Vercel/Netlify/Heroku 감지)</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:13pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">Part 2. 워크플로우 매핑 — 단계별 명령어 대조표</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">THINK — 아이디어 → 방향 설정</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">단계</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">SP</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">OMC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">ECC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">gs</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">아이디어 구체화</td><td style="border:1px solid rgb(0,0,0);padding:4px;">brainstorming</td><td style="border:1px solid rgb(0,0,0);padding:4px;">deep-interview</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">/office-hours</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">제품/기능 방향 검토</td><td style="border:1px solid rgb(0,0,0);padding:4px;">brainstorming</td><td style="border:1px solid rgb(0,0,0);padding:4px;">omc-plan --interview</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">/plan-ceo-review</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">요구사항 분석</td><td style="border:1px solid rgb(0,0,0);padding:4px;">brainstorming</td><td style="border:1px solid rgb(0,0,0);padding:4px;">analyst</td><td style="border:1px solid rgb(0,0,0);padding:4px;">planner</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">심층 연구</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">sciomc / deep-dive</td><td style="border:1px solid rgb(0,0,0);padding:4px;">deep-research</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">PLAN — 계획 수립 → 승인</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">단계</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">SP</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">OMC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">ECC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">gs</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">아키텍처 설계</td><td style="border:1px solid rgb(0,0,0);padding:4px;">writing-plans</td><td style="border:1px solid rgb(0,0,0);padding:4px;">architect</td><td style="border:1px solid rgb(0,0,0);padding:4px;">architect / code-architect</td><td style="border:1px solid rgb(0,0,0);padding:4px;">/plan-eng-review</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">구현 계획 작성</td><td style="border:1px solid rgb(0,0,0);padding:4px;">writing-plans</td><td style="border:1px solid rgb(0,0,0);padding:4px;">planner / omc-plan</td><td style="border:1px solid rgb(0,0,0);padding:4px;">planner</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">전체 자동 검토</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">ralplan</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">/autoplan</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">BUILD — 구현</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">단계</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">SP</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">OMC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">ECC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">gs</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">단일 태스크 실행</td><td style="border:1px solid rgb(0,0,0);padding:4px;">executing-plans</td><td style="border:1px solid rgb(0,0,0);padding:4px;">executor</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">병렬 태스크 실행</td><td style="border:1px solid rgb(0,0,0);padding:4px;">dispatching-parallel-agents</td><td style="border:1px solid rgb(0,0,0);padding:4px;">ultrawork / team</td><td style="border:1px solid rgb(0,0,0);padding:4px;">dmux-workflows</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">전체 자동 실행</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">autopilot</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">TDD 구현</td><td style="border:1px solid rgb(0,0,0);padding:4px;">test-driven-development</td><td style="border:1px solid rgb(0,0,0);padding:4px;">test-engineer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">tdd-guide / tdd-workflow</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">REVIEW — 코드 검토</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">단계</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">SP</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">OMC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">ECC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">gs</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">범용 코드 리뷰</td><td style="border:1px solid rgb(0,0,0);padding:4px;">requesting-code-review</td><td style="border:1px solid rgb(0,0,0);padding:4px;">code-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">code-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">/review</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">언어별 코드 리뷰</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">typescript-reviewer 외 8개</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">보안 검토</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">security-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">security-reviewer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">/cso</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">성능 최적화</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">performance-optimizer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">TEST — 검증</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">단계</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">SP</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">OMC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">ECC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">gs</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">완료 전 검증</td><td style="border:1px solid rgb(0,0,0);padding:4px;">verification-before-completion</td><td style="border:1px solid rgb(0,0,0);padding:4px;">verifier</td><td style="border:1px solid rgb(0,0,0);padding:4px;">verification-loop</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">QA 사이클 반복</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">ultraqa</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">/qa</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">E2E 테스트</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">e2e-runner / e2e-testing</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">디버깅 (원인 불명)</td><td style="border:1px solid rgb(0,0,0);padding:4px;">systematic-debugging</td><td style="border:1px solid rgb(0,0,0);padding:4px;">tracer → debugger</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">/investigate</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">빌드 에러 해결</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">build-error-resolver + 언어별 7개</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">SHIP — 배포 &amp; 완료</p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">단계</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">SP</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">OMC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">ECC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">gs</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">PR 생성/병합</td><td style="border:1px solid rgb(0,0,0);padding:4px;">finishing-a-development-branch</td><td style="border:1px solid rgb(0,0,0);padding:4px;">git-master</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">/ship</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">배포 실행</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">/land-and-deploy</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">배포 후 모니터링</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">/canary</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">문서 동기화</td><td style="border:1px solid rgb(0,0,0);padding:4px;">—</td><td style="border:1px solid rgb(0,0,0);padding:4px;">writer</td><td style="border:1px solid rgb(0,0,0);padding:4px;">doc-updater</td><td style="border:1px solid rgb(0,0,0);padding:4px;">/document-release</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:13pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">프레임워크별 강점 비교</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">강점</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:center;">SP</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:center;">OMC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:center;">ECC</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:center;">gs</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">설계/의사결정</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">실행 오케스트레이션</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">언어별 전문화</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">✗</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">✗</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">✗</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">브라우저/QA 자동화</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">✗</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★★</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">보안 감사</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">✗</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★★</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">배포 파이프라인</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">✗</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★★</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">TDD 강제</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">✗</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">병렬 실행</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★</td><td style="border:1px solid rgb(0,0,0);padding:4px;text-align:center;">★★★</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+
+<p style="font-family:돋움체;font-size:13pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;font-weight:bold;">겹치는 영역 &amp; 충돌 주의</p>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>
+<table style="border-collapse:collapse;width:100%;font-family:돋움체;font-size:10pt;">
+  <tr>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">기능</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">겹치는 프레임워크</th>
+    <th style="border:1px solid rgb(0,0,0);padding:4px;background-color:rgb(220,220,220);text-align:left;">우선순위</th>
+  </tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">코드 리뷰</td><td style="border:1px solid rgb(0,0,0);padding:4px;">SP + OMC + ECC + gs</td><td style="border:1px solid rgb(0,0,0);padding:4px;">SP 프로세스 → OMC code-reviewer</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">TDD</td><td style="border:1px solid rgb(0,0,0);padding:4px;">SP + OMC + ECC</td><td style="border:1px solid rgb(0,0,0);padding:4px;">SP test-driven-development → OMC test-engineer</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">디버깅</td><td style="border:1px solid rgb(0,0,0);padding:4px;">SP + OMC + gs</td><td style="border:1px solid rgb(0,0,0);padding:4px;">SP systematic-debugging → OMC tracer/debugger</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">아키텍처 설계</td><td style="border:1px solid rgb(0,0,0);padding:4px;">SP + OMC + ECC</td><td style="border:1px solid rgb(0,0,0);padding:4px;">SP brainstorming/writing-plans → OMC architect</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">보안 검토</td><td style="border:1px solid rgb(0,0,0);padding:4px;">OMC + ECC + gs</td><td style="border:1px solid rgb(0,0,0);padding:4px;">OMC security-reviewer (범용) + ECC security-reviewer</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">병렬 실행</td><td style="border:1px solid rgb(0,0,0);padding:4px;">SP + OMC + ECC + gs</td><td style="border:1px solid rgb(0,0,0);padding:4px;">OMC ultrawork/team 우선</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">브라우저 테스트</td><td style="border:1px solid rgb(0,0,0);padding:4px;">OMC + gs</td><td style="border:1px solid rgb(0,0,0);padding:4px;">gs /qa (웹앱), OMC qa-tester (CLI)</td></tr>
+  <tr><td style="border:1px solid rgb(0,0,0);padding:4px;">배포</td><td style="border:1px solid rgb(0,0,0);padding:4px;">SP + gs</td><td style="border:1px solid rgb(0,0,0);padding:4px;">gs /ship + /land-and-deploy</td></tr>
+</table>
+<p style="font-family:돋움체;font-size:10pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><br /></p>

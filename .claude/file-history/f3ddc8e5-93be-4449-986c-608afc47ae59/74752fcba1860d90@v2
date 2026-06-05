@@ -1,0 +1,1529 @@
+# safeAutoTest 재구현 계획
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** 시나리오 > 테스트케이스 계층 관리, 웹액션 + Tibero DB 쿼리 통합 실행, 스냅샷 기반 AS-IS vs 현재 비교
+
+**Architecture:** JSON 파일로 시나리오/스냅샷을 저장하고, Next.js API Routes가 Playwright(웹) + oracledb(Tibero)를 조율하는 풀스택 구조. 각 TestCase는 독립적으로 실행되며 결과를 스냅샷으로 저장해 비교한다.
+
+**Tech Stack:** Next.js 14 (App Router), TypeScript, Playwright, oracledb, shadcn/ui, Tailwind CSS
+
+---
+
+## 사전 작업: 기존 파일 정리
+
+기존 구조와 새 구조가 크게 달라 아래 파일들을 교체한다.
+
+**삭제 대상:**
+- `app/api/execute/route.ts`
+- `app/api/compare/route.ts`
+- `components/ScenarioForm.tsx` (새로 재작성)
+- `components/ActionBuilder.tsx`
+- `components/TestExecutor.tsx`
+- `components/ResultViewer.tsx`
+- `components/ComparisonView.tsx`
+
+**재작성 대상 (내용 전면 교체):**
+- `lib/types.ts`
+- `lib/playwright-executor.ts`
+- `lib/comparison-engine.ts`
+- `app/page.tsx`
+
+**신규 생성:**
+- `lib/scenario-manager.ts`
+- `lib/snapshot-manager.ts`
+- `lib/tibero-executor.ts`
+- `lib/test-runner.ts`
+- `app/api/scenarios/route.ts`
+- `app/api/scenarios/[id]/route.ts`
+- `app/api/scenarios/[id]/run/route.ts`
+- `app/api/scenarios/[id]/snapshot/route.ts`
+- `app/api/scenarios/[id]/snapshots/route.ts`
+- `app/api/scenarios/[id]/compare/route.ts`
+- `app/scenarios/new/page.tsx`
+- `app/scenarios/[id]/edit/page.tsx`
+- `app/scenarios/[id]/run/page.tsx`
+- `components/ScenarioCard.tsx`
+- `components/TestCaseEditor.tsx`
+- `components/StepEditor.tsx`
+- `components/RunView.tsx`
+- `components/CompareView.tsx`
+
+---
+
+## Task 1: 타입 정의 (lib/types.ts 전면 교체)
+
+**Files:**
+- Modify: `lib/types.ts`
+
+**Step 1: 파일 전체를 아래 내용으로 교체**
+
+```typescript
+// ─── Step 기본 단위 ───────────────────────────────────────────
+export type Step =
+  | { type: 'navigate';   url: string;                              description?: string }
+  | { type: 'click';      selector: string;                         description?: string }
+  | { type: 'fill';       selector: string; text: string;           description?: string }
+  | { type: 'select';     selector: string; text: string;           description?: string }
+  | { type: 'wait';       milliseconds: number;                     description?: string }
+  | { type: 'screenshot';                                           description?: string }
+  | { type: 'evaluate';   script: string;                           description?: string }
+  | { type: 'dbQuery';    queryId: string; query: string;           description?: string };
+
+// ─── Tibero 연결 정보 ─────────────────────────────────────────
+export interface TiberoConfig {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  serviceName: string;
+}
+
+// ─── 테스트케이스 ─────────────────────────────────────────────
+export interface TestCase {
+  id: string;
+  name: string;
+  description?: string;
+  baseUrl: string;
+  steps: Step[];
+  dbConfig?: TiberoConfig;
+}
+
+// ─── 시나리오 ─────────────────────────────────────────────────
+export interface Scenario {
+  id: string;
+  name: string;
+  description: string;
+  dbConfig?: TiberoConfig;
+  testCases: TestCase[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── 실행 결과 ────────────────────────────────────────────────
+export interface StepResult {
+  step: Step;
+  status: 'passed' | 'failed' | 'error';
+  output?: any;
+  screenshot?: string;
+  error?: string;
+}
+
+export interface TestCaseResult {
+  testCaseId: string;
+  testCaseName: string;
+  status: 'passed' | 'failed' | 'error';
+  executionTime: number;
+  stepResults: StepResult[];
+}
+
+export interface ScenarioResult {
+  scenarioId: string;
+  scenarioName: string;
+  executedAt: string;
+  testCaseResults: TestCaseResult[];
+}
+
+// ─── 비교 결과 ────────────────────────────────────────────────
+export interface StepDiff {
+  stepIndex: number;
+  description?: string;
+  snapshotOutput: any;
+  currentOutput: any;
+  isDifferent: boolean;
+  severity: 'critical' | 'warning' | 'info';
+}
+
+export interface TestCaseDiff {
+  testCaseId: string;
+  testCaseName: string;
+  status: 'identical' | 'different' | 'error';
+  stepDiffs: StepDiff[];
+}
+
+export interface ComparisonReport {
+  scenarioId: string;
+  snapshotCapturedAt: string;
+  comparedAt: string;
+  status: 'identical' | 'different' | 'error';
+  testCaseDiffs: TestCaseDiff[];
+}
+
+// ─── API 공통 응답 ────────────────────────────────────────────
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+```
+
+**Step 2: 빌드 오류 확인**
+
+```bash
+npx tsc --noEmit
+```
+
+예상: 기존 import가 깨지므로 오류 발생 — Task 2~7에서 순차 해결.
+
+---
+
+## Task 2: ScenarioManager (lib/scenario-manager.ts)
+
+**Files:**
+- Create: `lib/scenario-manager.ts`
+- Create: `data/scenarios/.gitkeep`
+
+**Step 1: data/scenarios 디렉토리 생성 (PowerShell)**
+
+```powershell
+New-Item -ItemType Directory -Force -Path data\scenarios
+New-Item -ItemType File -Force -Path data\scenarios\.gitkeep
+```
+
+**Step 2: lib/scenario-manager.ts 작성**
+
+```typescript
+import fs from 'fs';
+import path from 'path';
+import { Scenario } from './types';
+
+const SCENARIOS_DIR = path.join(process.cwd(), 'data', 'scenarios');
+
+function ensureDir() {
+  if (!fs.existsSync(SCENARIOS_DIR)) fs.mkdirSync(SCENARIOS_DIR, { recursive: true });
+}
+
+function filePath(id: string) {
+  return path.join(SCENARIOS_DIR, `${id}.json`);
+}
+
+export function listScenarios(): Scenario[] {
+  ensureDir();
+  return fs
+    .readdirSync(SCENARIOS_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => JSON.parse(fs.readFileSync(path.join(SCENARIOS_DIR, f), 'utf-8')) as Scenario);
+}
+
+export function getScenario(id: string): Scenario | null {
+  const fp = filePath(id);
+  if (!fs.existsSync(fp)) return null;
+  return JSON.parse(fs.readFileSync(fp, 'utf-8')) as Scenario;
+}
+
+export function saveScenario(scenario: Scenario): void {
+  ensureDir();
+  fs.writeFileSync(filePath(scenario.id), JSON.stringify(scenario, null, 2), 'utf-8');
+}
+
+export function deleteScenario(id: string): boolean {
+  const fp = filePath(id);
+  if (!fs.existsSync(fp)) return false;
+  fs.unlinkSync(fp);
+  return true;
+}
+```
+
+**Step 3: 빌드 확인**
+
+```bash
+npx tsc --noEmit
+```
+
+---
+
+## Task 3: SnapshotManager (lib/snapshot-manager.ts)
+
+**Files:**
+- Create: `lib/snapshot-manager.ts`
+- Create: `data/snapshots/.gitkeep`
+
+**Step 1: data/snapshots 디렉토리 생성 (PowerShell)**
+
+```powershell
+New-Item -ItemType Directory -Force -Path data\snapshots
+New-Item -ItemType File -Force -Path data\snapshots\.gitkeep
+```
+
+**Step 2: lib/snapshot-manager.ts 작성**
+
+```typescript
+import fs from 'fs';
+import path from 'path';
+import { ScenarioResult } from './types';
+
+const SNAPSHOTS_DIR = path.join(process.cwd(), 'data', 'snapshots');
+
+function scenarioDir(scenarioId: string) {
+  return path.join(SNAPSHOTS_DIR, scenarioId);
+}
+
+function ensureDir(scenarioId: string) {
+  const dir = scenarioDir(scenarioId);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+export function saveSnapshot(result: ScenarioResult): string {
+  ensureDir(result.scenarioId);
+  const dir = scenarioDir(result.scenarioId);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const filename = `${timestamp}.json`;
+  const content = JSON.stringify(result, null, 2);
+  fs.writeFileSync(path.join(dir, filename), content, 'utf-8');
+  fs.writeFileSync(path.join(dir, 'latest.json'), content, 'utf-8');
+  return filename;
+}
+
+export function loadLatestSnapshot(scenarioId: string): ScenarioResult | null {
+  const fp = path.join(scenarioDir(scenarioId), 'latest.json');
+  if (!fs.existsSync(fp)) return null;
+  return JSON.parse(fs.readFileSync(fp, 'utf-8')) as ScenarioResult;
+}
+
+export function listSnapshots(scenarioId: string): string[] {
+  const dir = scenarioDir(scenarioId);
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.json') && f !== 'latest.json')
+    .sort()
+    .reverse();
+}
+```
+
+**Step 3: 빌드 확인**
+
+```bash
+npx tsc --noEmit
+```
+
+---
+
+## Task 4: TiberoExecutor (lib/tibero-executor.ts)
+
+**Files:**
+- Create: `lib/tibero-executor.ts`
+
+**Step 1: oracledb 패키지 설치**
+
+```bash
+npm install oracledb
+npm install --save-dev @types/oracledb
+```
+
+**Step 2: lib/tibero-executor.ts 작성**
+
+```typescript
+import { TiberoConfig } from './types';
+
+export interface DbQueryResult {
+  rows: any[];
+  rowCount: number;
+  columns: string[];
+}
+
+export async function executeDbQuery(
+  config: TiberoConfig,
+  query: string
+): Promise<DbQueryResult> {
+  const oracledb = await import('oracledb');
+
+  let connection: any;
+  try {
+    connection = await oracledb.default.getConnection({
+      user: config.username,
+      password: config.password,
+      connectString: `${config.host}:${config.port}/${config.serviceName}`,
+    });
+
+    const result = await connection.execute(query, [], {
+      outFormat: oracledb.default.OUT_FORMAT_OBJECT,
+      maxRows: 1000,
+    });
+
+    const rows = result.rows ?? [];
+    const columns = result.metaData?.map((m: any) => m.name) ?? [];
+
+    return { rows, rowCount: rows.length, columns };
+  } finally {
+    if (connection) await connection.close();
+  }
+}
+```
+
+**Step 3: 빌드 확인**
+
+```bash
+npx tsc --noEmit
+```
+
+> Tibero에 실제로 연결되지 않아도 타입 오류만 없으면 OK.
+
+---
+
+## Task 5: PlaywrightExecutor 재작성 (lib/playwright-executor.ts)
+
+**Files:**
+- Modify: `lib/playwright-executor.ts` (전면 교체)
+
+**Step 1: 파일 전체를 아래 내용으로 교체**
+
+```typescript
+import { chromium, Browser, Page } from '@playwright/test';
+import { Step, StepResult, TiberoConfig } from './types';
+import { executeDbQuery } from './tibero-executor';
+
+export class PlaywrightExecutor {
+  private browser: Browser | null = null;
+
+  async initialize() {
+    this.browser = await chromium.launch({ headless: true });
+  }
+
+  async close() {
+    await this.browser?.close();
+  }
+
+  async executeSteps(steps: Step[], dbConfig?: TiberoConfig): Promise<StepResult[]> {
+    const page = await this.browser!.newPage();
+    const results: StepResult[] = [];
+
+    try {
+      for (const step of steps) {
+        const result = await this.executeStep(step, page, dbConfig);
+        results.push(result);
+        if (result.status === 'error') break;
+      }
+    } finally {
+      await page.close();
+    }
+
+    return results;
+  }
+
+  private async executeStep(step: Step, page: Page, dbConfig?: TiberoConfig): Promise<StepResult> {
+    try {
+      let output: any;
+
+      switch (step.type) {
+        case 'navigate':
+          await page.goto(step.url, { waitUntil: 'networkidle' });
+          output = `Navigated to ${step.url}`;
+          break;
+        case 'click':
+          await page.click(step.selector);
+          output = `Clicked: ${step.selector}`;
+          break;
+        case 'fill':
+          await page.fill(step.selector, step.text);
+          output = `Filled: ${step.selector}`;
+          break;
+        case 'select':
+          await page.selectOption(step.selector, step.text);
+          output = `Selected: ${step.text}`;
+          break;
+        case 'wait':
+          await page.waitForTimeout(step.milliseconds);
+          output = `Waited ${step.milliseconds}ms`;
+          break;
+        case 'screenshot': {
+          const buf = await page.screenshot({ fullPage: true });
+          output = buf.toString('base64');
+          return { step, status: 'passed', output, screenshot: output };
+        }
+        case 'evaluate':
+          output = await page.evaluate((s) => eval(s), step.script);
+          break;
+        case 'dbQuery': {
+          if (!dbConfig) throw new Error('dbQuery step requires dbConfig');
+          output = await executeDbQuery(dbConfig, step.query);
+          break;
+        }
+        default:
+          throw new Error(`Unknown step type: ${(step as any).type}`);
+      }
+
+      return { step, status: 'passed', output };
+    } catch (error) {
+      return {
+        step,
+        status: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+}
+```
+
+**Step 2: 빌드 확인**
+
+```bash
+npx tsc --noEmit
+```
+
+---
+
+## Task 6: TestRunner (lib/test-runner.ts)
+
+**Files:**
+- Create: `lib/test-runner.ts`
+
+**Step 1: lib/test-runner.ts 작성**
+
+```typescript
+import { Scenario, TestCase, TestCaseResult, ScenarioResult, TiberoConfig } from './types';
+import { PlaywrightExecutor } from './playwright-executor';
+
+async function runTestCase(testCase: TestCase, scenarioDbConfig?: TiberoConfig): Promise<TestCaseResult> {
+  const dbConfig = testCase.dbConfig ?? scenarioDbConfig;
+  const executor = new PlaywrightExecutor();
+  const startTime = Date.now();
+
+  try {
+    await executor.initialize();
+    const stepResults = await executor.executeSteps(testCase.steps, dbConfig);
+    const hasError = stepResults.some((r) => r.status === 'error');
+
+    return {
+      testCaseId: testCase.id,
+      testCaseName: testCase.name,
+      status: hasError ? 'error' : 'passed',
+      executionTime: Date.now() - startTime,
+      stepResults,
+    };
+  } catch (error) {
+    return {
+      testCaseId: testCase.id,
+      testCaseName: testCase.name,
+      status: 'error',
+      executionTime: Date.now() - startTime,
+      stepResults: [],
+    };
+  } finally {
+    await executor.close();
+  }
+}
+
+export async function runScenario(scenario: Scenario): Promise<ScenarioResult> {
+  const testCaseResults: TestCaseResult[] = [];
+
+  for (const testCase of scenario.testCases) {
+    const result = await runTestCase(testCase, scenario.dbConfig);
+    testCaseResults.push(result);
+  }
+
+  return {
+    scenarioId: scenario.id,
+    scenarioName: scenario.name,
+    executedAt: new Date().toISOString(),
+    testCaseResults,
+  };
+}
+```
+
+**Step 2: 빌드 확인**
+
+```bash
+npx tsc --noEmit
+```
+
+---
+
+## Task 7: ComparisonEngine 재작성 (lib/comparison-engine.ts)
+
+**Files:**
+- Modify: `lib/comparison-engine.ts` (전면 교체)
+
+**Step 1: 파일 전체를 아래 내용으로 교체**
+
+```typescript
+import {
+  ScenarioResult,
+  TestCaseResult,
+  StepResult,
+  ComparisonReport,
+  TestCaseDiff,
+  StepDiff,
+} from './types';
+
+function deepEqual(a: any, b: any): boolean {
+  if (a === b) return true;
+  if (a == null || b == null) return a === b;
+  if (typeof a !== typeof b) return false;
+  if (typeof a !== 'object') return a === b;
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  return keysA.every((k) => deepEqual(a[k], b[k]));
+}
+
+function compareTestCase(snapshot: TestCaseResult, current: TestCaseResult): TestCaseDiff {
+  const stepDiffs: StepDiff[] = [];
+  const len = Math.max(snapshot.stepResults.length, current.stepResults.length);
+
+  for (let i = 0; i < len; i++) {
+    const snap: StepResult | undefined = snapshot.stepResults[i];
+    const curr: StepResult | undefined = current.stepResults[i];
+    const snapshotOutput = snap?.output ?? null;
+    const currentOutput = curr?.output ?? null;
+    const isDifferent = !deepEqual(snapshotOutput, currentOutput);
+
+    if (isDifferent || snap?.status !== curr?.status) {
+      stepDiffs.push({
+        stepIndex: i,
+        description: snap?.step?.description ?? curr?.step?.description,
+        snapshotOutput,
+        currentOutput,
+        isDifferent,
+        severity: snap?.status === 'error' || curr?.status === 'error' ? 'critical' : 'warning',
+      });
+    }
+  }
+
+  return {
+    testCaseId: snapshot.testCaseId,
+    testCaseName: snapshot.testCaseName,
+    status: stepDiffs.length === 0 ? 'identical' : 'different',
+    stepDiffs,
+  };
+}
+
+export function compareWithSnapshot(snapshot: ScenarioResult, current: ScenarioResult): ComparisonReport {
+  const testCaseDiffs: TestCaseDiff[] = snapshot.testCaseResults.map((snapTc) => {
+    const currTc = current.testCaseResults.find((r) => r.testCaseId === snapTc.testCaseId);
+    if (!currTc) {
+      return { testCaseId: snapTc.testCaseId, testCaseName: snapTc.testCaseName, status: 'error' as const, stepDiffs: [] };
+    }
+    return compareTestCase(snapTc, currTc);
+  });
+
+  const hasAnyDiff = testCaseDiffs.some((d) => d.status !== 'identical');
+
+  return {
+    scenarioId: snapshot.scenarioId,
+    snapshotCapturedAt: snapshot.executedAt,
+    comparedAt: new Date().toISOString(),
+    status: hasAnyDiff ? 'different' : 'identical',
+    testCaseDiffs,
+  };
+}
+```
+
+**Step 2: 빌드 확인**
+
+```bash
+npx tsc --noEmit
+```
+
+---
+
+## Task 8: API Routes — 시나리오 CRUD
+
+**Files:**
+- Create: `app/api/scenarios/route.ts`
+- Create: `app/api/scenarios/[id]/route.ts`
+
+**Step 1: 기존 API 라우트 삭제 (PowerShell)**
+
+```powershell
+Remove-Item -Recurse -Force app\api\execute
+Remove-Item -Recurse -Force app\api\compare
+```
+
+**Step 2: app/api/scenarios/route.ts 작성**
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { listScenarios, saveScenario } from '@/lib/scenario-manager';
+import { Scenario } from '@/lib/types';
+import { randomUUID } from 'crypto';
+
+export async function GET() {
+  try {
+    const scenarios = listScenarios();
+    return NextResponse.json({ success: true, data: scenarios });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const now = new Date().toISOString();
+    const scenario: Scenario = {
+      id: randomUUID(),
+      name: body.name,
+      description: body.description ?? '',
+      dbConfig: body.dbConfig,
+      testCases: body.testCases ?? [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    saveScenario(scenario);
+    return NextResponse.json({ success: true, data: scenario }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}
+```
+
+**Step 3: app/api/scenarios/[id]/route.ts 작성**
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { getScenario, saveScenario, deleteScenario } from '@/lib/scenario-manager';
+
+export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
+  const scenario = getScenario(params.id);
+  if (!scenario) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
+  return NextResponse.json({ success: true, data: scenario });
+}
+
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const existing = getScenario(params.id);
+    if (!existing) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
+    const body = await req.json();
+    const updated = { ...existing, ...body, id: params.id, updatedAt: new Date().toISOString() };
+    saveScenario(updated);
+    return NextResponse.json({ success: true, data: updated });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}
+
+export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+  const deleted = deleteScenario(params.id);
+  if (!deleted) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
+  return NextResponse.json({ success: true });
+}
+```
+
+**Step 4: 빌드 확인**
+
+```bash
+npx tsc --noEmit
+```
+
+---
+
+## Task 9: API Routes — 실행 / 스냅샷 / 비교
+
+**Files:**
+- Create: `app/api/scenarios/[id]/run/route.ts`
+- Create: `app/api/scenarios/[id]/snapshot/route.ts`
+- Create: `app/api/scenarios/[id]/snapshots/route.ts`
+- Create: `app/api/scenarios/[id]/compare/route.ts`
+
+**Step 1: app/api/scenarios/[id]/run/route.ts**
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { getScenario } from '@/lib/scenario-manager';
+import { runScenario } from '@/lib/test-runner';
+
+export async function POST(_: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const scenario = getScenario(params.id);
+    if (!scenario) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
+    const result = await runScenario(scenario);
+    return NextResponse.json({ success: true, data: result });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}
+```
+
+**Step 2: app/api/scenarios/[id]/snapshot/route.ts**
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { saveSnapshot } from '@/lib/snapshot-manager';
+import { ScenarioResult } from '@/lib/types';
+
+export async function POST(req: NextRequest) {
+  try {
+    const result: ScenarioResult = await req.json();
+    const filename = saveSnapshot(result);
+    return NextResponse.json({ success: true, data: { filename } });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}
+```
+
+**Step 3: app/api/scenarios/[id]/snapshots/route.ts**
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { listSnapshots } from '@/lib/snapshot-manager';
+
+export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
+  const snapshots = listSnapshots(params.id);
+  return NextResponse.json({ success: true, data: snapshots });
+}
+```
+
+**Step 4: app/api/scenarios/[id]/compare/route.ts**
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { getScenario } from '@/lib/scenario-manager';
+import { loadLatestSnapshot } from '@/lib/snapshot-manager';
+import { runScenario } from '@/lib/test-runner';
+import { compareWithSnapshot } from '@/lib/comparison-engine';
+
+export async function POST(_: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const scenario = getScenario(params.id);
+    if (!scenario) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
+
+    const snapshot = loadLatestSnapshot(params.id);
+    if (!snapshot) return NextResponse.json({ success: false, error: '저장된 AS-IS 스냅샷이 없습니다' }, { status: 400 });
+
+    const current = await runScenario(scenario);
+    const report = compareWithSnapshot(snapshot, current);
+
+    return NextResponse.json({ success: true, data: { report, current } });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}
+```
+
+**Step 5: 빌드 확인**
+
+```bash
+npx tsc --noEmit
+```
+
+---
+
+## Task 10: UI — 시나리오 목록 (app/page.tsx)
+
+**Files:**
+- Modify: `app/page.tsx` (전면 교체)
+- Create: `components/ScenarioCard.tsx`
+
+**Step 1: components/ScenarioCard.tsx 작성**
+
+```typescript
+'use client';
+
+import { Scenario } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+
+interface Props {
+  scenario: Scenario;
+  onDelete: (id: string) => void;
+}
+
+export function ScenarioCard({ scenario, onDelete }: Props) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-lg">{scenario.name}</CardTitle>
+        <Badge variant="secondary">{scenario.testCases.length}개 케이스</Badge>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground mb-4">{scenario.description}</p>
+        <div className="flex gap-2">
+          <Link href={`/scenarios/${scenario.id}/run`}>
+            <Button size="sm">실행</Button>
+          </Link>
+          <Link href={`/scenarios/${scenario.id}/edit`}>
+            <Button size="sm" variant="outline">편집</Button>
+          </Link>
+          <Button size="sm" variant="destructive" onClick={() => onDelete(scenario.id)}>
+            삭제
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+**Step 2: app/page.tsx 전면 교체**
+
+```typescript
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Scenario } from '@/lib/types';
+import { ScenarioCard } from '@/components/ScenarioCard';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+
+export default function Home() {
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+
+  async function load() {
+    const res = await fetch('/api/scenarios');
+    const json = await res.json();
+    if (json.success) setScenarios(json.data);
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('삭제하시겠습니까?')) return;
+    await fetch(`/api/scenarios/${id}`, { method: 'DELETE' });
+    load();
+  }
+
+  useEffect(() => { load(); }, []);
+
+  return (
+    <main className="container mx-auto py-8 px-4">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">테스트 시나리오</h1>
+        <Link href="/scenarios/new">
+          <Button>+ 새 시나리오</Button>
+        </Link>
+      </div>
+      {scenarios.length === 0 ? (
+        <p className="text-muted-foreground text-center py-12">시나리오가 없습니다. 새로 만들어보세요.</p>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {scenarios.map((s) => (
+            <ScenarioCard key={s.id} scenario={s} onDelete={handleDelete} />
+          ))}
+        </div>
+      )}
+    </main>
+  );
+}
+```
+
+**Step 3: 개발 서버 실행 후 목록 페이지 확인**
+
+```bash
+npm run dev
+```
+`http://localhost:3000` 접속 → 빈 목록 화면 정상 표시 확인
+
+---
+
+## Task 11: UI — 시나리오 편집
+
+**Files:**
+- Create: `components/StepEditor.tsx`
+- Create: `components/TestCaseEditor.tsx`
+- Create: `components/ScenarioForm.tsx`
+- Create: `app/scenarios/new/page.tsx`
+- Create: `app/scenarios/[id]/edit/page.tsx`
+
+**Step 1: components/StepEditor.tsx 작성**
+
+```typescript
+'use client';
+
+import { Step } from '@/lib/types';
+
+interface Props {
+  step: Step;
+  onChange: (step: Step) => void;
+  onRemove: () => void;
+}
+
+const STEP_TYPES = ['navigate','click','fill','select','wait','screenshot','evaluate','dbQuery'] as const;
+
+export function StepEditor({ step, onChange, onRemove }: Props) {
+  function update(patch: Partial<any>) {
+    onChange({ ...step, ...patch } as Step);
+  }
+
+  return (
+    <div className="border rounded p-3 space-y-2 bg-muted/30">
+      <div className="flex items-center gap-2">
+        <select
+          className="border rounded px-2 py-1 text-sm"
+          value={step.type}
+          onChange={(e) => onChange({ type: e.target.value as Step['type'] } as Step)}
+        >
+          {STEP_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <input
+          className="border rounded px-2 py-1 text-sm flex-1"
+          placeholder="설명 (선택)"
+          value={step.description ?? ''}
+          onChange={(e) => update({ description: e.target.value })}
+        />
+        <button onClick={onRemove} className="text-red-500 text-sm px-2">삭제</button>
+      </div>
+
+      {step.type === 'navigate' && (
+        <input className="border rounded px-2 py-1 text-sm w-full" placeholder="URL"
+          value={(step as any).url ?? ''} onChange={(e) => update({ url: e.target.value })} />
+      )}
+      {step.type === 'click' && (
+        <input className="border rounded px-2 py-1 text-sm w-full" placeholder="CSS Selector"
+          value={(step as any).selector ?? ''} onChange={(e) => update({ selector: e.target.value })} />
+      )}
+      {(step.type === 'fill' || step.type === 'select') && (
+        <div className="flex gap-2">
+          <input className="border rounded px-2 py-1 text-sm flex-1" placeholder="CSS Selector"
+            value={(step as any).selector ?? ''} onChange={(e) => update({ selector: e.target.value })} />
+          <input className="border rounded px-2 py-1 text-sm flex-1" placeholder="값"
+            value={(step as any).text ?? ''} onChange={(e) => update({ text: e.target.value })} />
+        </div>
+      )}
+      {step.type === 'wait' && (
+        <input type="number" className="border rounded px-2 py-1 text-sm w-full" placeholder="밀리초"
+          value={(step as any).milliseconds ?? 1000}
+          onChange={(e) => update({ milliseconds: Number(e.target.value) })} />
+      )}
+      {step.type === 'evaluate' && (
+        <textarea className="border rounded px-2 py-1 text-sm w-full font-mono" rows={2} placeholder="JavaScript"
+          value={(step as any).script ?? ''} onChange={(e) => update({ script: e.target.value })} />
+      )}
+      {step.type === 'dbQuery' && (
+        <div className="space-y-1">
+          <input className="border rounded px-2 py-1 text-sm w-full" placeholder="쿼리 ID (예: check-user-count)"
+            value={(step as any).queryId ?? ''} onChange={(e) => update({ queryId: e.target.value })} />
+          <textarea className="border rounded px-2 py-1 text-sm w-full font-mono" rows={3} placeholder="SELECT COUNT(*) FROM USERS"
+            value={(step as any).query ?? ''} onChange={(e) => update({ query: e.target.value })} />
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+**Step 2: components/TestCaseEditor.tsx 작성**
+
+```typescript
+'use client';
+
+import { TestCase, Step } from '@/lib/types';
+import { StepEditor } from './StepEditor';
+import { Button } from '@/components/ui/button';
+
+interface Props {
+  testCase: TestCase;
+  onChange: (tc: TestCase) => void;
+  onRemove: () => void;
+}
+
+export function TestCaseEditor({ testCase, onChange, onRemove }: Props) {
+  function updateStep(i: number, step: Step) {
+    const steps = [...testCase.steps];
+    steps[i] = step;
+    onChange({ ...testCase, steps });
+  }
+
+  function removeStep(i: number) {
+    onChange({ ...testCase, steps: testCase.steps.filter((_, idx) => idx !== i) });
+  }
+
+  function addStep() {
+    onChange({
+      ...testCase,
+      steps: [...testCase.steps, { type: 'navigate', url: '', description: '' }],
+    });
+  }
+
+  return (
+    <div className="border rounded p-4 space-y-3 bg-card">
+      <div className="flex items-center gap-2">
+        <input
+          className="border rounded px-2 py-1 text-sm font-medium flex-1"
+          placeholder="테스트케이스 이름"
+          value={testCase.name}
+          onChange={(e) => onChange({ ...testCase, name: e.target.value })}
+        />
+        <input
+          className="border rounded px-2 py-1 text-sm flex-1"
+          placeholder="Base URL (https://...)"
+          value={testCase.baseUrl}
+          onChange={(e) => onChange({ ...testCase, baseUrl: e.target.value })}
+        />
+        <button onClick={onRemove} className="text-red-500 text-sm whitespace-nowrap">케이스 삭제</button>
+      </div>
+      <div className="space-y-2">
+        {testCase.steps.map((step, i) => (
+          <StepEditor
+            key={i}
+            step={step}
+            onChange={(s) => updateStep(i, s)}
+            onRemove={() => removeStep(i)}
+          />
+        ))}
+      </div>
+      <Button size="sm" variant="outline" onClick={addStep}>+ Step 추가</Button>
+    </div>
+  );
+}
+```
+
+**Step 3: components/ScenarioForm.tsx 작성**
+
+```typescript
+'use client';
+
+import { useState } from 'react';
+import { Scenario, TestCase, TiberoConfig } from '@/lib/types';
+import { TestCaseEditor } from './TestCaseEditor';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+function newTestCase(): TestCase {
+  return { id: crypto.randomUUID(), name: '새 테스트케이스', baseUrl: '', steps: [] };
+}
+
+interface Props {
+  initial?: Partial<Scenario>;
+  onSave: (data: Partial<Scenario>) => void;
+  loading?: boolean;
+}
+
+export function ScenarioForm({ initial, onSave, loading }: Props) {
+  const [name, setName] = useState(initial?.name ?? '');
+  const [description, setDescription] = useState(initial?.description ?? '');
+  const [testCases, setTestCases] = useState<TestCase[]>(initial?.testCases ?? []);
+  const [dbConfig, setDbConfig] = useState<TiberoConfig>(
+    initial?.dbConfig ?? { host: '', port: 8629, username: '', password: '', serviceName: 'TIBERO' }
+  );
+  const [showDb, setShowDb] = useState(!!initial?.dbConfig);
+
+  function updateTestCase(i: number, tc: TestCase) {
+    const arr = [...testCases];
+    arr[i] = tc;
+    setTestCases(arr);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <div>
+          <Label>시나리오 이름</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="일반 신고 테스트" />
+        </div>
+        <div>
+          <Label>설명</Label>
+          <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="시나리오 설명" />
+        </div>
+      </div>
+
+      <div>
+        <button className="text-sm underline text-blue-600" onClick={() => setShowDb(!showDb)}>
+          {showDb ? 'Tibero DB 설정 숨기기' : 'Tibero DB 설정 추가'}
+        </button>
+        {showDb && (
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <Input placeholder="Host" value={dbConfig.host}
+              onChange={(e) => setDbConfig({ ...dbConfig, host: e.target.value })} />
+            <Input type="number" placeholder="Port (8629)" value={dbConfig.port}
+              onChange={(e) => setDbConfig({ ...dbConfig, port: Number(e.target.value) })} />
+            <Input placeholder="Username" value={dbConfig.username}
+              onChange={(e) => setDbConfig({ ...dbConfig, username: e.target.value })} />
+            <Input type="password" placeholder="Password" value={dbConfig.password}
+              onChange={(e) => setDbConfig({ ...dbConfig, password: e.target.value })} />
+            <Input placeholder="Service Name" value={dbConfig.serviceName}
+              onChange={(e) => setDbConfig({ ...dbConfig, serviceName: e.target.value })} />
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="font-medium">테스트케이스</h3>
+        {testCases.map((tc, i) => (
+          <TestCaseEditor
+            key={tc.id}
+            testCase={tc}
+            onChange={(updated) => updateTestCase(i, updated)}
+            onRemove={() => setTestCases(testCases.filter((_, idx) => idx !== i))}
+          />
+        ))}
+        <Button variant="outline" onClick={() => setTestCases([...testCases, newTestCase()])}>
+          + 테스트케이스 추가
+        </Button>
+      </div>
+
+      <Button onClick={() => onSave({ name, description, dbConfig: showDb ? dbConfig : undefined, testCases })}
+        disabled={loading || !name}>
+        {loading ? '저장 중...' : '저장'}
+      </Button>
+    </div>
+  );
+}
+```
+
+**Step 4: app/scenarios/new/page.tsx 작성**
+
+```typescript
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { ScenarioForm } from '@/components/ScenarioForm';
+
+export default function NewScenarioPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  async function handleSave(data: any) {
+    setLoading(true);
+    const res = await fetch('/api/scenarios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (json.success) router.push('/');
+    else alert('저장 실패: ' + json.error);
+    setLoading(false);
+  }
+
+  return (
+    <main className="container mx-auto py-8 px-4 max-w-3xl">
+      <h1 className="text-2xl font-bold mb-6">새 시나리오</h1>
+      <ScenarioForm onSave={handleSave} loading={loading} />
+    </main>
+  );
+}
+```
+
+**Step 5: app/scenarios/[id]/edit/page.tsx 작성**
+
+```typescript
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Scenario } from '@/lib/types';
+import { ScenarioForm } from '@/components/ScenarioForm';
+
+export default function EditScenarioPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const [scenario, setScenario] = useState<Scenario | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/scenarios/${params.id}`)
+      .then((r) => r.json())
+      .then((j) => j.success && setScenario(j.data));
+  }, [params.id]);
+
+  async function handleSave(data: any) {
+    setLoading(true);
+    const res = await fetch(`/api/scenarios/${params.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (json.success) router.push('/');
+    else alert('저장 실패: ' + json.error);
+    setLoading(false);
+  }
+
+  if (!scenario) return <div className="p-8 text-muted-foreground">로딩 중...</div>;
+
+  return (
+    <main className="container mx-auto py-8 px-4 max-w-3xl">
+      <h1 className="text-2xl font-bold mb-6">시나리오 편집</h1>
+      <ScenarioForm initial={scenario} onSave={handleSave} loading={loading} />
+    </main>
+  );
+}
+```
+
+**Step 6: 시나리오 생성/편집 동작 수동 확인**
+
+1. `http://localhost:3000/scenarios/new` 접속
+2. 시나리오 이름, 테스트케이스, Step 추가 후 저장
+3. 목록으로 돌아와 카드가 표시되는지 확인
+4. 편집 버튼 클릭 → 기존 내용 로드 확인
+
+---
+
+## Task 12: UI — 실행 & 비교
+
+**Files:**
+- Create: `components/RunView.tsx`
+- Create: `components/CompareView.tsx`
+- Create: `app/scenarios/[id]/run/page.tsx`
+
+**Step 1: components/RunView.tsx 작성**
+
+```typescript
+'use client';
+
+import { ScenarioResult } from '@/lib/types';
+
+export function RunView({ result }: { result: ScenarioResult }) {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        실행 시각: {new Date(result.executedAt).toLocaleString('ko-KR')}
+      </p>
+      {result.testCaseResults.map((tc) => (
+        <div key={tc.testCaseId} className="border rounded p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-medium">{tc.testCaseName}</span>
+            <span className={tc.status === 'passed' ? 'text-green-600' : 'text-red-600'}>
+              {tc.status} ({tc.executionTime}ms)
+            </span>
+          </div>
+          <div className="space-y-1">
+            {tc.stepResults.map((sr, i) => (
+              <div key={i} className="flex items-start gap-2 text-sm">
+                <span className={sr.status === 'passed' ? 'text-green-500' : 'text-red-500'}>
+                  {sr.status === 'passed' ? '✓' : '✗'}
+                </span>
+                <span className="text-muted-foreground">{sr.step.description ?? sr.step.type}</span>
+                {sr.error && <span className="text-red-500 ml-2 text-xs">{sr.error}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+**Step 2: components/CompareView.tsx 작성**
+
+```typescript
+'use client';
+
+import { ComparisonReport } from '@/lib/types';
+
+export function CompareView({ report }: { report: ComparisonReport }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-muted-foreground">
+          스냅샷 기준: {new Date(report.snapshotCapturedAt).toLocaleString('ko-KR')}
+        </span>
+        <span className={`font-medium ${report.status === 'identical' ? 'text-green-600' : 'text-red-600'}`}>
+          {report.status === 'identical' ? '✅ 동일' : '⚠️ 차이 있음'}
+        </span>
+      </div>
+      {report.testCaseDiffs.map((tc) => (
+        <div key={tc.testCaseId} className="border rounded p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-medium">{tc.testCaseName}</span>
+            <span className={tc.status === 'identical' ? 'text-green-600' : 'text-yellow-600'}>
+              {tc.status}
+            </span>
+          </div>
+          {tc.stepDiffs.length === 0 ? (
+            <p className="text-sm text-green-600">모든 Step 동일</p>
+          ) : (
+            <div className="space-y-2">
+              {tc.stepDiffs.map((diff, i) => (
+                <div key={i} className="bg-yellow-50 border border-yellow-200 rounded p-2 text-sm">
+                  <p className="font-medium mb-1">
+                    Step {diff.stepIndex + 1}{diff.description ? `: ${diff.description}` : ''}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">스냅샷 (AS-IS)</p>
+                      <pre className="text-xs bg-white rounded p-1 overflow-auto max-h-32">
+                        {JSON.stringify(diff.snapshotOutput, null, 2)}
+                      </pre>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">현재</p>
+                      <pre className="text-xs bg-white rounded p-1 overflow-auto max-h-32">
+                        {JSON.stringify(diff.currentOutput, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+**Step 3: app/scenarios/[id]/run/page.tsx 작성**
+
+```typescript
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Scenario, ScenarioResult, ComparisonReport } from '@/lib/types';
+import { RunView } from '@/components/RunView';
+import { CompareView } from '@/components/CompareView';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+
+type Mode = 'idle' | 'running' | 'result' | 'compare';
+
+export default function RunPage({ params }: { params: { id: string } }) {
+  const [scenario, setScenario] = useState<Scenario | null>(null);
+  const [mode, setMode] = useState<Mode>('idle');
+  const [result, setResult] = useState<ScenarioResult | null>(null);
+  const [report, setReport] = useState<ComparisonReport | null>(null);
+  const [snapshots, setSnapshots] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/scenarios/${params.id}`).then((r) => r.json()).then((j) => j.success && setScenario(j.data));
+    loadSnapshots();
+  }, [params.id]);
+
+  async function loadSnapshots() {
+    const res = await fetch(`/api/scenarios/${params.id}/snapshots`);
+    const j = await res.json();
+    if (j.success) setSnapshots(j.data);
+  }
+
+  async function handleSaveSnapshot() {
+    setMode('running');
+    setError(null);
+    try {
+      const runRes = await fetch(`/api/scenarios/${params.id}/run`, { method: 'POST' });
+      const runJson = await runRes.json();
+      if (!runJson.success) throw new Error(runJson.error);
+
+      const snapRes = await fetch(`/api/scenarios/${params.id}/snapshot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(runJson.data),
+      });
+      const snapJson = await snapRes.json();
+      if (!snapJson.success) throw new Error(snapJson.error);
+
+      setResult(runJson.data);
+      setMode('result');
+      loadSnapshots();
+    } catch (e) {
+      setError(String(e));
+      setMode('idle');
+    }
+  }
+
+  async function handleCompare() {
+    setMode('running');
+    setError(null);
+    try {
+      const res = await fetch(`/api/scenarios/${params.id}/compare`, { method: 'POST' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      setResult(json.data.current);
+      setReport(json.data.report);
+      setMode('compare');
+    } catch (e) {
+      setError(String(e));
+      setMode('idle');
+    }
+  }
+
+  if (!scenario) return <div className="p-8 text-muted-foreground">로딩 중...</div>;
+
+  return (
+    <main className="container mx-auto py-8 px-4 max-w-3xl">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">{scenario.name}</h1>
+        <Link href="/"><Button variant="outline">목록으로</Button></Link>
+      </div>
+
+      <div className="flex gap-3 mb-4">
+        <Button onClick={handleSaveSnapshot} disabled={mode === 'running'}>
+          {mode === 'running' ? '실행 중...' : 'AS-IS로 저장'}
+        </Button>
+        <Button variant="outline" onClick={handleCompare}
+          disabled={mode === 'running' || snapshots.length === 0}>
+          현재와 비교
+        </Button>
+      </div>
+
+      {snapshots.length > 0 && (
+        <p className="text-sm text-muted-foreground mb-4">
+          저장된 스냅샷 {snapshots.length}개 — 최신: {snapshots[0]}
+        </p>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded p-3 text-red-700 mb-4 text-sm">{error}</div>
+      )}
+
+      {mode === 'result' && result && <RunView result={result} />}
+      {mode === 'compare' && report && result && (
+        <div className="space-y-6">
+          <CompareView report={report} />
+          <details className="border rounded p-3">
+            <summary className="cursor-pointer text-sm text-muted-foreground">현재 실행 결과 상세 보기</summary>
+            <div className="mt-3"><RunView result={result} /></div>
+          </details>
+        </div>
+      )}
+    </main>
+  );
+}
+```
+
+**Step 4: 전체 흐름 수동 테스트**
+
+1. `npm run dev`
+2. `/scenarios/new` → 시나리오 + 테스트케이스 + Step 추가 저장
+3. `/scenarios/:id/run` → [AS-IS로 저장] 클릭
+4. `data/snapshots/{id}/latest.json` 파일 생성 확인
+5. [현재와 비교] 클릭 → 비교 결과 표시 확인
+
+---
+
+## Task 13: 마무리
+
+**Step 1: 불필요 컴포넌트 삭제 (PowerShell)**
+
+```powershell
+Remove-Item -Force components\ActionBuilder.tsx -ErrorAction SilentlyContinue
+Remove-Item -Force components\TestExecutor.tsx -ErrorAction SilentlyContinue
+Remove-Item -Force components\ResultViewer.tsx -ErrorAction SilentlyContinue
+Remove-Item -Force components\ComparisonView.tsx -ErrorAction SilentlyContinue
+```
+
+**Step 2: .gitignore에 data/ 추가**
+
+`.gitignore` 파일에 아래 내용 추가:
+
+```
+data/snapshots/
+data/scenarios/
+!data/snapshots/.gitkeep
+!data/scenarios/.gitkeep
+```
+
+**Step 3: 최종 프로덕션 빌드 확인**
+
+```bash
+npm run build
+```
+
+예상: 오류 없이 빌드 성공
+
+---
+
+## 구현 순서 요약
+
+| Task | 내용 | 예상 시간 |
+|------|------|----------|
+| 1 | types.ts 재정의 | 10분 |
+| 2 | scenario-manager.ts | 10분 |
+| 3 | snapshot-manager.ts | 10분 |
+| 4 | tibero-executor.ts | 15분 |
+| 5 | playwright-executor.ts 재작성 | 15분 |
+| 6 | test-runner.ts | 10분 |
+| 7 | comparison-engine.ts 재작성 | 15분 |
+| 8 | API CRUD 라우트 | 15분 |
+| 9 | API run/snapshot/compare | 15분 |
+| 10 | UI — 시나리오 목록 | 15분 |
+| 11 | UI — 시나리오 편집 | 30분 |
+| 12 | UI — 실행 & 비교 | 30분 |
+| 13 | 마무리 & 빌드 확인 | 10분 |
+
+**총 예상 시간: 약 3시간**

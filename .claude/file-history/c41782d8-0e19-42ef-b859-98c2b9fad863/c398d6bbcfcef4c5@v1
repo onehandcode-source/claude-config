@@ -1,0 +1,68 @@
+package com.devwogns.trmdict.module.domain.vo;
+
+import com.devwogns.trmdict.module.domain.entity.DomainEntity;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class DomainDtlVo {
+
+    private Long id;
+    private String stdDmnGroupNm;
+    private String stdDmnClsfNm;
+    private String stdDmnNm;
+    private String stdDmnExpln;
+    private String dataTypeNm;
+    private String dataLen;
+    private String dataDcptDgt;
+    private String strgFrmNm;
+    private String indctFrmNm;
+    private String unitNm;
+    private String prmValueCn;
+    private String enctCycl;
+    private String rvsnSeNm;
+    private String rvsnArtclNm;
+    private String rvsnRsn;
+    private String useYn;
+    private String rmrkCn;
+    private String rgtrId;
+    private String regIpAddr;
+    private LocalDateTime regDt;
+    private String mdfrId;
+    private String mdfcnIpAddr;
+    private LocalDateTime mdfcnDt;
+
+    public static DomainDtlVo fromEntity(DomainEntity entity) {
+        DomainDtlVo vo = new DomainDtlVo();
+        vo.setId(entity.getId());
+        vo.setStdDmnGroupNm(entity.getStdDmnGroupNm());
+        vo.setStdDmnClsfNm(entity.getStdDmnClsfNm());
+        vo.setStdDmnNm(entity.getStdDmnNm());
+        vo.setStdDmnExpln(entity.getStdDmnExpln());
+        vo.setDataTypeNm(entity.getDataTypeNm());
+        vo.setDataLen(entity.getDataLen());
+        vo.setDataDcptDgt(entity.getDataDcptDgt());
+        vo.setStrgFrmNm(entity.getStrgFrmNm());
+        vo.setIndctFrmNm(entity.getIndctFrmNm());
+        vo.setUnitNm(entity.getUnitNm());
+        vo.setPrmValueCn(entity.getPrmValueCn());
+        vo.setEnctCycl(entity.getEnctCycl());
+        vo.setRvsnSeNm(entity.getRvsnSeNm());
+        vo.setRvsnArtclNm(entity.getRvsnArtclNm());
+        vo.setRvsnRsn(entity.getRvsnRsn());
+        vo.setUseYn(entity.getUseYn());
+        vo.setRmrkCn(entity.getRmrkCn());
+        vo.setRgtrId(entity.getRgtrId());
+        vo.setRegIpAddr(entity.getRegIpAddr());
+        vo.setRegDt(entity.getRegDt());
+        vo.setMdfrId(entity.getMdfrId());
+        vo.setMdfcnIpAddr(entity.getMdfcnIpAddr());
+        vo.setMdfcnDt(entity.getMdfcnDt());
+        return vo;
+    }
+}

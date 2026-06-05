@@ -1,0 +1,238 @@
+import { useState } from 'react';
+import { Card } from '@/shared/components/ui/card';
+import { Button } from '@/shared/components/ui/button';
+import { Badge } from '@/shared/components/ui/badge';
+import { Input } from '@/shared/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+
+const MOCK_CLIENTS = [
+    { name: 'Claude Desktop', connectedAt: '2026-05-27 08:12', status: 'active', calls: 1842 },
+    { name: 'VS Code Extension', connectedAt: '2026-05-27 09:30', status: 'active', calls: 987 },
+    { name: 'Cursor IDE', connectedAt: '2026-05-27 07:45', status: 'idle', calls: 1013 },
+];
+
+const MOCK_TOOLS = [
+    { name: 'search_terms', calls: 2341, p50: 38, p95: 92, errors: 0 },
+    { name: 'get_term', calls: 891, p50: 22, p95: 55, errors: 1 },
+    { name: 'check_forbidden', calls: 412, p50: 15, p95: 34, errors: 0 },
+    { name: 'list_categories', calls: 154, p50: 12, p95: 28, errors: 0 },
+    { name: 'get_forbidden_term', calls: 44, p50: 18, p95: 41, errors: 0 },
+];
+
+const TOOL_SCHEMAS = {
+    search_terms: { desc: '키워드로 용어를 검색합니다. 한국어·영문·태그 검색을 지원합니다.', input: '{\n  "query": "string (필수)",\n  "category": "string (선택)",\n  "limit": "number (기본값 10)"\n}' },
+    get_term: { desc: '용어 ID로 단일 용어의 전체 상세 정보를 반환합니다.', input: '{\n  "id": "string (필수)"\n}' },
+    check_forbidden: { desc: '입력 텍스트에서 금칙어를 감지하고 위치·대체 표현을 반환합니다.', input: '{\n  "text": "string (필수)"\n}' },
+    list_categories: { desc: '전체 카테고리 목록과 각 카테고리의 용어 수를 반환합니다.', input: '{}' },
+    get_forbidden_term: { desc: '금칙어 ID로 상세 정보(근거·대체 표현)를 반환합니다.', input: '{\n  "id": "string (필수)"\n}' },
+};
+
+const MOCK_RESPONSES = {
+    search_terms: (inp) => ({ results: [{ id: 't-001', name: '가명처리', nameEn: 'pseudonymization', category: '개인정보 보호' }, { id: 't-002', name: '가명정보', nameEn: 'pseudonymous data', category: '개인정보 보호' }], total: 2, query: inp.query || '', ms: 42 }),
+    get_term: () => ({ id: 't-001', name: '가명처리', nameEn: 'pseudonymization', category: '개인정보 보호', definition: '개인정보를 가명으로 처리하여 원래의 상태로 복원하기 위한 추가 정보의 사용·결합 없이 특정 개인을 알아볼 수 없도록 처리하는 것.' }),
+    check_forbidden: (inp) => ({ matches: inp.text?.includes('주민번호') ? [{ word: '주민번호', position: 0, severity: 'critical' }] : [], scanned: inp.text?.length || 0 }),
+    list_categories: () => ({ categories: [{ id: 'privacy', name: '개인정보 보호', count: 14 }, { id: 'security', name: '보안', count: 11 }] }),
+    get_forbidden_term: () => ({ id: 'fw-001', word: '주민번호', severity: 'critical', reason: '개인정보보호법 제24조', alternatives: ['주민등록번호(법령 허용 시)'] }),
+};
+
+const MOCK_LOGS = [
+    { ts: '14:23:01', tool: 'search_terms', client: 'Claude Desktop', ms: 42, status: 'ok' },
+    { ts: '14:22:48', tool: 'check_forbidden', client: 'VS Code Extension', ms: 18, status: 'ok' },
+    { ts: '14:22:30', tool: 'get_term', client: 'Claude Desktop', ms: 89, status: 'warn' },
+    { ts: '14:21:55', tool: 'list_categories', client: 'Cursor IDE', ms: 14, status: 'ok' },
+    { ts: '14:21:33', tool: 'search_terms', client: 'VS Code Extension', ms: 35, status: 'ok' },
+    { ts: '14:20:12', tool: 'check_forbidden', client: 'Cursor IDE', ms: 156, status: 'err' },
+];
+
+const TABS = ['서버 현황', '도구 명세', 'Playground', '요청 로그'];
+const LOG_FILTER_LABELS = { all: '전체', ok: '성공', warn: '경고', err: '오류' };
+
+const THead = ({ cols }) => (
+    <thead>
+        <tr className='border-b border-border-lt'>
+            {cols.map((h) => <th key={h} className='px-4 py-2.5 text-left text-[11px] font-bold tracking-[0.08em] uppercase text-muted-foreground'>{h}</th>)}
+        </tr>
+    </thead>
+);
+
+export const McpPage = () => {
+    const [activeTab, setActiveTab] = useState(0);
+    const [pgTool, setPgTool] = useState('search_terms');
+    const [pgInput, setPgInput] = useState('');
+    const [pgOutput, setPgOutput] = useState('// 도구를 선택하고 실행하면 목업 응답이 표시됩니다');
+    const [pgRunning, setPgRunning] = useState(false);
+    const [logFilter, setLogFilter] = useState('all');
+
+    const runPlayground = () => {
+        let inp = {};
+        try { inp = JSON.parse(pgInput || '{}'); } catch (_) { setPgOutput('// Error: Invalid JSON input'); return; }
+        setPgRunning(true);
+        setPgOutput('// Calling ' + pgTool + '...');
+        setTimeout(() => {
+            const resp = MOCK_RESPONSES[pgTool]?.(inp) || { error: 'Tool not found' };
+            setPgOutput(JSON.stringify(resp, null, 2));
+            setPgRunning(false);
+        }, 600);
+    };
+
+    const filteredLogs = logFilter === 'all' ? MOCK_LOGS : MOCK_LOGS.filter((l) => l.status === logFilter);
+    const logColor = (s) => s === 'ok' ? 'text-green-600' : s === 'warn' ? 'text-yellow-600' : 'text-red-500';
+    const errColor = (n) => n > 5 ? 'text-red-500' : n > 0 ? 'text-yellow-600' : 'text-green-600';
+
+    return (
+        <div className='space-y-4'>
+            <header className='pb-5 border-b border-border-lt mb-5'>
+                <h1 className='font-display italic font-bold text-[26px] m-0 mb-1' style={{ letterSpacing: '-0.02em' }}>
+                    MCP 서버 관리
+                </h1>
+                <p className='text-[13px] text-muted-foreground m-0'>Model Context Protocol 서버 현황·도구·로그를 관리합니다</p>
+            </header>
+
+            <div className='flex border-b border-border-lt mb-4'>
+                {TABS.map((t, i) => (
+                    <button key={t} onClick={() => setActiveTab(i)}
+                        className={`px-4 py-2 text-[13px] font-medium border-b-2 transition-colors ${activeTab === i ? 'border-fg text-fg' : 'border-transparent text-muted-foreground hover:text-fg'}`}>
+                        {t}
+                    </button>
+                ))}
+            </div>
+
+            {activeTab === 0 && (
+                <div className='space-y-4'>
+                    <Card className='flex items-center gap-4 p-4 border-[1.5px] border-border-lt rounded-sm bg-bg'>
+                        <div className='w-2.5 h-2.5 rounded-full bg-green-500 shrink-0 animate-pulse' />
+                        <div>
+                            <p className='font-bold text-[14px] m-0'>서버 실행 중</p>
+                            <p className='text-[12px] text-muted-foreground m-0'>MCP v1.2.0 · stdio 전송</p>
+                        </div>
+                    </Card>
+                    <Card className='p-5 border-[1.5px] border-border-lt rounded-sm bg-bg'>
+                        <div className='flex gap-8 flex-wrap'>
+                            {[['버전', '1.2.0'], ['전송 방식', 'stdio'], ['연결 클라이언트', '3'], ['오늘 총 호출', '3,842']].map(([k, v]) => (
+                                <div key={k} className='flex flex-col gap-0.5'>
+                                    <span className='text-[10px] font-bold tracking-[0.08em] uppercase text-muted-foreground'>{k}</span>
+                                    <span className='text-[13px] font-mono'>{v}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </Card>
+                    <p className='text-[11px] font-bold tracking-[0.08em] uppercase text-muted-foreground m-0'>연결된 클라이언트</p>
+                    <Card className='p-0 overflow-hidden border-[1.5px] border-border-lt rounded-sm'>
+                        <table className='w-full text-[13px]'>
+                            <THead cols={['클라이언트', '연결 시각', '상태', '호출 수']} />
+                            <tbody>
+                                {MOCK_CLIENTS.map((c, i) => (
+                                    <tr key={i} className='border-b border-border-lt last:border-0'>
+                                        <td className='px-4 py-2.5 font-medium'>{c.name}</td>
+                                        <td className='px-4 py-2.5 font-mono'>{c.connectedAt}</td>
+                                        <td className='px-4 py-2.5'><Badge variant={c.status === 'active' ? 'success' : 'secondary'}>{c.status === 'active' ? '연결됨' : '유휴'}</Badge></td>
+                                        <td className='px-4 py-2.5 font-mono'>{c.calls.toLocaleString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </Card>
+                    <p className='text-[11px] font-bold tracking-[0.08em] uppercase text-muted-foreground m-0 mt-2'>도구별 호출 현황</p>
+                    <Card className='p-0 overflow-hidden border-[1.5px] border-border-lt rounded-sm'>
+                        <table className='w-full text-[13px]'>
+                            <THead cols={['도구', '오늘 호출', 'P50 (ms)', 'P95 (ms)', '오류']} />
+                            <tbody>
+                                {MOCK_TOOLS.map((t, i) => (
+                                    <tr key={i} className='border-b border-border-lt last:border-0'>
+                                        <td className='px-4 py-2.5 font-mono'>{t.name}</td>
+                                        <td className='px-4 py-2.5 font-mono'>{t.calls.toLocaleString()}</td>
+                                        <td className='px-4 py-2.5 font-mono'>{t.p50}</td>
+                                        <td className='px-4 py-2.5 font-mono'>{t.p95}</td>
+                                        <td className={`px-4 py-2.5 font-mono ${errColor(t.errors)}`}>{t.errors}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </Card>
+                </div>
+            )}
+
+            {activeTab === 1 && (
+                <div className='space-y-3'>
+                    {MOCK_TOOLS.map((t) => {
+                        const sc = TOOL_SCHEMAS[t.name] || {};
+                        return (
+                            <Card key={t.name} className='p-5 border-[1.5px] border-border-lt rounded-sm bg-bg'>
+                                <div className='flex items-center gap-2.5 mb-2'>
+                                    <span className='font-mono text-[14px] font-bold'>{t.name}</span>
+                                    <Badge variant='success'>tool</Badge>
+                                </div>
+                                <p className='text-[13px] text-muted-foreground mb-3 m-0'>{sc.desc}</p>
+                                <p className='text-[11px] font-bold tracking-[0.08em] uppercase text-muted-foreground mb-1.5'>입력 스키마</p>
+                                <pre className='text-[12px] font-mono bg-muted/20 border border-border-lt rounded p-3 m-0 whitespace-pre'>{sc.input}</pre>
+                            </Card>
+                        );
+                    })}
+                </div>
+            )}
+
+            {activeTab === 2 && (
+                <div className='space-y-4'>
+                    <Card className='p-5 border-[1.5px] border-border-lt rounded-sm bg-bg space-y-3'>
+                        <p className='font-semibold text-[14px] m-0'>MCP Tool 직접 호출</p>
+                        <div className='flex gap-2 items-start'>
+                            <Select value={pgTool} onValueChange={(v) => { setPgTool(v); setPgInput(''); setPgOutput('// 도구를 선택하고 실행하면 목업 응답이 표시됩니다'); }}>
+                                <SelectTrigger className='w-[200px] font-mono text-[13px] rounded-sm'>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {MOCK_TOOLS.map((t) => (
+                                        <SelectItem key={t.name} value={t.name} className='font-mono text-[13px]'>{t.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Input
+                                value={pgInput}
+                                onChange={(e) => setPgInput(e.target.value)}
+                                placeholder='{"query": "가명처리"}'
+                                className='flex-1 font-mono text-[13px] rounded-sm'
+                            />
+                            <Button onClick={runPlayground} disabled={pgRunning} className='rounded-sm shrink-0'>실행</Button>
+                        </div>
+                        <pre className='text-[12px] font-mono bg-muted/20 border border-border-lt rounded p-3 m-0 whitespace-pre'>
+                            {'// 입력 파라미터\n' + TOOL_SCHEMAS[pgTool]?.input}
+                        </pre>
+                    </Card>
+                    <p className='text-[11px] font-bold tracking-[0.08em] uppercase text-muted-foreground'>응답 (목업)</p>
+                    <pre className='text-[13px] font-mono bg-[#0d1117] text-[#e6edf3] rounded p-4 min-h-[200px] overflow-x-auto whitespace-pre'>
+                        {pgOutput}
+                    </pre>
+                </div>
+            )}
+
+            {activeTab === 3 && (
+                <div className='space-y-3'>
+                    <div className='flex gap-2'>
+                        {Object.entries(LOG_FILTER_LABELS).map(([f, label]) => (
+                            <button key={f} onClick={() => setLogFilter(f)}
+                                className={`px-3 py-1.5 text-[12px] font-medium border border-border-lt rounded-sm transition-colors ${logFilter === f ? 'bg-fg text-bg' : 'bg-bg text-muted-foreground hover:text-fg'}`}>
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                    <Card className='p-0 overflow-hidden border-[1.5px] border-border-lt rounded-sm'>
+                        <table className='w-full text-[13px]'>
+                            <THead cols={['시각', '도구', '클라이언트', '응답시간', '상태']} />
+                            <tbody>
+                                {filteredLogs.map((r, i) => (
+                                    <tr key={i} className='border-b border-border-lt last:border-0'>
+                                        <td className='px-4 py-2.5 font-mono'>{r.ts}</td>
+                                        <td className='px-4 py-2.5 font-mono'>{r.tool}</td>
+                                        <td className='px-4 py-2.5'>{r.client}</td>
+                                        <td className='px-4 py-2.5 font-mono'>{r.ms}ms</td>
+                                        <td className={`px-4 py-2.5 font-mono font-bold ${logColor(r.status)}`}>{r.status.toUpperCase()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </Card>
+                </div>
+            )}
+        </div>
+    );
+};

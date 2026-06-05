@@ -1,0 +1,33 @@
+{
+  "state": "blocked",
+  "detail": "shadcn init requires interactive prompts; awaiting user to run command and share output",
+  "tempo": "blocked",
+  "inFlight": {
+    "tasks": 0,
+    "queued": 0,
+    "kinds": []
+  },
+  "needs": "run: cd \"D:\\20. POC\\TrmWordDict\\frontend\" && npx shadcn@latest init -t vite, then share the prompts/output",
+  "suggestedReply": "shadcn 설치 완료되면 결과 붙여넣기",
+  "output": null,
+  "children": null,
+  "linkScanOffset": 4346668,
+  "linkScanPath": "C:\\Users\\ygkim\\.claude\\projects\\D--20--POC-TrmWordDict\\cfcb8994-65d3-4063-ae8a-ff2a9d40efa3.jsonl",
+  "template": "bg",
+  "respawnFlags": [
+    "--permission-mode",
+    "acceptEdits"
+  ],
+  "intent": "변경사항\n\n1. maven --> gradle\n2. orm --> JPA\n\nendpoint관련 규칙이라던지 네이밍 규칙 등에 대한 내용은 없어?\n코딩 가이드 관련 내용",
+  "name": "백엔드 설계 문서 확인 및 요약",
+  "nameSource": "auto",
+  "sessionId": "cfcb8994-65d3-4063-ae8a-ff2a9d40efa3",
+  "resumeSessionId": "cfcb8994-65d3-4063-ae8a-ff2a9d40efa3",
+  "daemonShort": "cfcb8994",
+  "cliVersion": "2.1.140",
+  "cwd": "D:\\20. POC\\TrmWordDict",
+  "createdAt": "2026-05-18T04:20:01.263Z",
+  "updatedAt": "2026-05-28T04:53:43.582Z",
+  "firstTerminalAt": "2026-05-18T04:31:39.128Z",
+  "backend": "daemon"
+}

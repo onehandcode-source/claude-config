@@ -1,0 +1,347 @@
+# TrmWordDict MCP Server 설계
+
+| 항목 | 값 |
+|---|---|
+| 작성일 | 2026-05-20 |
+| 작성자 | Claude (brainstorming 결과) |
+| 적용 범위 | backend — 기존 SpringBoot 2.7.18에 MCP 서버 통합 |
+
+---
+
+## 1. 목적
+
+TrmWordDict 시스템이 보유한 행안부 공통표준 단어/도메인 데이터를 Claude Code 등 MCP 클라이언트에 직접 노출한다. 개발자가 DB 컬럼명·테이블명·Java 식별자를 작성할 때 MCP tool을 통해 표준 준수 여부를 즉시 검증하고, 대체 용어 제안 및 비표준 용어 생성까지 처리할 수 있다.
+
+---
+
+## 2. 아키텍처
+
+### 2.1 전송 프로토콜
+
+**MCP HTTP + SSE Transport** (spec 2024-11-05)
+
+```
+Claude Code / 상용 Agent
+        │
+        │ GET /api/v1/mcp/sse          (SSE 연결 수립)
+        │ ← endpoint 이벤트 (POST URL 전달)
+        │
+        │ POST /api/v1/mcp/messages?sessionId=xxx   (JSON-RPC 2.0)
+        ▼
+SpringBoot 2.7.18 (backend)
+```
+
+### 2.2 패키지 구조
+
+```
+module/mcp/
+├── controller/
+│   ├── McpSseController.java       # GET /api/v1/mcp/sse
+│   └── McpMessageController.java   # POST /api/v1/mcp/messages
+├── service/
+│   ├── McpSessionManager.java      # SseEmitter 세션 관리
+│   └── McpDispatcher.java          # tool 이름 → handler 라우팅
+└── tool/
+    ├── NamingValidationTool.java   # validate_db_name, validate_java_identifier, suggest_db_column_name
+    ├── WordSearchTool.java         # search_standard_word
+    └── CustomWordTool.java         # create_custom_word, search_custom_word
+```
+
+기존 `WordService`, `DomainService` 를 Tool 구현체에서 직접 주입해 재사용한다.
+
+### 2.3 시퀀스
+
+```
+1. Client → GET /api/v1/mcp/sse
+2. Server → SseEmitter 생성, sessionId(UUID) 발급
+           → event: endpoint  data: /api/v1/mcp/messages?sessionId={id}
+3. Client → POST /messages  body: { jsonrpc:"2.0", method:"initialize", ... }
+4. Server → 200 { result: { capabilities: { tools: {} } } }
+5. Client → POST /messages  body: { method:"tools/list" }
+6. Server → 200 { result: { tools: [ ...6개 tool 메타데이터... ] } }
+7. Client → POST /messages  body: { method:"tools/call", params: { name, arguments } }
+8. Server → 200 { result: { content: [...] } }
+```
+
+---
+
+## 3. MCP Tool 목록
+
+### 3.1 `search_standard_word`
+
+표준 단어 DB(`TB_TRM_WORD`)에서 단어를 검색한다.
+
+**입력 스키마:**
+```json
+{
+  "query": "사용자",
+  "search_type": "korean"
+}
+```
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `query` | string | ✓ | 검색어 |
+| `search_type` | enum | ✓ | `korean` \| `english_abbr` \| `english` |
+
+**출력 예시:**
+```json
+[
+  {
+    "std_word_nm": "사용자",
+    "std_word_eng_abbr_nm": "USER",
+    "std_word_eng_nm": "User",
+    "std_dmn_clsf_nm": "공통"
+  }
+]
+```
+
+---
+
+### 3.2 `validate_db_name`
+
+DB 테이블명 또는 컬럼명이 행안부 표준 약어 규칙에 부합하는지 검증한다.
+
+**검증 로직:**
+1. `_` 로 토큰 분리 (`USER_NM` → `["USER", "NM"]`)
+2. 테이블명의 경우 prefix (`TB_TRM_*` / `TB_STD_*`) 별도 검사
+3. 각 토큰을 `TB_TRM_WORD.STD_WORD_ENG_ABBR_NM` 조회
+4. 미매칭 시 `TB_TRM_CUSTOM_WORD.WORD_ENG_ABBR_NM` 2차 조회
+5. 전부 매칭: `valid: true` / 미등재 토큰 존재: `valid: false` + 제안 반환
+
+**입력 스키마:**
+```json
+{
+  "name": "USER_NM",
+  "type": "column"
+}
+```
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `name` | string | ✓ | 검사할 이름 |
+| `type` | enum | ✓ | `column` \| `table` |
+
+**출력 예시 (적합):**
+```json
+{
+  "valid": true,
+  "tokens": ["USER", "NM"],
+  "matched": [
+    { "token": "USER", "word_nm": "사용자", "source": "standard" },
+    { "token": "NM",   "word_nm": "명",     "source": "standard" }
+  ],
+  "invalid_tokens": []
+}
+```
+
+**출력 예시 (부적합):**
+```json
+{
+  "valid": false,
+  "tokens": ["BLKCHAIN", "ID"],
+  "matched": [
+    { "token": "ID", "word_nm": "아이디", "source": "standard" }
+  ],
+  "invalid_tokens": ["BLKCHAIN"],
+  "suggestions": "BLKCHAIN 은 표준 미등재. R-5 규칙에 따라 풀네임 BLOCKCHAIN 사용 권장. 또는 create_custom_word 로 비표준 용어 등록 후 사용."
+}
+```
+
+---
+
+### 3.3 `suggest_db_column_name`
+
+한글 설명을 입력하면 표준 약어 조합으로 컬럼명을 제안한다.
+
+**입력 스키마:**
+```json
+{
+  "korean_description": "사용자명"
+}
+```
+
+**출력 예시:**
+```json
+{
+  "suggested_name": "USER_NM",
+  "confidence": "high",
+  "based_on": [
+    { "korean": "사용자", "abbr": "USER" },
+    { "korean": "명",     "abbr": "NM"   }
+  ]
+}
+```
+
+`confidence`: `high` (모든 토큰 표준 매칭) / `medium` (일부 매칭) / `low` (대부분 미등재)
+
+---
+
+### 3.4 `validate_java_identifier`
+
+Java 식별자를 camelCase/PascalCase 분리 후 각 단어를 표준 단어 DB에서 확인한다.
+
+**검증 로직:**
+1. camelCase 분리 (`userName` → `["user", "name"]`)
+2. 각 단어를 `TB_TRM_WORD.STD_WORD_ENG_NM` 에서 조회 (대소문자 무시)
+3. 매칭된 단어의 표준 약어 조합 제안 (`USER` + `NM` → `userNm` 또는 DB 컬럼 `USER_NM`)
+
+**입력 스키마:**
+```json
+{
+  "identifier": "userName",
+  "type": "field"
+}
+```
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `identifier` | string | ✓ | Java 식별자 |
+| `type` | enum | ✓ | `class` \| `field` \| `method` \| `variable` |
+
+**출력 예시:**
+```json
+{
+  "valid": true,
+  "words": [
+    { "token": "user", "std_word_nm": "사용자", "std_abbr": "USER" },
+    { "token": "name", "std_word_nm": "명",     "std_abbr": "NM"   }
+  ],
+  "db_column_equivalent": "USER_NM",
+  "invalid_tokens": []
+}
+```
+
+---
+
+### 3.5 `create_custom_word`
+
+행안부 표준에 미등재된 단어를 `TB_TRM_CUSTOM_WORD` 에 등록한다.
+
+**입력 스키마:**
+```json
+{
+  "korean_name": "블록체인",
+  "english_name": "Blockchain",
+  "english_abbr": "BLOCKCHAIN",
+  "reason": "표준 미등재 신기술 용어"
+}
+```
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `korean_name` | string | ✓ | 한글명 |
+| `english_name` | string | | 영문명 |
+| `english_abbr` | string | | 영문약어 (컬럼명 토큰으로 사용) |
+| `reason` | string | | 비표준 등록 사유 |
+
+**출력 예시:**
+```json
+{
+  "id": 1,
+  "status": "created",
+  "message": "BLOCKCHAIN 이 비표준 용어로 등록됐습니다. validate_db_name 에서 custom 출처로 인식됩니다."
+}
+```
+
+---
+
+### 3.6 `search_custom_word`
+
+등록된 비표준 용어를 검색한다.
+
+**입력 스키마:**
+```json
+{
+  "query": "블록체인"
+}
+```
+
+**출력 예시:**
+```json
+[
+  {
+    "id": 1,
+    "korean_name": "블록체인",
+    "english_name": "Blockchain",
+    "english_abbr": "BLOCKCHAIN",
+    "reason": "표준 미등재 신기술 용어"
+  }
+]
+```
+
+---
+
+## 4. 데이터 모델 — 신규 테이블
+
+### `TB_TRM_CUSTOM_WORD`
+
+```sql
+-- db-ddl/06_custom_word.sql
+CREATE TABLE TB_TRM_CUSTOM_WORD (
+    CUSTOM_WORD_SN   NUMBER          NOT NULL,
+    WORD_KR_NM       VARCHAR2(200)   NOT NULL,
+    WORD_ENG_NM      VARCHAR2(200),
+    WORD_ENG_ABBR_NM VARCHAR2(50),
+    REASON_CN        VARCHAR2(500),
+    USE_YN           CHAR(1)         DEFAULT 'Y' NOT NULL,
+    RGTR_ID          VARCHAR2(20),
+    REG_DT           TIMESTAMP,
+    MDFR_ID          VARCHAR2(20),
+    MDFCN_DT         TIMESTAMP,
+    CONSTRAINT PK_TB_TRM_CUSTOM_WORD PRIMARY KEY (CUSTOM_WORD_SN)
+);
+CREATE SEQUENCE TB_TRM_CUSTOM_WORD_SEQ START WITH 1 INCREMENT BY 1;
+
+INSERT INTO TB_TRM_SCHEMA_HISTORY (FILE_NM) VALUES ('06_custom_word.sql');
+COMMIT;
+```
+
+### Java 레이어
+
+| 파일 | 역할 |
+|---|---|
+| `entity/CustomWord.java` | JPA Entity, `@SequenceGenerator` |
+| `repository/CustomWordRepository.java` | `JpaRepository<CustomWord, Long>` |
+| `service/CustomWordService.java` | 검색/저장 로직 |
+| `vo/CustomWordVo.java` | MCP 응답 전용 |
+
+---
+
+## 5. 보안
+
+| 항목 | 결정 |
+|---|---|
+| MCP 엔드포인트 인증 | `permitAll` — 내부망 전용, 방화벽 뒤에서만 접근 가능 |
+| SSE 세션 저장 | `ConcurrentHashMap<String, SseEmitter>` in-memory |
+| SSE timeout | 30분 |
+| JSON-RPC 에러 코드 | `-32600` Invalid Request / `-32601` Method not found / `-32602` Invalid params |
+| Tool 실행 예외 | `isError: true` content 로 반환 (MCP spec 준수) |
+
+---
+
+## 6. Claude Code 연결 설정 예시
+
+```json
+{
+  "mcpServers": {
+    "trmdict": {
+      "url": "http://localhost:8080/api/v1/mcp/sse",
+      "type": "sse"
+    }
+  }
+}
+```
+
+---
+
+## 7. 구현 단계
+
+| 단계 | 내용 |
+|---|---|
+| 1 | DDL (`06_custom_word.sql`) + Entity/Repository/Service/Vo |
+| 2 | `McpSessionManager` + `McpDispatcher` + SSE/Message 컨트롤러 |
+| 3 | `WordSearchTool` (`search_standard_word`) |
+| 4 | `NamingValidationTool` (`validate_db_name`, `validate_java_identifier`, `suggest_db_column_name`) |
+| 5 | `CustomWordTool` (`create_custom_word`, `search_custom_word`) |
+| 6 | SecurityConfig 경로 허용 + 통합 테스트 |

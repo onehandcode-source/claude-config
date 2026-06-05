@@ -1,0 +1,13 @@
+{
+  "id": "macro-submit-report",
+  "name": "신청 완료",
+  "description": "confirm 팝업 자동 승인 → 신청 버튼 클릭 → 대기 → 스크린샷",
+  "steps": [
+    { "type": "evaluate", "script": "window.confirm = () => true", "description": "confirm 팝업 자동 승인 설정" },
+    { "type": "click", "locator": { "role": "link", "name": "신청" }, "description": "신고 신청 버튼 클릭" },
+    { "type": "wait", "milliseconds": 1000, "description": "신고 처리 대기" },
+    { "type": "screenshot", "description": "신고 완료 후 화면" }
+  ],
+  "createdAt": "2026-05-19T00:00:00.000Z",
+  "updatedAt": "2026-05-19T00:00:00.000Z"
+}

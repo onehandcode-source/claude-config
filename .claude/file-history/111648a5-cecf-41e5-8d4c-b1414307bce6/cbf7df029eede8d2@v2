@@ -1,0 +1,143 @@
+# 실행 이력 자동 저장 + 히스토리 대시보드 설계
+
+**작성일:** 2026-05-19  
+**상태:** 승인됨
+
+---
+
+## 1. 목표
+
+| 요구사항 | 설명 |
+|---------|------|
+| 실행 이력 자동 저장 | 테스트 실행 시마다 결과를 `data/runs/`에 자동 저장 (수동 스냅샷과 별개) |
+| 기준값(골든 셋) 지정 | 특정 실행 결과를 "골든 셋"으로 지정하여 이후 실행과 비교 |
+| Step별 히트맵 | 테스트케이스 × 실행회차 히트맵 (pass=초록, fail=빨강) |
+| DB 쿼리 결과 비교 | dbQuery step의 출력을 골든 셋과 비교하여 diff 표시 |
+| 자동분류 예외 감지 | DB 조회 결과가 기준값과 다를 때 자동 fail 처리 |
+
+---
+
+## 2. 데이터 모델
+
+### RunHistory (신규 타입)
+
+```typescript
+export interface RunHistory {
+  id: string;                        // UUID
+  scenarioId: string;
+  scenarioName: string;
+  executedAt: string;                // ISO 8601
+  isGolden: boolean;                 // 골든 셋 여부
+  status: "passed" | "failed" | "error";
+  testCaseResults: TestCaseResult[]; // 기존 타입 재사용
+}
+```
+
+### 저장 위치
+
+```
+data/
+  runs/
+    {timestamp}-{runId}.json   # 실행 이력 파일
+```
+
+---
+
+## 3. API 엔드포인트
+
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | `/api/runs?scenarioId={id}` | 시나리오별 실행 이력 목록 |
+| GET | `/api/runs/{id}` | 특정 실행 이력 상세 |
+| PUT | `/api/runs/{id}/golden` | 골든 셋으로 지정/해제 |
+| DELETE | `/api/runs/{id}` | 실행 이력 삭제 |
+
+---
+
+## 4. 파일 구조
+
+### 신규 파일
+
+| 파일 | 역할 |
+|------|------|
+| `lib/run-history-manager.ts` | 실행 이력 CRUD (scenario-manager 패턴 동일) |
+| `app/api/runs/route.ts` | GET (목록, scenarioId 쿼리 파라미터 지원) |
+| `app/api/runs/[id]/route.ts` | GET (상세), DELETE |
+| `app/api/runs/[id]/golden/route.ts` | PUT (골든 셋 지정/해제) |
+| `app/runs/page.tsx` | 시나리오별 실행 이력 선택 + 목록 |
+| `app/runs/[scenarioId]/page.tsx` | 히트맵 + DB diff 대시보드 |
+
+### 수정 파일
+
+| 파일 | 변경 내용 |
+|------|---------|
+| `lib/types.ts` | `RunHistory` 인터페이스 추가 |
+| `lib/test-runner.ts` | 실행 완료 시 `saveRunHistory()` 호출 |
+| `app/layout.tsx` | 네비게이션에 "실행 이력" 링크 추가 |
+
+---
+
+## 5. UI 설계
+
+### 5-1. 실행 이력 목록 (`/runs`)
+
+- 시나리오 선택 드롭다운 (GET /api/scenarios)
+- 선택 시 해당 시나리오의 실행 이력 목록 표시
+- 각 실행 행: 날짜/시간, 전체 상태(passed/failed/error 뱃지), 골든 셋 여부, 골든 지정 버튼, 삭제 버튼
+- 링크 클릭 시 `/runs/{scenarioId}` 대시보드로 이동
+
+### 5-2. 히스토리 대시보드 (`/runs/{scenarioId}`)
+
+**상단 — Step 히트맵**
+
+```
+              실행1   실행2   실행3   실행4
+케이스A Step1  ✅      ✅      ❌      ✅
+케이스A Step2  ✅      ✅      ✅      ✅
+케이스B Step1  ✅      ❌      ❌      ✅
+```
+
+- 셀 hover 시 해당 step의 출력값 또는 오류 메시지 툴팁
+- 골든 셋 실행 열은 금색 헤더로 구분
+
+**하단 — DB 쿼리 diff**
+
+- dbQuery step만 필터링하여 표시
+- 골든 셋의 쿼리 결과(rows)를 왼쪽, 최신 실행 결과를 오른쪽에 나란히 표시
+- 다른 값: 빨강 하이라이트 / 같은 값: 초록 / 골든 없으면 "골든 셋을 지정하세요" 안내
+
+---
+
+## 6. test-runner.ts 통합
+
+실행 완료 콜백 내부에서 자동 저장:
+
+```typescript
+import { randomUUID } from "node:crypto";
+import { saveRunHistory } from "./run-history-manager";
+
+// 실행 완료 후
+const runHistory: RunHistory = {
+  id: randomUUID(),
+  scenarioId: scenario.id,
+  scenarioName: scenario.name,
+  executedAt: new Date().toISOString(),
+  isGolden: false,
+  status: overallStatus,   // "passed" | "failed" | "error"
+  testCaseResults,
+};
+saveRunHistory(runHistory);
+```
+
+---
+
+## 7. 구현 분담 (멀티에이전트 병렬)
+
+| 에이전트 | 담당 파일 |
+|---------|---------|
+| Agent A | `lib/types.ts` (`RunHistory` 추가) + `lib/run-history-manager.ts` 신규 |
+| Agent B | API 3개: `app/api/runs/route.ts`, `app/api/runs/[id]/route.ts`, `app/api/runs/[id]/golden/route.ts` |
+| Agent C | UI: `app/runs/page.tsx`, `app/runs/[scenarioId]/page.tsx` |
+| Agent D | `lib/test-runner.ts` 수정 + `app/layout.tsx` nav 링크 추가 |
+
+Agent A 완료 후 B, C, D 병렬 실행.

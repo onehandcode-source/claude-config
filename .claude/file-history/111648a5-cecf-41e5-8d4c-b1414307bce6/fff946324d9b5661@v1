@@ -1,0 +1,28 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { readGlobalSettings, saveGlobalSettings } from "@/lib/global-settings";
+import type { GlobalSettings, TiberoConfig } from "@/lib/types";
+
+export async function GET() {
+  try {
+    const settings = readGlobalSettings();
+    return NextResponse.json({ success: true, data: settings });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = (await request.json()) as GlobalSettings;
+    const settings: GlobalSettings = {
+      tiberoConfig: body.tiberoConfig as TiberoConfig | undefined,
+    };
+
+    saveGlobalSettings(settings);
+
+    return NextResponse.json({ success: true, data: settings });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}

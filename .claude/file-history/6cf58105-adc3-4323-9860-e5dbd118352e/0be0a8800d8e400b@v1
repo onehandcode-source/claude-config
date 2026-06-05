@@ -1,0 +1,106 @@
+import { useState } from 'react';
+import { DataGrid } from '@/shared/components/DataGrid/DataGrid';
+import { SearchForm } from '@/shared/components/SearchForm/SearchForm';
+import { Input } from '@/shared/components/ui/input';
+import { emptyToNull, toSnakeCase } from '@/shared/query/queryHelpers';
+import { useListPage } from '@/shared/hooks/useListPage';
+import { ForbiddenDetailDialog } from './ForbiddenDetailDialog';
+
+const filtersInitialState = Object.freeze({
+    phwrdNm: '',
+    useYn: '',
+});
+
+const columns = Object.freeze([
+    { key: 'phwrdNm', header: '금칙어명', sortable: true, width: 240 },
+    { key: 'useYn', header: '사용여부', sortable: true, width: 100, align: 'center' },
+    { key: 'enctCycl', header: '제정차수', sortable: true, width: 160 },
+    { key: 'rmrkCn', header: '비고', sortable: false, width: 240 },
+]);
+
+export const ForbiddenListPage = () => {
+    const [filters, setFilters] = useState(filtersInitialState);
+    const { request, setRequest, setSelectedId, isDetailOpen, pageQuery, detailQuery } = useListPage({
+        listQueryKey: 'forbidden-list',
+        listUrl: '/forbiddens/search',
+        detailQueryKey: 'forbidden-detail',
+        detailUrl: '/forbiddens',
+        initialRequest: { page: 1, size: 20 },
+    });
+
+    return (
+        <div className='space-y-6'>
+            <h1 className='sr-only'>금칙어 목록</h1>
+            <SearchForm
+                onSubmit={() => {
+                    setRequest({
+                        page: 1,
+                        size: request.size,
+                        phwrdNm: emptyToNull(filters.phwrdNm),
+                        useYn: emptyToNull(filters.useYn),
+                    });
+                }}
+                onReset={() => {
+                    setFilters(filtersInitialState);
+                    setRequest({ page: 1, size: request.size });
+                }}
+            >
+                <div className='grid w-full gap-3 md:grid-cols-2'>
+                    <div className='space-y-2'>
+                        <label className='text-sm font-medium text-foreground' htmlFor='phwrdNm'>
+                            금칙어명
+                        </label>
+                        <Input
+                            id='phwrdNm'
+                            value={filters.phwrdNm}
+                            onChange={(event) => setFilters((current) => ({ ...current, phwrdNm: event.target.value }))}
+                        />
+                    </div>
+                    <div className='space-y-2'>
+                        <label className='text-sm font-medium text-foreground' htmlFor='useYn'>
+                            사용여부
+                        </label>
+                        <select
+                            id='useYn'
+                            className='flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground'
+                            value={filters.useYn}
+                            onChange={(event) => setFilters((current) => ({ ...current, useYn: event.target.value }))}
+                        >
+                            <option value=''>전체</option>
+                            <option value='Y'>사용</option>
+                            <option value='N'>미사용</option>
+                        </select>
+                    </div>
+                </div>
+            </SearchForm>
+
+            <DataGrid
+                columns={columns}
+                pageData={pageQuery.data ?? null}
+                pageSizeOptions={[10, 20, 50, 100]}
+                onPageChange={({ page, size }) => setRequest((current) => ({ ...current, page, size }))}
+                onSortChange={({ active, direction }) =>
+                    setRequest((current) => ({
+                        ...current,
+                        page: 1,
+                        sortBy: direction ? toSnakeCase(active) : null,
+                        sortDir: direction || null,
+                    }))
+                }
+                onRowClick={(row) => {
+                    setSelectedId(row.id);
+                }}
+            />
+
+            <ForbiddenDetailDialog
+                forbidden={detailQuery.data ?? null}
+                open={isDetailOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedId(null);
+                    }
+                }}
+            />
+        </div>
+    );
+};

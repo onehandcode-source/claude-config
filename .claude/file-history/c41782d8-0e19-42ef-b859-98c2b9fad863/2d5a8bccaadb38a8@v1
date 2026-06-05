@@ -1,0 +1,288 @@
+package com.devwogns.trmdict.module.importjob.service;
+
+import com.devwogns.trmdict.common.exception.BusinessException;
+import com.devwogns.trmdict.common.exception.ErrorCode;
+import com.devwogns.trmdict.common.paging.PageRequest;
+import com.devwogns.trmdict.common.response.PageResponse;
+import com.devwogns.trmdict.module.importjob.entity.ImportErrorEntity;
+import com.devwogns.trmdict.module.importjob.entity.ImportJobEntity;
+import com.devwogns.trmdict.module.importjob.parser.CsvImportParser;
+import com.devwogns.trmdict.module.importjob.parser.ImportType;
+import com.devwogns.trmdict.module.importjob.persistence.ImportJobNativePersistence;
+import com.devwogns.trmdict.module.importjob.repository.ImportErrorRepository;
+import com.devwogns.trmdict.module.importjob.repository.ImportJobRepository;
+import com.devwogns.trmdict.module.importjob.vo.ImportErrorVo;
+import com.devwogns.trmdict.module.importjob.vo.ImportHistoryVo;
+import com.devwogns.trmdict.module.importjob.vo.ImportSummaryVo;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class ImportJobService {
+
+    private static final char KEY_SEP = '\u001F';
+    private static final Set<String> ERROR_SORT_COLUMNS =
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList("row_no", "error_code", "created_at")));
+
+    private final ImportJobRepository jobRepository;
+    private final ImportErrorRepository errorRepository;
+    private final ImportJobNativePersistence nativePersistence;
+    private final CsvImportParser parser;
+
+    @Transactional
+    public long openHistory(ImportType type, String fileName, long fileSize,
+                            String requestedBy, String requestedIp) {
+        ImportJobEntity history = new ImportJobEntity();
+        history.setStatus("PENDING");
+        history.setRequestedBy(requestedBy);
+        history.setRequestedIp(requestedIp);
+        history.setRequestedAt(OffsetDateTime.now());
+        history.setType(type.name());
+        history.setFileName(fileName);
+        history.setFileSize(fileSize);
+        history.setTotalCount(0);
+        history.setSuccessCount(0);
+        history.setFailCount(0);
+        history.setDuplicateCount(0);
+        history.setStagingCount(0);
+        return jobRepository.save(history).getId();
+    }
+
+    @Transactional
+    public void markRejected(long historyId, String summary) {
+        jobRepository.markRejected(historyId, summary, OffsetDateTime.now());
+    }
+
+    @Transactional(readOnly = true)
+    public ImportSummaryVo getSummary(long historyId) {
+        return ImportSummaryVo.builder()
+                .history(toHistoryVo(findHistory(historyId)))
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<ImportErrorVo> getErrors(long historyId, PageRequest page) {
+        findHistory(historyId);
+        Page<ImportErrorEntity> errorPage = errorRepository.findByHistoryId(historyId, toPageable(page));
+        List<ImportErrorVo> items = errorPage.getContent().stream()
+                .map(this::toErrorVo)
+                .collect(Collectors.toList());
+        return PageResponse.of(items, page.getPage(), page.getSize(), errorPage.getTotalElements());
+    }
+
+    @Async("taskExecutor")
+    @Transactional
+    public void processAsync(Path file, long historyId, ImportType type) {
+        try {
+            jobRepository.markStarted(historyId, OffsetDateTime.now());
+            ProcessStats stats = parseAndPersist(file, historyId, type);
+            jobRepository.markCompleted(
+                    historyId,
+                    stats.determineFinalStatus(),
+                    OffsetDateTime.now(),
+                    stats.total,
+                    stats.success,
+                    stats.fail,
+                    stats.duplicate,
+                    stats.staging,
+                    stats.summary());
+        } catch (Exception ex) {
+            log.error("[Import] processAsync failed historyId={}", historyId, ex);
+            jobRepository.markFailed(historyId, truncate(ex.getMessage(), 1900), OffsetDateTime.now());
+        } finally {
+            try {
+                Files.deleteIfExists(file);
+            } catch (IOException ex) {
+                log.warn("[Import] temp file delete failed: {}", file, ex);
+            }
+        }
+    }
+
+    private ProcessStats parseAndPersist(Path file, long historyId, ImportType type) {
+        ProcessStats stats = new ProcessStats();
+        Map<String, Integer> seenKeys = new HashMap<>();
+        int[] keyIdx = type.getNaturalKeyIndices();
+
+        parser.streamRows(file, type, (rowNo, cols) -> {
+            stats.total++;
+
+            if (cols.length != type.getColumnCount()) {
+                recordError(historyId, rowNo, "EMPTY_REQUIRED_COL",
+                        "Column count mismatch: expected " + type.getColumnCount() + ", actual " + cols.length,
+                        joinRaw(cols));
+                stats.fail++;
+                return;
+            }
+
+            for (int idx : keyIdx) {
+                if (idx >= cols.length || cols[idx] == null || cols[idx].trim().isEmpty()) {
+                    recordError(historyId, rowNo, "EMPTY_REQUIRED_COL",
+                            "Required natural key column is empty (index " + idx + ")",
+                            joinRaw(cols));
+                    stats.fail++;
+                    return;
+                }
+            }
+
+            String key = buildKey(cols, keyIdx);
+            Integer firstRow = seenKeys.get(key);
+            if (firstRow != null) {
+                recordError(historyId, rowNo, "DUPLICATE_NATURAL_KEY",
+                        "Natural key already taken by row " + firstRow,
+                        joinRaw(cols));
+                stats.duplicate++;
+                stats.fail++;
+                return;
+            }
+            seenKeys.put(key, rowNo);
+
+            String rawLine = joinRaw(cols);
+            nativePersistence.insertRaw(type, historyId, rowNo, cols, rawLine);
+            stats.staging++;
+
+            try {
+                nativePersistence.mergeFromRaw(type, historyId, rowNo);
+                stats.success++;
+            } catch (RuntimeException ex) {
+                recordError(historyId, rowNo, "MASTER_MERGE_FAILED", truncate(ex.getMessage(), 480), joinRaw(cols));
+                stats.fail++;
+            }
+        });
+
+        return stats;
+    }
+
+    private void recordError(long historyId, int rowNo, String code, String message, String raw) {
+        ImportErrorEntity error = new ImportErrorEntity();
+        error.setHistoryId(historyId);
+        error.setRowNo(rowNo);
+        error.setErrorCode(code);
+        error.setErrorMessage(truncate(message, 480));
+        error.setRawRow(truncate(raw, 3990));
+        error.setCreatedAt(OffsetDateTime.now());
+        errorRepository.save(error);
+    }
+
+    private ImportJobEntity findHistory(long historyId) {
+        return jobRepository.findById(historyId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.IMPORT_3005));
+    }
+
+    private Pageable toPageable(PageRequest page) {
+        String requestedColumn = page.resolveSortColumn(ERROR_SORT_COLUMNS, "row_no");
+        String sortProperty = toErrorSortProperty(requestedColumn);
+        Sort.Direction direction = Sort.Direction.fromString(page.getSortDirection());
+        return org.springframework.data.domain.PageRequest.of(
+                Math.max(0, page.getPage() - 1),
+                page.getSize(),
+                Sort.by(direction, sortProperty));
+    }
+
+    private String toErrorSortProperty(String column) {
+        if ("error_code".equals(column)) {
+            return "errorCode";
+        }
+        if ("created_at".equals(column)) {
+            return "createdAt";
+        }
+        return "rowNo";
+    }
+
+    private ImportHistoryVo toHistoryVo(ImportJobEntity entity) {
+        ImportHistoryVo history = new ImportHistoryVo();
+        history.setId(entity.getId());
+        history.setStatus(entity.getStatus());
+        history.setRequestedBy(entity.getRequestedBy());
+        history.setRequestedIp(entity.getRequestedIp());
+        history.setRequestedAt(entity.getRequestedAt());
+        history.setStartedAt(entity.getStartedAt());
+        history.setEndedAt(entity.getEndedAt());
+        history.setTotalCount(entity.getTotalCount());
+        history.setSuccessCount(entity.getSuccessCount());
+        history.setFailCount(entity.getFailCount());
+        history.setErrorSummary(entity.getErrorSummary());
+        history.setType(entity.getType());
+        history.setFileName(entity.getFileName());
+        history.setFileSize(entity.getFileSize());
+        history.setDuplicateCount(entity.getDuplicateCount());
+        history.setStagingCount(entity.getStagingCount());
+        return history;
+    }
+
+    private ImportErrorVo toErrorVo(ImportErrorEntity entity) {
+        ImportErrorVo error = new ImportErrorVo();
+        error.setId(entity.getId());
+        error.setHistoryId(entity.getHistoryId());
+        error.setRowNo(entity.getRowNo());
+        error.setErrorCode(entity.getErrorCode());
+        error.setErrorMessage(entity.getErrorMessage());
+        error.setRawRow(entity.getRawRow());
+        error.setCreatedAt(entity.getCreatedAt());
+        return error;
+    }
+
+    private String buildKey(String[] cols, int[] keyIdx) {
+        StringBuilder sb = new StringBuilder();
+        for (int idx : keyIdx) {
+            sb.append(cols[idx]).append(KEY_SEP);
+        }
+        return sb.toString();
+    }
+
+    private String joinRaw(String[] cols) {
+        return String.join(",", cols);
+    }
+
+    private static String truncate(String s, int max) {
+        if (s == null) {
+            return null;
+        }
+        return s.length() <= max ? s : s.substring(0, max);
+    }
+
+    static class ProcessStats {
+        int total = 0;
+        int success = 0;
+        int fail = 0;
+        int duplicate = 0;
+        int staging = 0;
+
+        String determineFinalStatus() {
+            if (fail == 0) {
+                return "COMPLETED";
+            }
+            if (success == 0) {
+                return "FAILED";
+            }
+            return "PARTIAL_SUCCESS";
+        }
+
+        String summary() {
+            if (fail == 0) {
+                return null;
+            }
+            return fail + " row(s) failed (duplicates=" + duplicate + ")";
+        }
+    }
+}

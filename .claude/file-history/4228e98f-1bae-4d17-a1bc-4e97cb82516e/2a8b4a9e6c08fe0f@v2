@@ -1,0 +1,16 @@
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/auth'
+import type { McpTokenListItem } from './types'
+
+export async function listMyTokens(): Promise<McpTokenListItem[]> {
+  try {
+    const session = await requireAuth()
+    return await prisma.tbTrmMcpToken.findMany({
+      where: { userId: session.user.id },
+      select: { id: true, name: true, createdAt: true, lastUsedAt: true, expiresAt: true, revokedAt: true },
+      orderBy: { createdAt: 'desc' },
+    })
+  } catch {
+    return []
+  }
+}

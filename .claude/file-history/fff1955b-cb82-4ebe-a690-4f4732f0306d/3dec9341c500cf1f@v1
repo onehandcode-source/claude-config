@@ -1,0 +1,1 @@
+export const DataManagePage = () => <div className='p-6 text-sm text-muted-foreground'>DataManagePage — 구현 예정</div>;

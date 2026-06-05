@@ -1,0 +1,43 @@
+import { useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
+import { logout as logoutApi } from '@/features/auth/authApi';
+import { useAuthStore } from '@/store/useAuthStore';
+import { LayoutHeader } from './components/LayoutHeader';
+import { SidebarSurface } from './components/SidebarSurface';
+
+export const MainLayout = () => {
+    const navigate = useNavigate();
+    const user = useAuthStore((state) => state.user);
+    const logout = useAuthStore((state) => state.logout);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    const handleLogout = async () => {
+        try {
+            await logoutApi();
+        } finally {
+            logout();
+            navigate('/login');
+        }
+    };
+
+    return (
+        <div className='flex min-h-screen bg-background text-foreground'>
+            <aside className='hidden w-64 flex-shrink-0 flex-col border-r border-border bg-card lg:flex'>
+                <SidebarSurface user={user} />
+            </aside>
+
+            <div className='flex min-w-0 flex-1 flex-col'>
+                <LayoutHeader
+                    mobileMenuOpen={mobileMenuOpen}
+                    onMobileMenuOpenChange={setMobileMenuOpen}
+                    onLogout={handleLogout}
+                    user={user}
+                />
+
+                <main className='flex-1 p-6'>
+                    <Outlet />
+                </main>
+            </div>
+        </div>
+    );
+};

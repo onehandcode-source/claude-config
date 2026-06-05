@@ -1,0 +1,186 @@
+# 반드시 지켜야 할 규칙 (Critical)
+
+- CLAUDE.md와 docs/*를 먼저 읽을 것
+- 작업 내용은 worklog.md와 handoff.md에 반영할 것
+- 설계 변경은 decisions.md에 기록할 것
+
+---
+
+# 문서 역할
+
+- `docs/handoff.md`: 다음 세션이 바로 이어받아야 할 인수인계
+- `docs/worklog.md`: 현재 상태 snapshot
+- `docs/decisions.md`: 설계/운영 선택의 누적 기록
+- `docs/tips.md`: 운영 루틴과 개인 참고 명령
+
+---
+
+# Automation Rules
+
+- 작업 후 worklog.md 업데이트
+- 세션 종료 전 handoff.md 작성
+- 설계 변경 시 decisions.md 기록
+
+---
+
+# Project Overview
+
+행정표준용어를 기반으로 테이블, 프로그램에서 사용할 수 있는 용어, 단어를 관리하는 SpringBoot 기반 용어 사전 시스템입니다.
+
+## Goal
+
+-
+
+## Tech Stack
+
+- Java 1.8 (`C:\Bin\Java\jdk1.8.0_202`)
+- SpringBoot 2.7.18 / Gradle
+- DB: Tibero7 (`jdbc:tibero:thin:@172.21.10.27:8629:tibero`, user: `trmdict`)
+- ORM: Spring Data JPA (Hibernate) / Tibero7 커스텀 Dialect 필요
+- Security: Spring Security 5.7.x + jjwt 0.11.5 (stateless JWT)
+- Frontend: Angular 15.x + Angular Material 15.x
+- Lombok (VO 보일러플레이트 제거)
+- Apache POI 5.2.5 (XLSX 파싱) + OpenCSV 5.9 (CSV 파싱)
+- Base Package: `com.devwogns.trmdict`
+
+---
+
+# Development Rules
+
+> **트레이드오프:** 아래 지침은 속도보다 신중함을 우선합니다. 단순한 작업에는 판단력을 발휘하세요.
+
+## 1. 코딩 전 사고
+
+**가정하지 말고, 혼란을 숨기지 말고, 트레이드오프를 드러내세요.**
+
+구현 전에:
+
+- 가정을 명시적으로 서술하세요. 불확실하면 질문하세요.
+- 여러 해석이 가능하면 제시하세요 — 혼자 선택하지 마세요.
+- 더 단순한 방법이 있으면 말하세요. 필요하면 반론을 제기하세요.
+- 불분명한 것이 있으면 멈추세요. 무엇이 헷갈리는지 명시하고 질문하세요.
+
+## 2. 단순함 우선
+
+**문제를 해결하는 최소한의 코드. 추측성 코드 금지.**
+
+- 요청한 기능 이상은 추가하지 마세요.
+- 단일 사용 코드에 추상화를 만들지 마세요.
+- 요청하지 않은 '유연성'이나 '설정 가능성'은 추가하지 마세요.
+- 불가능한 시나리오에 대한 에러 처리는 추가하지 마세요.
+- 200줄로 쓴 코드가 50줄로 가능하다면, 다시 작성하세요.
+
+스스로 묻기: "시니어 엔지니어가 이게 과하게 복잡하다고 할까?" 그렇다면 단순화하세요.
+
+## 3. 외과적 변경
+
+**반드시 필요한 부분만 수정하세요. 내가 만든 지저분한 것만 정리하세요.**
+
+기존 코드 편집 시:
+
+- 인접한 코드, 주석, 포맷을 '개선'하지 마세요.
+- 망가지지 않은 것을 리팩터링하지 마세요.
+- 내가 다르게 할지라도 기존 스타일을 맞추세요.
+- 관련 없는 죽은 코드를 발견하면 언급만 하세요 — 삭제하지 마세요.
+
+내 변경으로 인한 고아 코드:
+
+- 내 변경으로 사용하지 않게 된 import/변수/함수는 제거하세요.
+- 기존에 있던 죽은 코드는 요청이 없으면 제거하지 마세요.
+
+기준: 변경된 모든 줄이 사용자 요청으로 직접 추적 가능해야 합니다.
+
+## 4. 목표 중심 실행
+
+**성공 기준을 정의하세요. 검증될 때까지 반복하세요.**
+
+작업을 검증 가능한 목표로 변환:
+
+- "검증 추가" → "잘못된 입력에 대한 테스트 작성 후 통과시키기"
+- "버그 수정" → "재현하는 테스트 작성 후 통과시키기"
+- "X 리팩터링" → "리팩터링 전후 테스트 통과 확인"
+
+다단계 작업은 간략한 계획을 서술하세요:
+
+```
+1. [단계] → 검증: [확인 방법]
+2. [단계] → 검증: [확인 방법]
+3. [단계] → 검증: [확인 방법]
+```
+
+## Code Style
+
+상세: `docs/dev-guide/conventions-backend.md`
+
+- 들여쓰기: 4칸 스페이스 (탭 금지) / 최대 120자
+- `@Slf4j` 모든 서비스·컨트롤러 필수
+- Entity에 `@Data` 금지 (`@Getter` + `@NoArgsConstructor(PROTECTED)` + `@Builder` 조합)
+- 읽기 전용 Service 메서드에 `@Transactional(readOnly = true)` 적용
+
+## Naming
+
+상세: `docs/dev-guide/conventions-backend.md` §1, §12
+
+- 클래스: PascalCase / 변수·메서드: camelCase / 상수: UPPER_SNAKE_CASE
+- DB 테이블: `TB_TRM_*` (시스템) / `TB_STD_*` (행안부 표준 원본)
+- DB 컬럼: 행안부 공통표준 영문약어 기반, `@Column(name = "...")` 명시 필수
+- API URL: `/api/v1/{module}` prefix
+
+## Architecture Principles
+
+상세: `docs/superpowers/specs/2026-05-03-code-structure-design.md`
+
+- 레이어: `entity`(영속) / `dto`(Request) / `vo`(Response) 3분리 — Entity 직접 반환 금지
+- `JpaRepository` 상속, Service 인터페이스 분리 없음
+- `@Transactional`은 Service 레이어만 / `FetchType.LAZY` 기본
+- PK 전략: `@SequenceGenerator` + `GenerationType.SEQUENCE` (Tibero 시퀀스)
+
+---
+
+# Commands
+
+## Dev
+
+java -jar build/libs/trmdict-1.0.0-SNAPSHOT.jar --spring.profiles.active=local
+
+### 프론트엔드 개발 서버
+
+cd frontend && npm start  # http://localhost:4200 → 8080 프록시
+
+## Test
+
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 gradlew.bat test
+
+## Build
+
+JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 gradlew.bat build -x test
+
+---
+
+# Constraints
+
+- Java 1.8 호환 — `Set.of()` / `List.of()` / `Map.of()` 사용 금지 (Java 9+)
+- Tibero7 커스텀 Dialect 필수 (`TiberoDialect extends Oracle12cDialect`)
+- `spring.jpa.hibernate.ddl-auto: none` 유지 — 스키마 변경은 `db-ddl/{NN}_{module}.sql` 수동 실행
+- `spring.jpa.open-in-view: false` 유지
+
+---
+
+# Common Paths
+
+- 백엔드 컨벤션: `docs/dev-guide/conventions-backend.md`
+- 프론트엔드 컨벤션: `docs/dev-guide/conventions-frontend.md`
+- 코드 구조 표준: `docs/superpowers/specs/2026-05-03-code-structure-design.md`
+- DB 명명 표준: `docs/superpowers/specs/2026-05-06-naming-standards-alignment-design.md`
+- 사이클 작업: `docs/cycles/{NN-cycle-id-slug}/`
+
+---
+
+# Review Checklist
+
+- [ ] `@Slf4j` 서비스·컨트롤러 전체 적용
+- [ ] Entity에 `@Data` 없음 / `@NoArgsConstructor(PROTECTED)` 있음
+- [ ] 읽기 조회 메서드에 `@Transactional(readOnly = true)` 적용
+- [ ] 예외 코드는 `ErrorCode` enum 사용 (하드코딩 금지)
+- [ ] SQL 인젝션: `nativeQuery` 사용 시 바인딩 파라미터 확인
+- [ ] 하드코딩된 비밀번호·API 키 없음

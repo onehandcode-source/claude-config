@@ -1,0 +1,44 @@
+# Session: 2026-06-01
+**Date:** 2026-06-01
+**Started:** 13:54
+**Last Updated:** 15:42
+**Project:** 20. POC
+**Branch:** unknown
+**Worktree:** D:\20. POC
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- 관련해서 n8n도입으로 할 수 있는 추가 Poc 아이디어가 필요해
+- 추가 다른 아이디어
+- 다른 아이디어
+- 1. 회의록 혹은 감사문서 작성 관련해서도 설계해줘
+- 질문.  1. 데이터베이스 쿼리 최적화 관련해서 최적화된 LLM 모델같은게 현재 나와있는게 있어?
+- 1. 테이블 스키마 (CREATE TABLE)     2. 현재 인덱스 목록     3. EXPLAIN 실행 계획 결과
+- 1. 테이블 스키마 (CREATE TABLE)     2. 현재 인덱스 목록     3. EXPLAIN 실행 계획 결과  이런 정보를 시멘틱 레이어 라고 하나? ai가 이런정보는 직접 조회하거나 확인 할 수는 없어?
+- 추가로 적용할 수 있는 다른 아이디어가 필요함
+- 추가 다른 아이디어어
+- DR(재난복구) 계획서 자동 갱신 이건 어떻게 할수있는지 궁금함
+
+### Files Modified
+- C:\Users\ygkim\.gstack\projects\20.POC\ygkim-unknown-design-20260528-103841.md
+- D:\20. POC\architecture.html
+- D:\20. POC\flow.html
+- D:\20. POC\index.html
+
+### Tools Used
+Skill, Read, Bash, AskUserQuestion, Write, Agent, Edit, Glob, Grep, PowerShell, ToolSearch, WebFetch
+
+### Stats
+- Total user messages: 88
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

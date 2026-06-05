@@ -1,0 +1,33 @@
+# Session: 2026-05-11
+**Date:** 2026-05-11
+**Started:** 10:33
+**Last Updated:** 10:33
+**Project:** playwright-test-automation-complete
+**Branch:** unknown
+**Worktree:** D:\16. 자동화 도구\files\playwright-test-automation-complete
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- ⨯ ./app/globals.css.webpack[javascript/auto]!=!./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/load
+
+### Files Modified
+- D:\16. 자동화 도구\files\playwright-test-automation-complete\postcss.config.js
+- D:\16. 자동화 도구\files\playwright-test-automation-complete\tailwind.config.js
+
+### Tools Used
+Glob, Read, Edit, Grep
+
+### Stats
+- Total user messages: 1
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

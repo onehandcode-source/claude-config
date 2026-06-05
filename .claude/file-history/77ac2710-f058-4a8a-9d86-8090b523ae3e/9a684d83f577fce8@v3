@@ -1,0 +1,141 @@
+# Auth 보안 개선 설계: localStorage → HttpOnly Cookie
+
+**작성일**: 2026-05-19  
+**대상**: `backend/common/security/`, `backend/module/auth/`, `frontend/src/core/api/`, `frontend/src/features/auth/`, `frontend/src/app/`
+
+## 1. 목적
+
+현재 인증은 localStorage 기반 토큰 저장 방식에서 HttpOnly Cookie 방식으로 전환되었다.  
+이 문서는 실제 구현 기준으로 현재 인증 계약을 정리한다.
+
+## 2. 현재 동작
+
+### 로그인
+
+- 프런트는 `POST /api/v1/auth/login`을 호출한다.
+- 백엔드는 JWT를 생성한 뒤 `Set-Cookie` 헤더로 `trmdict_token`을 발급한다.
+- 응답 body는 사용자 정보만 포함한다.
+
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{ "username": "admin", "password": "Admin123!" }
+
+HTTP/1.1 200 OK
+Set-Cookie: trmdict_token=eyJ...; HttpOnly; Path=/api; Max-Age=28800; SameSite=Strict
+
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "OK",
+  "data": {
+    "user": {
+      "id": 1,
+      "username": "admin",
+      "name": "관리자",
+      "role": "ADMIN"
+    }
+  }
+}
+```
+
+### 세션 복원
+
+- 프런트는 앱 시작 시 `/api/v1/auth/me`를 호출한다.
+- 브라우저가 HttpOnly 쿠키를 자동 전송한다.
+- 백엔드는 쿠키에서 토큰을 읽어 `AuthPrincipal`을 구성한다.
+
+### 로그아웃
+
+- 프런트는 `POST /api/v1/auth/logout`을 호출한다.
+- 백엔드는 `trmdict_token` 쿠키를 `Max-Age=0`으로 삭제한다.
+
+```http
+POST /api/v1/auth/logout
+
+HTTP/1.1 200 OK
+Set-Cookie: trmdict_token=; HttpOnly; Path=/api; Max-Age=0; SameSite=Strict
+```
+
+## 3. 백엔드 구현 상태
+
+### `CookieProperties`
+
+- `Set-Cookie` 헤더를 직접 생성한다.
+- 쿠키 속성:
+  - `HttpOnly`
+  - `Path=/api`
+  - `SameSite=Strict`
+  - `Secure`는 프로파일 설정으로 분리
+
+### `JwtAuthenticationFilter`
+
+- `request.getCookies()`에서 `trmdict_token`을 읽는다.
+- 현재 구현은 쿠키 기반만 사용하며, `Authorization` 헤더 fallback은 없다.
+
+### `SecurityConfig`
+
+- `/api/v1/auth/login`
+- `/api/v1/auth/logout`
+
+위 두 경로는 `permitAll()`이다.
+
+### `application-local.yml` / `application-prod.yml`
+
+- local: `app.cookie.secure: false`
+- prod: `app.cookie.secure: true`
+
+## 4. 프런트엔드 구현 상태
+
+### `axiosInstance`
+
+- `withCredentials: true`를 사용한다.
+- request interceptor는 없다.
+- 401 또는 `AUTH_1002` 응답 시 서버 로그아웃을 호출한 뒤 auth state를 비운다.
+
+### `authApi`
+
+- `login(payload)` -> `POST /auth/login`
+- `getMe()` -> `GET /auth/me`
+- `logout()` -> `POST /auth/logout`
+
+### `LoginPage`
+
+- 로그인 성공 시 `accessToken`을 저장하지 않는다.
+- 응답의 `user`만 Zustand store에 넣는다.
+
+### `providers.jsx`
+
+- `/login` 경로를 제외하고 앱 시작 시 `getMe()`를 호출한다.
+- 세션이 있으면 사용자 상태를 복원한다.
+- 세션이 없으면 `logout()`으로 state만 비운다.
+
+### `MainLayout`
+
+- 로그아웃 버튼은 `authApi.logout()` 호출 후 로컬 상태를 비운다.
+- 브라우저 쿠키 삭제는 서버 응답으로 처리한다.
+
+### 삭제된 항목
+
+- `frontend/src/core/auth/authUtils.js`
+- `getToken / setToken / removeToken / parseToken`
+- localStorage 기반 토큰 저장 로직
+
+## 5. 확인 포인트
+
+1. 로그인 성공 후 DevTools의 Network에서 `Set-Cookie` 헤더가 보이는지 확인한다.
+2. 이후 API 요청이 `Cookie: trmdict_token=...`로 전송되는지 확인한다.
+3. `POST /api/v1/auth/logout` 응답에서 `Max-Age=0`이 내려오는지 확인한다.
+4. 새로고침 후 `/api/v1/auth/me`가 성공하면 쿠키 세션 복원이 정상이다.
+
+## 6. 검증 결과
+
+- `npm.cmd test` 통과
+- `npm.cmd run lint` 통과
+- `npx.cmd vite build --outDir ./.tmp-build --emptyOutDir` 통과
+
+## 7. 결론
+
+현재 프런트는 HttpOnly Cookie 기반 인증 계약과 맞게 수정되었다.  
+localStorage 토큰 의존성은 제거되었고, 프런트는 쿠키 자동 전송과 세션 복원만 책임진다.

@@ -1,0 +1,25 @@
+# 🚩 Project: Multi-Agent Research & Analysis
+
+**Current Status:** Waiting for Initial Goal
+**Last Updated:** 2026-05-14
+
+## 🎯 Global Goal
+
+(여기에 최종 목적을 입력하세요. 예: 2026년 반도체 시장 전망 조사 및 시각화)
+
+## 📋 Task Board
+
+| Task | Assigned To | Status | Result Link |
+| :--- | :--- | :--- | :--- |
+| 프로젝트 계획 수립 및 조사 항목 선정 | Claude (PM) | [ ] Todo | - |
+| 실시간 시장 데이터 및 기술 자료 조사 | Gemini (Researcher) | [ ] Waiting | - |
+| 데이터 요약 및 시각화 코드 작성 | Codex (Engineer) | [ ] Waiting | - |
+
+## 🧠 Shared Context & Memory
+
+- 모든 모델은 작업 시작 전 이 파일을 최하단까지 읽어야 함.
+- 작업 완료 후 반드시 'Status'를 업데이트하고 'Shared Context'에 요약을 남길 것.
+
+## 📝 Activity Log (Latest at Top)
+
+- (예시) [Claude]: 하네스 시스템이 가동되었습니다. 작업 대기 중.

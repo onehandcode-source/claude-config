@@ -1,0 +1,18 @@
+## 신고 시나리오
+
+1. 로그인
+- URL: http://localhost:8080/#main/login/login
+    - id: silver1875
+    - pw: younggun22@@
+
+2. 신고 화면 이동
+- URL: http://localhost:8080/#safereport/safereport
+
+3. 인풋 데이터 확인
+    - 안전분야 신고유형 선택 (selectBox)
+    - 사진/동영상 파일 첨부 (스킵)
+    - 제목 입력 (input)
+    - 신고 내용 (textareat)
+    - 신청 버튼
+
+4. 신고 버튼 이후 comfirm  alert창 

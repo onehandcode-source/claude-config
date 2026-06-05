@@ -1,0 +1,8 @@
+{
+  "id": "4",
+  "subject": "설계 문서 작성 및 커밋",
+  "description": "docs/plans/YYYY-MM-DD-healthprobe-design.md",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

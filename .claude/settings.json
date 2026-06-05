@@ -1,0 +1,111 @@
+{
+  "model": "sonnet[1m]",
+  "statusLine": {
+    "type": "command",
+    "command": "node /c/Users/ygkim/.claude/plugins/cache/claude-dashboard/claude-dashboard/1.26.0/dist/index.js"
+  },
+  "enabledPlugins": {
+    "double-shot-latte@superpowers-marketplace": true,
+    "superpowers@superpowers-marketplace": true,
+    "claude-hud@claude-hud": true,
+    "claude-session-driver@superpowers-marketplace": true,
+    "episodic-memory@superpowers-marketplace": true,
+    "superpowers@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "serena@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "claude-dashboard@claude-dashboard": true,
+    "codex@openai-codex": true,
+    "everything-claude-code@everything-claude-code": true,
+    "playwright@claude-plugins-official": true,
+    "fe-review-agents@fe-review-agents": true,
+    "oh-my-claudecode@omc": true,
+    "code-review@claude-plugins-official": true,
+    "understand-anything@understand-anything": true,
+    "andrej-karpathy-skills@karpathy-skills": true,
+    "last30days@last30days-skill": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-hud": {
+      "source": {
+        "source": "github",
+        "repo": "jarrodwatts/claude-hud"
+      }
+    },
+    "superpowers-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "claude-code-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code"
+      }
+    },
+    "claude-dashboard": {
+      "source": {
+        "source": "github",
+        "repo": "uppinote20/claude-dashboard"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "everything-claude-code": {
+      "source": {
+        "source": "github",
+        "repo": "affaan-m/everything-claude-code"
+      }
+    },
+    "fe-review-agents": {
+      "source": {
+        "source": "github",
+        "repo": "huurray/fe-review-agents"
+      }
+    },
+    "omc": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/Yeachan-Heo/oh-my-claudecode.git"
+      }
+    },
+    "understand-anything": {
+      "source": {
+        "source": "github",
+        "repo": "Lum1104/Understand-Anything"
+      }
+    },
+    "karpathy-skills": {
+      "source": {
+        "source": "github",
+        "repo": "forrestchang/andrej-karpathy-skills"
+      }
+    },
+    "last30days-skill": {
+      "source": {
+        "source": "github",
+        "repo": "mvanhorn/last30days-skill"
+      }
+    }
+  },
+  "language": "korea",
+  "autoUpdatesChannel": "latest",
+  "autoDreamEnabled": true,
+  "theme": "dark-daltonized",
+  "skipAutoPermissionPrompt": true
+}

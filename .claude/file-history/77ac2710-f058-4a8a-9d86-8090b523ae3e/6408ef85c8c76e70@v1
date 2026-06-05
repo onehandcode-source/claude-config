@@ -1,0 +1,11 @@
+import { http, unwrapResponse } from '@/core/api/http';
+
+export async function searchForbiddens(payload) {
+    const response = await http.post('/v1/forbiddens/search', payload);
+    return unwrapResponse(response);
+}
+
+export async function getForbiddenById(id) {
+    const response = await http.get(`/v1/forbiddens/${id}`);
+    return unwrapResponse(response);
+}

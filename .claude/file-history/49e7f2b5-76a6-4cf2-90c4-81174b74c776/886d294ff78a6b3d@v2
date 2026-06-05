@@ -1,0 +1,29 @@
+# 🚩 Project: React 19 신규 문법 조사
+
+**Current Status:** In Progress
+**Last Updated:** 2026-05-14
+
+## 🎯 Global Goal
+
+React 19에서 새롭게 추가된 문법 및 기능을 조사하여 정리한다.
+
+## 📋 Task Board
+
+| Task | Assigned To | Status | Result Link |
+| :--- | :--- | :--- | :--- |
+| React 19 신규 문법 및 기능 조사 | Gemini (Researcher) | [ ] Pending | - |
+| 조사 결과 정리 및 문서화 | Claude (PM) | [ ] Waiting | - |
+
+## 🧠 Shared Context & Memory
+
+(조사 결과가 여기에 기록됩니다)
+
+---
+
+- 모든 모델은 작업 시작 전 이 파일을 최하단까지 읽어야 함.
+- 작업 완료 후 반드시 'Status'를 업데이트하고 'Shared Context'에 요약을 남길 것.
+- 핸드오프 시 터미널에 "작업 완료: [다음 모델 이름] 확인 바람" 출력.
+
+## 📝 Activity Log (Latest at Top)
+
+- [Claude]: workspace.md 초기화 및 React 19 신규 문법 조사 Task 할당. Gemini 리서치 대기 중. (2026-05-14)

@@ -1,0 +1,57 @@
+## AS-IS 현재 기술 스택
+
+| 항목 | 선택 |
+|------|------|
+| Java | 1.8 |
+| SpringBoot | 2.7.18 |
+| Build | Maven (단일 모듈, pom.xml) |
+| DB | Tibero7 (`lib/tibero7-jdbc-18.jar`, system scope) |
+| ORM | MyBatis 2.3.x |
+| Security | Spring Security + jjwt 0.11.x |
+| Frontend | Angular 15.x + Angular Material |
+| Base Package | `com.devwogns.trmdict` |
+
+## TO-BE 기술 스택
+
+## 1. 기술 스택 비교표 (3-Way Comparison)
+
+| 항목 | 안 1: Next.js 통합형 (Full-stack TS) | 안 2: NestJS 전환형 (Next.js + NestJS) | 안 3: 레거시/제한 환경형 (React + Spring Boot 통합) |
+| :--- | :--- | :--- | :--- |
+| **Backend Language** | TypeScript 5.x | TypeScript 5.x | **Java 1.8** |
+| **Frontend Framework** | **Next.js 14+ (App Router)** | **Next.js 14+ (App Router)** | **React 18+ (SPA)** |
+| **Backend Framework** | Next.js API Routes | **NestJS 10.x** (Node.js) | **Spring Boot 2.7.18** |
+| **ORM** | **Prisma 5.x** | **Prisma 5.x** | **MyBatis or JPA** |
+| **Security/Auth** | **Auth.js (v5)** + Middleware | **Passport.js + Guards** | **Spring Security (Session/JWT)** |
+| **UI Library** | **shadcn/ui** (Tailwind 기반) | **shadcn/ui** (Tailwind 기반) | **shadcn/ui** (Tailwind 기반) |
+| **Component Engine** | Radix UI (Headless) | Radix UI (Headless) | Radix UI (Headless) |
+| **MCP 서버 확장성** | **최상** (Native SDK 지원) | **최상** (Native SDK 지원) | 보통 (Java 연동 필요) |
+
+## 2. 필수 개발 라이브러리
+
+| 카테고리 | 라이브러리 | 용도 | 중요도 |
+| :--- | :--- | :--- | :--- |
+| **Lint/Format** | **Prettier, ESLint** | 코드 스타일 자동화 및 문법 오류 방지 | 상 |
+| **State (Global)** | **Zustand** | 전역 변수 및 클라이언트 상태 관리 | 상 |
+| **State (Server)** | **React Query** | 서버 데이터 캐싱 및 상태 관리 | 상 |
+| **Password Auth** | Argon2 | 최신 알고리즘 기반 비밀번호 해싱 (BCrypt 대체) | 중 |
+| **Git Hook** | Husky, lint-staged | 커밋 전 코드 품질 검증 강제 | 중 |
+| **Validation** | Zod | 런타임 데이터 검증 및 타입 안전성 확보 | 중 |
+| **Animation** | react-countup | 통계 및 수치 데이터 애니메이션 효과 | 하 |
+| **Notification** | Sonner | SweetAlert을 대체하는 최신 고성능 토스트 알림 | 하 |
+| **UI Utility** | clsx, tailwind-merge | Tailwind CSS 클래스 조건부 병합 | 하 |
+| **Icons** | Lucide React | 현대적이고 일관된 아이콘 시스템 | 하 |
+| **Date UI** | date-fns or Day.js | 날짜 형식 변환 및 연산 유틸리티 | 하 |
+
+## 3. 주요 특징 및 기대 효과
+
+* **Next.js App Router**: 서버 컴포넌트(RSC)를 활용하여 보안 강화 및 초기 로딩 성능 최적화.
+* **shadcn/ui**: 컴포넌트 소유권을 프로젝트 내부에 두어 100% 디자인 자유도 확보.
+* **Prisma**: TypeScript 기반의 타입 안전한 DB 쿼리로 런타임 에러 최소화.
+* **Zustand**: Redux 대비 극도로 단순한 설정으로 전역 상태(사용자 정보 등) 관리.
+* **MCP 서버 확장성**: Node.js 생태계를 활용하여 향후 AI 에이전트 연동 인프라로 즉시 전환 가능.
+
+## 4. 요약 및 권장사항
+
+1. **생산성 최우선**: **안 1 (Next.js)** - 가장 빠른 개발 속도와 현대적인 인프라 통합.
+2. **구조와 보안 중시**: **안 2 (NestJS)** - Spring의 구조적 장점을 유지하며 Node.js 생태계 활용.
+3. **인프라 제약 환경**: **안 3 (React + Boot)** - 서버에서 Node.js를 실행할 수 없을 때 정적 리소스로 통합하여 배포.

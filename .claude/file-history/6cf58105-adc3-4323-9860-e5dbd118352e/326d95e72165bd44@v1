@@ -1,0 +1,57 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
+import { DetailFields, DetailHero, DetailSection } from '@/shared/components/DetailView/DetailView';
+
+export const ForbiddenDetailDialog = ({ forbidden, open, onOpenChange }) => {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className='max-w-3xl overflow-hidden p-0'>
+                <DialogHeader>
+                    <DialogTitle>{forbidden?.phwrdNm ? `${forbidden.phwrdNm} 상세` : '금칙어 상세'}</DialogTitle>
+                </DialogHeader>
+
+                {forbidden ? (
+                    <div className='max-h-[70vh] space-y-4 overflow-auto p-4 text-sm text-muted-foreground'>
+                        <DetailHero
+                            eyebrow='금칙어 상세'
+                            title={forbidden.phwrdNm}
+                            description={forbidden.rmrkCn || '금칙어의 설정, 개정, 운영 상태를 확인합니다.'}
+                            chips={[
+                                { label: '사용', value: forbidden.useYn || '-', tone: forbidden.useYn === 'Y' ? 'success' : 'warning' },
+                                { label: '제정차수', value: forbidden.enctCycl || '-' },
+                            ]}
+                        />
+
+                        <DetailSection title='기본 정보' description='금칙어의 식별값과 명칭을 확인합니다.'>
+                            <DetailFields
+                                items={[
+                                    { label: 'ID', value: forbidden.id },
+                                    { label: '금칙어명', value: forbidden.phwrdNm || '-' },
+                                ]}
+                            />
+                        </DetailSection>
+
+                        <DetailSection title='제정/개정' description='제정 차수와 개정 정보를 확인합니다.'>
+                            <DetailFields
+                                items={[
+                                    { label: '제정차수', value: forbidden.enctCycl || '-' },
+                                    { label: '개정구분', value: forbidden.rvsnSeNm || '-' },
+                                    { label: '개정항목', value: forbidden.rvsnArtclNm || '-' },
+                                    { label: '개정사유', value: forbidden.rvsnRsn || '-' },
+                                ]}
+                            />
+                        </DetailSection>
+
+                        <DetailSection title='운영 정보' description='사용 상태와 비고를 확인합니다.'>
+                            <DetailFields
+                                items={[
+                                    { label: '사용여부', value: forbidden.useYn || '-' },
+                                    { label: '비고', value: forbidden.rmrkCn || '-' },
+                                ]}
+                            />
+                        </DetailSection>
+                    </div>
+                ) : null}
+            </DialogContent>
+        </Dialog>
+    );
+};

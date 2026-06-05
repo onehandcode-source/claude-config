@@ -1,0 +1,210 @@
+package kr.go.safepeople.deamon.filesync.config.rabbitMQ;
+
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
+class RMUpstreamHealthProbeTest {
+
+    private CircuitBreakerRegistry registry;
+    private CircuitBreaker mainCb;
+    private CircuitBreaker recoveryCb;
+    private StubProbe probe;
+
+    // executeProbe()를 stub으로 교체 — WebClient 없이 로직만 검증
+    static class StubProbe extends RMUpstreamHealthProbe {
+        private Optional<Integer> stubStatus = Optional.empty();
+        final java.util.Map<String, String> capturedUrls = new java.util.LinkedHashMap<>();
+
+        StubProbe(CircuitBreakerRegistry registry) {
+            super(registry, null); // WebClient 사용 안 함 — executeProbe 오버라이드됨
+        }
+
+        void setStatus(Optional<Integer> status) {
+            this.stubStatus = status;
+        }
+
+        @Override
+        void probeOne(String cbName, String baseUrl) {
+            capturedUrls.put(cbName, baseUrl);
+            super.probeOne(cbName, baseUrl);
+        }
+
+        @Override
+        Optional<Integer> executeProbe(String url) {
+            return stubStatus;
+        }
+    }
+
+    @BeforeEach
+    void setUp() {
+        registry = mock(CircuitBreakerRegistry.class);
+        mainCb = mock(CircuitBreaker.class);
+        recoveryCb = mock(CircuitBreaker.class);
+
+        when(registry.circuitBreaker("filesync-main")).thenReturn(mainCb);
+        when(registry.circuitBreaker("filesync-recovery")).thenReturn(recoveryCb);
+
+        probe = new StubProbe(registry);
+        ReflectionTestUtils.setField(probe, "iHost", "http://iwas1_LB");
+        ReflectionTestUtils.setField(probe, "eHost", "http://ewas1_LB");
+        ReflectionTestUtils.setField(probe, "iPath", "/iPath/api/request/file");
+        ReflectionTestUtils.setField(probe, "ePath", "/ePath/api/request/file");
+        ReflectionTestUtils.setField(probe, "bHost", "http://bwas1_LB");
+        ReflectionTestUtils.setField(probe, "bPath", "/bPath/api/request/file");
+        ReflectionTestUtils.setField(probe, "queueName", "eQueue");
+        ReflectionTestUtils.setField(probe, "recoveryQueueName", "eQueue");
+    }
+
+    @Test
+    void givenCbClosed_whenProbe_thenNoTransition() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.CLOSED);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.CLOSED);
+        probe.probe();
+        verify(mainCb, never()).transitionToHalfOpenState();
+        verify(recoveryCb, never()).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbHalfOpen_whenProbe_thenNoTransition() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.HALF_OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.HALF_OPEN);
+        probe.probe();
+        verify(mainCb, never()).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbOpen_andProbe503_thenNoTransition() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(503));
+        probe.probe();
+        verify(mainCb, never()).transitionToHalfOpenState();
+        verify(recoveryCb, never()).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbOpen_andProbe404_thenTransitionToHalfOpen() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(404));
+        probe.probe();
+        verify(mainCb).transitionToHalfOpenState();
+        verify(recoveryCb).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbOpen_andProbe200_thenTransitionToHalfOpen() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(200));
+        probe.probe();
+        verify(mainCb).transitionToHalfOpenState();
+        verify(recoveryCb).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbOpen_andProbe502_thenNoTransition() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(502));
+        probe.probe();
+        verify(mainCb, never()).transitionToHalfOpenState();
+        verify(recoveryCb, never()).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbOpen_andProbeNetworkError_thenNoTransition() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.empty());
+        probe.probe();
+        verify(mainCb, never()).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbOpen_andProbe500_thenNoTransition() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(500));
+        probe.probe();
+        verify(mainCb, never()).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenMainOpen_andRecoveryClosed_thenOnlyMainTransitions() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.CLOSED);
+        probe.setStatus(Optional.of(404));
+        probe.probe();
+        verify(mainCb).transitionToHalfOpenState();
+        verify(recoveryCb, never()).transitionToHalfOpenState();
+    }
+
+    // iQueue 서버: filesync-main → ePath LB probe
+    @Test
+    void givenIQueue_probeMainUsesEPath() {
+        ReflectionTestUtils.setField(probe, "queueName", "iQueue");
+        ReflectionTestUtils.setField(probe, "recoveryQueueName", "iQueue");
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(404));
+
+        probe.probe();
+
+        assertThat(probe.capturedUrls.get("filesync-main"))
+                .isEqualTo("http://ewas1_LB/ePath/api/request/file");
+    }
+
+    // eQueue 서버: filesync-main → iPath LB probe
+    @Test
+    void givenEQueue_probeMainUsesIPath() {
+        ReflectionTestUtils.setField(probe, "queueName", "eQueue");
+        ReflectionTestUtils.setField(probe, "recoveryQueueName", "eQueue");
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(404));
+
+        probe.probe();
+
+        assertThat(probe.capturedUrls.get("filesync-main"))
+                .isEqualTo("http://iwas1_LB/iPath/api/request/file");
+    }
+
+    // iRecoveryQueue 서버: filesync-recovery → bwas LB probe
+    @Test
+    void givenIRecoveryQueue_probeRecoveryUsesBPath() {
+        ReflectionTestUtils.setField(probe, "queueName", "iQueue");
+        ReflectionTestUtils.setField(probe, "recoveryQueueName", "iRecoveryQueue");
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(404));
+
+        probe.probe();
+
+        assertThat(probe.capturedUrls.get("filesync-recovery"))
+                .isEqualTo("http://bwas1_LB/bPath/api/request/file");
+    }
+
+    // eRecoveryQueue 서버: filesync-recovery → iPath LB probe
+    @Test
+    void givenERecoveryQueue_probeRecoveryUsesIPath() {
+        ReflectionTestUtils.setField(probe, "queueName", "eQueue");
+        ReflectionTestUtils.setField(probe, "recoveryQueueName", "eRecoveryQueue");
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(404));
+
+        probe.probe();
+
+        assertThat(probe.capturedUrls.get("filesync-recovery"))
+                .isEqualTo("http://iwas1_LB/iPath/api/request/file");
+    }
+}

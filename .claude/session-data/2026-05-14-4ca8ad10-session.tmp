@@ -1,0 +1,39 @@
+# Session: 2026-05-14
+**Date:** 2026-05-14
+**Started:** 17:22
+**Last Updated:** 17:31
+**Project:** test
+**Branch:** unknown
+**Worktree:** D:\21. harness\test
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- react19에서 추가된 훅 정보 확인해줘
+- 제미나이에게 리서치 부탁하고 결과 알려줘
+- [Request interrupted by user]
+- 제미나이에게 리서치 부탁하고 결과 알려줘
+- React 19 훅 리서치해줘
+- [Request interrupted by user for tool use]
+- gemini에게 리서치 요청 하고 확인해줘
+
+### Files Modified
+- D:\21. harness\test\workspace\workspace.md
+- D:\21. harness\test\.agents-dev\scripts\ask_gemini.py
+
+### Tools Used
+ToolSearch, mcp__plugin_context7_context7__resolve-library-id, mcp__plugin_context7_context7__query-docs, Read, Glob, Write, Edit, Grep, PowerShell
+
+### Stats
+- Total user messages: 7
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

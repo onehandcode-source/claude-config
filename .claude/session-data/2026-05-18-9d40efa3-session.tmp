@@ -1,0 +1,41 @@
+# Session: 2026-05-18
+**Date:** 2026-05-18
+**Started:** 13:31
+**Last Updated:** 14:57
+**Project:** TrmWordDict
+**Branch:** master
+**Worktree:** D:\20. POC\TrmWordDict
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- 스팩, 규칙 등 다시 요약해
+- 질문.  1. jpa 사용하게 되면 entity가 있으니 VO는 어없어도 되는거 아니야?
+- npx shadcn@latest init -t vite
+- 문서설계 내용상 ts는 사용 안할거기 때문에 상관없음.
+- select a component library - radix, base 어떤거
+- 두번째 질문은 어떤걸 선택해야해
+- Nova Vega Maia Lyra Mira Luma Sera 이렇게 있음
+- Could not find valid path aliases or package imports for init. Configure path aliases in tsconfig.json or imports in package.json, then run init again. Learn more at https://ui.shadcn.com/docs/install
+- npx shadcn@latest init -t vite로 설치 시작
+- 명령어 실행해서 설치 시작
+
+### Files Modified
+- D:\20. POC\TrmWordDict\frontend\jsconfig.json
+
+### Tools Used
+Glob, Read, Agent, Write, ToolSearch
+
+### Stats
+- Total user messages: 17
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

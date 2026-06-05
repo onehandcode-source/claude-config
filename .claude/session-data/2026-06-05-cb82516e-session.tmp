@@ -1,0 +1,54 @@
+# Session: 2026-06-05
+**Date:** 2026-06-05
+**Started:** 13:51
+**Last Updated:** 15:46
+**Project:** TrmWordDict2
+**Branch:** yg_v0.2
+**Worktree:** D:\20. POC\TrmWordDict2
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- 실행포트 확인, 3000으로 다 변경해줘
+- 3000 포트 사용중인거 찾아서kill 해줘
+- 첫 로그인 화면에서 TypeError: __webpack_require__.n is not a function 오류 발생중
+- admin@uracle.co.kr / admin으로 로그인 안됨
+- POST /login 200 in 780ms  GET / 307 in 46ms  GET /login 200 in 35ms  POST /login 200 in 14ms 로그인 비즈니스로직쪽 체크 확인이 필요한거같아
+- <command-message>oh-my-claudecode:ultraqa</command-message> <command-name>/oh-my-claudecode:ultraqa</command-name> <command-args>로그인까지 성공했음. 로그인 이후에 404 발생, 로그인부터 시작해서 전체 테스트 진행 시작</command-args>
+- Base directory for this skill: C:\Users\ygkim\.claude\plugins\cache\omc\oh-my-claudecode\4.13.7\skills\ultraqa  # UltraQA Skill  [ULTRAQA ACTIVATED - AUTONOMOUS QA CYCLING]  ## Overview  You are now i
+- <task-notification> <task-id>bveoms6un</task-id> <tool-use-id>toolu_011SBRn5q49tr26JmDNKjJuv</tool-use-id> <output-file>C:\Users\ygkim\AppData\Local\Temp\claude\D--20--POC-TrmWordDict2\6fbce02a-f093-4
+- <command-message>superpowers:writing-plans</command-message> <command-name>/superpowers:writing-plans</command-name> <command-args>@docs/sampleHtml\ 하위의 html파일의 컨셉으로 전부다 변경해야함.  메뉴도 모두 이와같이 변경, 전부 다 이
+- Base directory for this skill: C:\Users\ygkim\.claude\plugins\cache\superpowers-marketplace\superpowers\4.3.1\skills\writing-plans  # Writing Plans  ## Overview  Write comprehensive implementation pla
+
+### Files Modified
+- D:\20. POC\TrmWordDict2\next.config.ts
+- D:\20. POC\TrmWordDict2\scripts\seed-users.ts
+- D:\20. POC\TrmWordDict2\features\auth\schema.ts
+- D:\20. POC\TrmWordDict2\features\auth\actions.ts
+- D:\20. POC\TrmWordDict2\middleware.ts
+- D:\20. POC\TrmWordDict2\components\layout\Sidebar.tsx
+- D:\20. POC\TrmWordDict2\features\word\queries.ts
+- D:\20. POC\TrmWordDict2\features\term\queries.ts
+- D:\20. POC\TrmWordDict2\features\domain\queries.ts
+- D:\20. POC\TrmWordDict2\features\forbidden\queries.ts
+- D:\20. POC\TrmWordDict2\features\import\queries.ts
+- D:\20. POC\TrmWordDict2\features\inspection\queries.ts
+- D:\20. POC\TrmWordDict2\features\mcp-token\queries.ts
+- D:\20. POC\TrmWordDict2\docs\plans\2026-06-05-ui-redesign-human-approachable.md
+
+### Tools Used
+Bash, PowerShell, Read, Glob, Edit, Grep, Agent, Write
+
+### Stats
+- Total user messages: 15
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

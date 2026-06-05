@@ -1,0 +1,37 @@
+# Session: 2026-05-18
+**Date:** 2026-05-18
+**Started:** 14:10
+**Last Updated:** 15:29
+**Project:** TrmWordDict
+**Branch:** master
+**Worktree:** D:\20. POC\TrmWordDict\frontend
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- @..\CLAUDE.md 해당 문서에 @../CLAUDE_andre.md 이 내용 합쳐서 정리
+- Code Style, naming 같은 빈 항목들ㅇ있는데
+- [Request interrupted by user]
+- 일단 대기
+- 지금 docs하위 문서 기준으로 해서 채울수 있는 항목은 채우던지, 링크를 걸던지, 200줄 이하로 작성
+- @package.json 필요한 패키지 더 있는지 확인
+
+### Files Modified
+- D:\20. POC\TrmWordDict\CLAUDE.md
+
+### Tools Used
+Read, Write, AskUserQuestion, Glob, Edit
+
+### Stats
+- Total user messages: 6
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

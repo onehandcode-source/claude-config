@@ -1,0 +1,31 @@
+import 'server-only'
+import { prisma } from '@/lib/prisma'
+import type { TermSearchInput } from './schema'
+
+export async function getTerms(params: TermSearchInput) {
+  try {
+    const where = params.keyword
+      ? {
+          OR: [
+            { termKor: { contains: params.keyword } },
+            { termEng: { contains: params.keyword, mode: 'insensitive' as const } },
+          ],
+        }
+      : {}
+
+    const [items, total] = await prisma.$transaction([
+      prisma.term.findMany({
+        where,
+        include: { termWords: { include: { word: true }, orderBy: { seqNo: 'asc' } } },
+        skip: params.page * params.size,
+        take: params.size,
+        orderBy: { termKor: 'asc' },
+      }),
+      prisma.term.count({ where }),
+    ])
+
+    return { items, total }
+  } catch {
+    return { items: [], total: 0 }
+  }
+}

@@ -1,0 +1,62 @@
+import { Upload } from 'lucide-react';
+import { Button } from '../ui/button';
+
+function matchesAccept(accept, fileName) {
+    const lowerName = fileName.toLowerCase();
+
+    return accept
+        .split(',')
+        .map((item) => item.trim().toLowerCase())
+        .some((extension) => lowerName.endsWith(extension));
+}
+
+export function FileUpload({
+    accept = '.csv',
+    maxSizeMB = 50,
+    label = '파일 선택',
+    onFileSelected,
+    onFileRejected,
+}) {
+    const handleFile = (file) => {
+        if (!matchesAccept(accept, file.name)) {
+            onFileRejected?.({
+                reason: 'TYPE',
+                message: `허용되지 않는 파일 형식입니다. (${accept}만 허용)`,
+            });
+            return;
+        }
+
+        if (file.size > maxSizeMB * 1024 * 1024) {
+            onFileRejected?.({
+                reason: 'SIZE',
+                message: `파일 크기가 ${maxSizeMB}MB를 초과했습니다.`,
+            });
+            return;
+        }
+
+        onFileSelected?.(file);
+    };
+
+    return (
+        <label className='inline-flex cursor-pointer items-center gap-2'>
+            <input
+                type='file'
+                aria-label={label}
+                className='sr-only'
+                onChange={(event) => {
+                    const file = event.target.files?.[0];
+
+                    if (file) {
+                        handleFile(file);
+                    }
+
+                    event.target.value = '';
+                }}
+            />
+            <Button variant='outline'>
+                <Upload className='h-4 w-4' />
+                <span>{label}</span>
+            </Button>
+        </label>
+    );
+}

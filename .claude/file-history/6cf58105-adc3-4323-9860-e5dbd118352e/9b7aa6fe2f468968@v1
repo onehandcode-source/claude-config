@@ -1,0 +1,42 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
+import { DetailFields, DetailHero, DetailSection } from '@/shared/components/DetailView/DetailView';
+
+export const DomainDetailDialog = ({ domain, open, onOpenChange }) => {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className='max-w-3xl overflow-hidden p-0'>
+                <DialogHeader>
+                    <DialogTitle>{domain?.stdDmnNm ? `${domain.stdDmnNm} 상세` : '도메인 상세'}</DialogTitle>
+                </DialogHeader>
+
+                {domain ? (
+                    <div className='max-h-[70vh] space-y-4 overflow-auto p-4 text-sm text-muted-foreground'>
+                        <DetailHero
+                            eyebrow='도메인 상세'
+                            title={domain.stdDmnNm}
+                            description={domain.stdDmnExpln || '도메인의 기본 정보와 분류, 사용 상태를 확인합니다.'}
+                            chips={[
+                                { label: '그룹', value: domain.stdDmnGroupNm || '-' },
+                                { label: '분류', value: domain.stdDmnClsfNm || '-' },
+                                { label: '형식', value: domain.dataTypeNm || '-' },
+                                { label: '사용', value: domain.useYn || '-', tone: domain.useYn === 'Y' ? 'success' : 'warning' },
+                            ]}
+                        />
+
+                        <DetailSection title='기본 정보' description='현재 도메인의 식별값과 이름을 확인합니다.'>
+                            <DetailFields
+                                items={[
+                                    { label: 'ID', value: domain.id },
+                                    { label: '도메인 그룹', value: domain.stdDmnGroupNm || '-' },
+                                    { label: '도메인 분류', value: domain.stdDmnClsfNm || '-' },
+                                    { label: '도메인명', value: domain.stdDmnNm },
+                                    { label: '설명', value: domain.stdDmnExpln || '-' },
+                                ]}
+                            />
+                        </DetailSection>
+                    </div>
+                ) : null}
+            </DialogContent>
+        </Dialog>
+    );
+};

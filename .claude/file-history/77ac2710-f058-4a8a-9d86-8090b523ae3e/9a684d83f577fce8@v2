@@ -1,0 +1,337 @@
+# Auth 보안 개선 설계: localStorage → HttpOnly Cookie
+
+**작성일**: 2026-05-19
+**대상**: `backend/common/security/`, `backend/module/auth/`, `frontend/src/core/auth/`, `frontend/src/core/api/`
+**선행 문서**:
+- `docs/superpowers/specs/2026-05-03-code-structure-design.md`
+- `docs/superpowers/ygKim/01. system.md` (배포 제약: Node.js 실행 불가)
+
+---
+
+## 1. 문제 정의
+
+### 현재 구현
+
+```
+[Browser]
+  ├── localStorage.trmdict_token = "eyJ..."   ← JS 접근 가능 (XSS 취약)
+  └── axiosInstance: Authorization: Bearer {token}
+```
+
+| 취약점 | 설명 |
+|--------|------|
+| **XSS** | `localStorage`는 JS로 읽기 가능 → 악성 스크립트 삽입 시 토큰 탈취 |
+| **토큰 노출** | 브라우저 DevTools → Application → Local Storage에서 육안 확인 가능 |
+| **로그아웃 미완성** | 클라이언트에서만 삭제, 서버 무효화 없음 |
+
+### 제약사항 (방안 선택 기준)
+
+| 항목 | 내용 |
+|------|------|
+| 인프라 | Node.js 실행 불가 → BFF 방식 제외 |
+| 배포 형태 | React SPA 정적 빌드 → Spring Boot 단일 JAR (`/static/`) |
+| Java 버전 | 1.8 (Spring Boot 2.7.18) |
+| 도메인 | 단일 도메인 (`same-origin`) |
+| 사용자 규모 | 내부 행정 시스템 (소규모, RefreshToken 서버 관리 불필요) |
+
+---
+
+## 2. 방안 비교
+
+| 방식 | XSS 방어 | CSRF | 구현 복잡도 | 이 프로젝트 적합도 |
+|------|----------|------|-------------|------------------|
+| A. HttpOnly Cookie (단일 토큰) | ✅ | SameSite=Strict | **낮음** | ✅ **채택** |
+| B. 메모리(AccessToken) + HttpOnly Cookie(RefreshToken) | ✅ | SameSite | 높음 (DB/Redis 필요) | ❌ 과도한 복잡도 |
+| C. BFF | ✅ | 없음 | 높음 | ❌ Node.js 불가 |
+| D. 서버 세션 | ✅ | 없음 | 중간 | ❌ Stateless 포기 |
+
+---
+
+## 3. 채택 방안: HttpOnly Cookie (방안 A)
+
+### 동작 흐름
+
+```
+[Login]
+Browser → POST /api/v1/auth/login  {username, password}
+       ← 200 OK
+          Set-Cookie: trmdict_token={JWT}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=28800
+
+[이후 모든 API 요청]
+Browser → GET /api/v1/domains/search   (쿠키 자동 첨부, JS 개입 없음)
+       ← 200 OK
+
+[Logout]
+Browser → POST /api/v1/auth/logout
+       ← 200 OK
+          Set-Cookie: trmdict_token=; Max-Age=0   (쿠키 삭제)
+```
+
+### 쿠키 보안 속성
+
+| 속성 | 값 | 효과 |
+|------|-----|------|
+| `HttpOnly` | — | JS `document.cookie` 접근 불가 → XSS 방어 |
+| `Secure` | — | HTTPS에서만 전송 (`app.cookie.secure` 프로파일로 분리) |
+| `SameSite=Strict` | — | 크로스 사이트 요청 시 쿠키 미전송 → CSRF 방어 |
+| `Path=/api` | — | `/api` 경로에만 전송 (정적 리소스 요청 제외) |
+| `Max-Age=28800` | 8시간 | 현행 만료 유지 (480분) |
+
+### CSRF 방어 근거
+
+- `SameSite=Strict`: 다른 출처에서 시작된 요청에는 쿠키가 첨부되지 않음
+- 악성 사이트 `<form action="https://our-app/api/...">` 공격 성립 불가
+- Spring CSRF Synchronizer Token 추가 구현 불필요
+
+---
+
+## 4. 변경 상세 설계
+
+### 4.1 Backend
+
+#### CookieProperties (신규)
+
+```java
+// common/security/CookieProperties.java
+@Component
+public class CookieProperties {
+    @Value("${app.cookie.secure:false}")
+    private boolean secure;
+
+    public void addAuthCookie(HttpServletResponse response, String value, int maxAge) {
+        String cookie = String.format(
+            "trmdict_token=%s; HttpOnly; Path=/api; Max-Age=%d; SameSite=Strict%s",
+            value, maxAge, secure ? "; Secure" : ""
+        );
+        response.addHeader("Set-Cookie", cookie);
+    }
+
+    public void clearAuthCookie(HttpServletResponse response) {
+        addAuthCookie(response, "", 0);
+    }
+}
+```
+
+> **`javax.servlet.http.Cookie`는 SameSite 미지원 (Java 8 한계)** → `Set-Cookie` 헤더 직접 작성으로 해결.
+
+#### JwtAuthenticationFilter 변경 포인트
+
+```java
+// 변경 전: Authorization 헤더에서 추출
+String header = req.getHeader("Authorization");
+if (header != null && header.startsWith("Bearer ")) {
+    token = header.substring(7);
+}
+
+// 변경 후: 쿠키에서 추출
+private static final String COOKIE_NAME = "trmdict_token";
+
+Cookie[] cookies = req.getCookies();
+if (cookies != null) {
+    for (Cookie c : cookies) {
+        if (COOKIE_NAME.equals(c.getName())) {
+            token = c.getValue();
+            break;
+        }
+    }
+}
+```
+
+#### AuthController 변경 포인트
+
+```java
+// POST /login: 응답 body에서 accessToken 제거, 쿠키 발급
+@PostMapping("/login")
+public ApiResponse<LoginResponse> login(
+        @Valid @RequestBody LoginDto dto, HttpServletResponse response) {
+    AuthService.LoginResult result = authService.login(dto.getUsername(), dto.getPassword());
+    cookieProperties.addAuthCookie(response, result.getAccessToken(), (int) result.getExpiresIn());
+    AuthUserVo u = result.getUser();
+    return ApiResponse.success(new LoginResponse(
+            new UserSummary(u.getId(), u.getUsername(), u.getName(), u.getRole())
+    ));
+}
+
+// POST /logout: 신규 엔드포인트
+@PostMapping("/logout")
+public ApiResponse<Void> logout(HttpServletResponse response) {
+    cookieProperties.clearAuthCookie(response);
+    return ApiResponse.success(null);
+}
+```
+
+#### application yml 추가
+
+```yaml
+# application-local.yml
+app:
+  cookie:
+    secure: false
+
+# application-prod.yml
+app:
+  cookie:
+    secure: true
+```
+
+#### SecurityConfig — `permitAll` 추가
+
+```java
+.antMatchers("/api/v1/auth/login", "/api/v1/auth/logout").permitAll()
+```
+
+---
+
+### 4.2 Frontend
+
+#### axiosInstance.js
+
+```js
+// 변경: withCredentials 추가, request interceptor 삭제
+export const axiosInstance = axios.create({
+    baseURL: '/api/v1',
+    timeout: 30000,
+    withCredentials: true,           // 쿠키 자동 첨부
+    headers: { 'Content-Type': 'application/json' },
+});
+
+// request interceptor (Authorization 헤더 추가) → 완전 삭제
+// response interceptor (401 처리) → 유지
+```
+
+#### authUtils.js — 삭제
+
+- `getToken`, `setToken`, `removeToken`, `parseToken` 모두 불필요
+- 파일 삭제 후 import 제거
+
+#### useAuthStore.js
+
+```js
+// removeToken() 호출 제거
+export const useAuthStore = create((set) => ({
+    user: null,
+    isAuthenticated: false,
+    setUser: (user) => set({ user, isAuthenticated: !!user }),
+    logout: () => set({ user: null, isAuthenticated: false }),
+    // 쿠키 삭제는 authApi.logout() → POST /api/v1/auth/logout 에서 수행
+}));
+```
+
+#### LoginPage 변경 포인트
+
+```js
+// 변경 전
+const { accessToken, user } = response;
+setToken(accessToken);   // 삭제
+setUser(user);
+
+// 변경 후
+const { user } = response;
+setUser(user);
+```
+
+#### providers.jsx — 새로고침 시 인증 복원 (신규)
+
+```jsx
+// 앱 초기화 시 /me 호출로 Zustand 상태 복원
+// (쿠키 잔존 시 자동 인증, 없으면 null 유지)
+useEffect(() => {
+    authApi.getMe()
+        .then((user) => setUser(user))
+        .catch(() => {/* 미인증 상태 유지 */});
+}, []);
+```
+
+> **현재도 동일 문제 존재**: localStorage 토큰은 남아있어도 Zustand `user`가 null이면 ProtectedRoute가 `/login`으로 리다이렉트. 쿠키 전환과 함께 이 문제도 함께 해결.
+
+---
+
+## 5. API 스키마 변경
+
+### POST /api/v1/auth/login
+
+```json
+// 변경 전 Response body
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJ...",
+    "tokenType": "Bearer",
+    "expiresIn": 28800,
+    "user": { "id": 1, "username": "admin", "name": "관리자", "role": "ADMIN" }
+  }
+}
+
+// 변경 후 Response body (Set-Cookie 헤더로 대체)
+{
+  "success": true,
+  "data": {
+    "user": { "id": 1, "username": "admin", "name": "관리자", "role": "ADMIN" }
+  }
+}
+```
+
+### POST /api/v1/auth/logout (신규)
+
+```
+Request: (body 없음, 쿠키 자동 첨부)
+Response: Set-Cookie: trmdict_token=; Max-Age=0
+          { "success": true, "data": null }
+```
+
+---
+
+## 6. 구현 순서
+
+```
+[1] Backend — CookieProperties 빈 신규 작성
+    검증: 빈 등록 확인
+
+[2] Backend — JwtAuthenticationFilter: 쿠키에서 토큰 읽기로 변경
+    검증: curl --cookie "trmdict_token=eyJ..." /api/v1/auth/me → 200
+
+[3] Backend — AuthController: 쿠키 발급 + logout 엔드포인트
+    검증: POST /login 응답 헤더에 Set-Cookie 확인
+          POST /logout 응답 헤더에 Max-Age=0 확인
+
+[4] Backend — application yml: app.cookie.secure 추가
+    검증: local 프로파일에서 Secure 없이 동작 확인
+
+[5] Frontend — axiosInstance: withCredentials, request interceptor 제거
+    검증: Network 탭에서 쿠키 자동 첨부 확인
+
+[6] Frontend — authUtils.js 삭제, import 전체 제거
+    검증: npm run build 통과
+
+[7] Frontend — useAuthStore: removeToken 코드 제거
+    검증: logout 시 쿠키 Max-Age=0 응답 확인
+
+[8] Frontend — LoginPage: accessToken 저장 코드 제거
+    검증: 로그인 → 새로고침 → 인증 유지 (쿠키 + /me 복원)
+
+[9] Frontend — providers.jsx: 초기화 /me 호출 추가
+    검증: 브라우저 새로고침 후 로그인 상태 유지
+
+[10] 통합 테스트
+    - 로그인 → 메뉴 순회 → 로그아웃 → 재접근 → 리다이렉트
+    - DevTools Cookies에서 trmdict_token 확인 (값 읽기 불가)
+```
+
+---
+
+## 7. 영향 파일 목록
+
+**Backend (신규/변경)**
+- `common/security/CookieProperties.java` — 신규
+- `common/security/JwtAuthenticationFilter.java` — 쿠키 읽기로 변경
+- `common/security/SecurityConfig.java` — logout permitAll 추가, CookieProperties 주입
+- `module/auth/controller/AuthController.java` — 쿠키 발급, logout 추가, LoginResponse 변경
+- `resources/application-local.yml` — `app.cookie.secure: false`
+- `resources/application-prod.yml` — `app.cookie.secure: true`
+
+**Frontend (변경/삭제)**
+- `src/core/api/axiosInstance.js` — `withCredentials`, interceptor 정리
+- `src/core/auth/authUtils.js` — 삭제
+- `src/store/useAuthStore.js` — token 코드 제거
+- `src/features/auth/LoginPage.jsx` — accessToken 저장 코드 제거
+- `src/app/providers.jsx` — 초기화 `/me` 호출 추가

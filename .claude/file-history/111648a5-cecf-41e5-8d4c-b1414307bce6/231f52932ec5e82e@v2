@@ -1,0 +1,49 @@
+import fs from "node:fs";
+import path from "node:path";
+import type { Macro } from "./types.js";
+
+const MACROS_DIR = path.join(process.cwd(), "data", "macros");
+
+function ensureDir() {
+  if (!fs.existsSync(MACROS_DIR)) {
+    fs.mkdirSync(MACROS_DIR, { recursive: true });
+  }
+}
+
+function assertSafeId(id: string): void {
+  if (!/^[\w-]+$/.test(id)) {
+    throw new Error(`Invalid macro id: ${id}`);
+  }
+}
+
+function filePath(id: string) {
+  assertSafeId(id);
+  ensureDir();
+  return path.join(MACROS_DIR, `${id}.json`);
+}
+
+export function listMacros(): Macro[] {
+  ensureDir();
+  return fs
+    .readdirSync(MACROS_DIR)
+    .filter((entry) => entry.endsWith(".json"))
+    .map((entry) => JSON.parse(fs.readFileSync(path.join(MACROS_DIR, entry), "utf-8")) as Macro);
+}
+
+export function getMacro(id: string): Macro | null {
+  const target = filePath(id);
+  if (!fs.existsSync(target)) return null;
+  return JSON.parse(fs.readFileSync(target, "utf-8")) as Macro;
+}
+
+export function saveMacro(macro: Macro): void {
+  ensureDir();
+  fs.writeFileSync(filePath(macro.id), JSON.stringify(macro, null, 2), "utf-8");
+}
+
+export function deleteMacro(id: string): boolean {
+  const target = filePath(id);
+  if (!fs.existsSync(target)) return false;
+  fs.unlinkSync(target);
+  return true;
+}

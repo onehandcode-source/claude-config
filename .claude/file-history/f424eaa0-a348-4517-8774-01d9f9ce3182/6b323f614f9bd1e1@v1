@@ -1,0 +1,270 @@
+'use client';
+
+import { useState } from 'react';
+import { TestScenario, TestAction } from '@/lib/types';
+import ActionBuilder from './ActionBuilder';
+
+interface ScenarioFormProps {
+  onScenarioCreate: (scenario: TestScenario) => void;
+}
+
+export default function ScenarioForm({ onScenarioCreate }: ScenarioFormProps) {
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    baseUrl: 'https://example.com',
+  });
+  const [actions, setActions] = useState<TestAction[]>([]);
+  const [jsonInput, setJsonInput] = useState('');
+  const [inputMode, setInputMode] = useState<'form' | 'json'>('form');
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddAction = (action: TestAction) => {
+    setActions((prev) => [...prev, action]);
+  };
+
+  const handleRemoveAction = (index: number) => {
+    setActions((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleLoadJson = () => {
+    try {
+      const parsed = JSON.parse(jsonInput);
+      if (parsed.name && parsed.baseUrl && Array.isArray(parsed.actions)) {
+        setFormData({
+          name: parsed.name,
+          description: parsed.description || '',
+          baseUrl: parsed.baseUrl,
+        });
+        setActions(parsed.actions);
+        setInputMode('form');
+        alert('✅ JSON loaded successfully!');
+      } else {
+        alert('❌ Invalid JSON format. Required: name, baseUrl, actions[]');
+      }
+    } catch (error) {
+      alert(`❌ JSON parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.name || !formData.baseUrl || actions.length === 0) {
+      alert('❌ Please fill in all required fields and add at least one action');
+      return;
+    }
+
+    const scenario: TestScenario = {
+      id: `scenario_${Date.now()}`,
+      name: formData.name,
+      description: formData.description,
+      baseUrl: formData.baseUrl,
+      actions,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    onScenarioCreate(scenario);
+  };
+
+  const handleExportJson = () => {
+    const scenario = {
+      name: formData.name,
+      description: formData.description,
+      baseUrl: formData.baseUrl,
+      actions,
+    };
+    const json = JSON.stringify(scenario, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${formData.name || 'scenario'}.json`;
+    a.click();
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="card mb-6">
+        <h2 className="text-2xl font-bold mb-6">📝 Create Test Scenario</h2>
+
+        {/* 입력 모드 선택 */}
+        <div className="flex gap-4 mb-6 border-b pb-4">
+          <button
+            onClick={() => setInputMode('form')}
+            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+              inputMode === 'form'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+            }`}
+          >
+            Form Input
+          </button>
+          <button
+            onClick={() => setInputMode('json')}
+            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+              inputMode === 'json'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+            }`}
+          >
+            JSON Input
+          </button>
+        </div>
+
+        {/* JSON 입력 모드 */}
+        {inputMode === 'json' && (
+          <div className="mb-6">
+            <label className="block text-sm font-semibold mb-2">
+              JSON Scenario
+            </label>
+            <textarea
+              value={jsonInput}
+              onChange={(e) => setJsonInput(e.target.value)}
+              placeholder={`{
+  "name": "Login Test",
+  "baseUrl": "https://example.com",
+  "description": "Test login flow",
+  "actions": [
+    {
+      "type": "navigate",
+      "url": "https://example.com/login",
+      "description": "Go to login page"
+    }
+  ]
+}`}
+              className="w-full h-64 p-4 border border-gray-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+            />
+            <button
+              onClick={handleLoadJson}
+              className="btn-primary mt-3"
+            >
+              Load from JSON
+            </button>
+          </div>
+        )}
+
+        {/* 폼 입력 모드 */}
+        {inputMode === 'form' && (
+          <form onSubmit={handleSubmit}>
+            {/* 기본 정보 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Scenario Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleFormChange}
+                  placeholder="e.g., Login Flow Test"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Base URL *
+                </label>
+                <input
+                  type="url"
+                  name="baseUrl"
+                  value={formData.baseUrl}
+                  onChange={handleFormChange}
+                  placeholder="https://example.com"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2">
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleFormChange}
+                placeholder="Describe your test scenario..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                rows={3}
+              />
+            </div>
+
+            {/* 액션 빌더 */}
+            <div className="mt-8">
+              <h3 className="text-lg font-bold mb-4">Test Actions</h3>
+              <ActionBuilder onAddAction={handleAddAction} />
+            </div>
+
+            {/* 액션 리스트 */}
+            {actions.length > 0 && (
+              <div className="mt-6 bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-4">Added Actions ({actions.length})</h4>
+                <div className="space-y-2">
+                  {actions.map((action, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center bg-white p-3 rounded border border-gray-200"
+                    >
+                      <div className="flex-1">
+                        <span className="font-semibold text-blue-600">{action.type}</span>
+                        {action.description && (
+                          <span className="ml-2 text-gray-600">- {action.description}</span>
+                        )}
+                        {action.selector && (
+                          <div className="text-sm text-gray-500 mt-1">
+                            Selector: <code className="bg-gray-100 px-2 py-1 rounded">{action.selector}</code>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleRemoveAction(index)}
+                        className="ml-4 px-3 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 액션 제출 버튼 */}
+            <div className="flex gap-3 mt-8">
+              <button type="submit" className="btn-success flex-1">
+                ✅ Create Scenario
+              </button>
+              <button
+                type="button"
+                onClick={handleExportJson}
+                className="btn-secondary"
+              >
+                📥 Export as JSON
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* 예제 */}
+      <div className="card bg-blue-50 border border-blue-200">
+        <h3 className="font-bold text-blue-900 mb-3">💡 Example Actions</h3>
+        <ul className="text-sm text-blue-800 space-y-2">
+          <li>• <strong>navigate</strong>: Go to a URL</li>
+          <li>• <strong>click</strong>: Click an element by CSS selector</li>
+          <li>• <strong>fill</strong>: Type text into an input field</li>
+          <li>• <strong>select</strong>: Select an option from dropdown</li>
+          <li>• <strong>wait</strong>: Wait for specified milliseconds</li>
+          <li>• <strong>screenshot</strong>: Capture page screenshot</li>
+          <li>• <strong>evaluate</strong>: Execute JavaScript code</li>
+        </ul>
+      </div>
+    </div>
+  );
+}

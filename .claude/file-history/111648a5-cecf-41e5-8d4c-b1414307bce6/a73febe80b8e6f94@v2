@@ -1,0 +1,28 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { deleteMacro, getMacro, saveMacro } from "@/lib/macro-manager";
+
+export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
+  const macro = getMacro(params.id);
+  if (!macro) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+  return NextResponse.json({ success: true, data: macro });
+}
+
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const existing = getMacro(params.id);
+    if (!existing) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+    const body = await request.json();
+    const updated = { ...existing, ...body, id: params.id, updatedAt: new Date().toISOString() };
+    saveMacro(updated);
+    return NextResponse.json({ success: true, data: updated });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}
+
+export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+  const deleted = deleteMacro(params.id);
+  if (!deleted) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+  return NextResponse.json({ success: true });
+}

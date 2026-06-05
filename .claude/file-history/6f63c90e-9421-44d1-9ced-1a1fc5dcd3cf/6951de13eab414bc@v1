@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egov.sia.fileRestoreMng.mapper.FileRestoreMngMapper">
+
+    <resultMap id="fileRestoreMng" type="egov.sia.fileSyncMng.vo.FileSyncMngVO">
+        <result property="cNo"   column="C_NO"/>
+        <result property="sttemntNo"   column="STTEMNT_NO"/>
+        <result property="cATitle"   column="C_A_TITLE"/>
+        <result property="cDate"   column="C_DATE"/>
+        <result property="fileCnt"   column="FILE_CNT"/>
+        <result property="imageCnt"   column="IMAGE_CNT"/>
+        <result property="videoCnt"   column="VIDEO_CNT"/>
+        <result property="fileQCNo"   column="FILEQ_C_NO"/>
+    </resultMap>
+
+    <select id="selectRestoreSingoList" parameterType="egov.sia.fileSyncMng.dto.FileSyncMngDto" resultMap="fileRestoreMng">
+        <include refid="CommonMapper.pageHeader" />
+        <include refid="list_restoreSingoList" />
+        <include refid="CommonMapper.pageFooter" />
+    </select>
+
+    <select id="selectRestoreSingoListCnt" parameterType="egov.sia.fileSyncMng.dto.FileSyncMngDto" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM (
+            <include refid="list_restoreSingoList" />
+        ) LIST
+    </select>
+
+    <sql id="list_restoreSingoList">
+        SELECT
+            S.C_NO AS FILEQ_C_NO /* 신고 고유번호를 fileQCNo에 매핑하여 사용 (AtchFileServiceImpl 구조 호환용) */
+            , S.C_NO
+            , S.STTEMNT_NO
+            , S.C_A_TITLE
+            , S.C_DATE
+            , (SELECT COUNT(*) FROM SAFEIDB.TBL_FILEQ FQ WHERE FQ.C_SINGO_NO = S.C_NO) AS FILE_CNT
+            , (SELECT COUNT(*) FROM SAFEIDB.TBL_FILEQ FQ WHERE FQ.C_SINGO_NO = S.C_NO AND FQ.FILE_TY = 'I') AS IMAGE_CNT
+            , (SELECT COUNT(*) FROM SAFEIDB.TBL_FILEQ FQ WHERE FQ.C_SINGO_NO = S.C_NO AND FQ.FILE_TY = 'V') AS VIDEO_CNT
+        FROM SAFEIDB.TBL_SINGO S
+        <where>
+            EXISTS (
+                SELECT 1 FROM SAFEIDB.TBL_FILEQ FQ WHERE FQ.C_SINGO_NO = S.C_NO
+            )
+            <if test=' (cFrmDate != "" and cFrmDate != null)'>
+                AND S.C_DATE <![CDATA[ >= ]]> TO_DATE(#{cFrmDate} ||' 000000', 'YYYY-MM-DD HH24MISS')
+            </if>
+            <if test=' (cToDate != "" and cToDate != null)'>
+                AND S.C_DATE <![CDATA[ <= ]]> TO_DATE(#{cToDate} ||' 235959', 'YYYY-MM-DD HH24MISS')
+            </if>
+            <if test=' sttemntNo != "SPP-" and sttemntNo != "EPP-" and sttemntNo != "" and sttemntNo != null '>
+                AND S.STTEMNT_NO LIKE '%' || #{sttemntNo} || '%'
+            </if>
+        </where>
+        ORDER BY S.C_DATE DESC
+    </sql>
+
+</mapper>

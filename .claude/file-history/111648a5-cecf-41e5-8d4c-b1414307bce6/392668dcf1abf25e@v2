@@ -1,0 +1,354 @@
+"use client";
+
+import { normalizeLocator } from "@/lib/locator-utils";
+import type { AnyStep, StepLocator } from "@/lib/types";
+
+interface StepEditorProps {
+  step: AnyStep;
+  platform?: "web" | "android";
+  onChange: (step: AnyStep) => void;
+  onRemove: () => void;
+}
+
+const WEB_STEP_TYPES = [
+  "navigate",
+  "click",
+  "mapClick",
+  "fill",
+  "select",
+  "wait",
+  "screenshot",
+  "evaluate",
+  "dbQuery",
+  "switchTab",
+] as const;
+
+const ANDROID_STEP_TYPES = [
+  "navigate",
+  "tap",
+  "fill",
+  "select",
+  "swipe",
+  "pressBack",
+  "wait",
+  "screenshot",
+  "switchTab",
+] as const;
+
+const STEP_TYPE_LABELS: Record<string, string> = {
+  navigate: "페이지 이동",
+  click: "클릭",
+  mapClick: "지도 클릭",
+  fill: "입력",
+  select: "선택",
+  wait: "대기",
+  screenshot: "스크린샷",
+  evaluate: "스크립트 실행",
+  dbQuery: "DB 조회",
+  switchTab: "탭 전환",
+  tap: "탭",
+  swipe: "스와이프",
+  pressBack: "뒤로가기",
+};
+
+function coerceStep(type: string): AnyStep {
+  switch (type) {
+    case "navigate":
+      return { type: "navigate", url: "", description: "" };
+    case "click":
+      return { type: "click", locator: {}, description: "" };
+    case "mapClick":
+      return { type: "mapClick", locator: {}, x: 0, y: 0, description: "" };
+    case "fill":
+      return { type: "fill", locator: {}, text: "", description: "" };
+    case "select":
+      return { type: "select", locator: {}, text: "", description: "" };
+    case "wait":
+      return { type: "wait", milliseconds: 1000, description: "" };
+    case "screenshot":
+      return { type: "screenshot", description: "" };
+    case "evaluate":
+      return { type: "evaluate", script: "", description: "" };
+    case "dbQuery":
+      return { type: "dbQuery", queryId: "", query: "", description: "" };
+    case "switchTab":
+      return { type: "switchTab", index: 0, description: "" };
+    case "tap":
+      return { type: "tap", locator: {}, description: "" };
+    case "swipe":
+      return { type: "swipe", direction: "down", distance: 300, description: "" };
+    case "pressBack":
+      return { type: "pressBack", description: "" };
+    default:
+      return { type: "navigate", url: "", description: "" };
+  }
+}
+
+type LocatorStep = Extract<AnyStep, { locator?: StepLocator }>;
+
+function isLocatorStep(step: AnyStep): step is LocatorStep {
+  return (
+    step.type === "click" ||
+    step.type === "mapClick" ||
+    step.type === "fill" ||
+    step.type === "select" ||
+    step.type === "tap"
+  );
+}
+
+function getEditorLocator(step: AnyStep): StepLocator {
+  if (!isLocatorStep(step)) {
+    return {};
+  }
+
+  return normalizeLocator(step.locator, (step as { selector?: string }).selector) ?? {};
+}
+
+export function StepEditor({ step, platform = "web", onChange, onRemove }: StepEditorProps) {
+  function update(patch: Partial<AnyStep>) {
+    onChange({ ...step, ...patch } as AnyStep);
+  }
+
+  function updateLocator(patch: Partial<StepLocator>) {
+    if (!isLocatorStep(step)) {
+      return;
+    }
+
+    const currentLocator = getEditorLocator(step);
+    onChange({
+      ...step,
+      locator: { ...currentLocator, ...patch },
+      selector: undefined,
+    } as AnyStep);
+  }
+
+  const stepTypes = platform === "android" ? ANDROID_STEP_TYPES : WEB_STEP_TYPES;
+  const typeInList = (stepTypes as readonly string[]).includes(step.type);
+
+  return (
+    <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          className="rounded border px-2 py-1 text-sm"
+          value={step.type}
+          onChange={(event) => onChange(coerceStep(event.target.value))}
+        >
+          {!typeInList && (
+            <option value={step.type}>
+              {STEP_TYPE_LABELS[step.type] ?? step.type} (호환 안됨)
+            </option>
+          )}
+          {stepTypes.map((type) => (
+            <option key={type} value={type}>
+              {STEP_TYPE_LABELS[type]}
+            </option>
+          ))}
+        </select>
+        <input
+          className="flex-1 rounded border px-2 py-1 text-sm"
+          placeholder="설명"
+          value={step.description ?? ""}
+          onChange={(event) => update({ description: event.target.value })}
+        />
+        <button className="text-sm text-red-600" type="button" onClick={onRemove}>
+          삭제
+        </button>
+      </div>
+
+      {step.type === "navigate" && (
+        <input
+          className="w-full rounded border px-2 py-1 text-sm"
+          placeholder="URL"
+          value={step.url}
+          onChange={(event) => update({ url: event.target.value } as Partial<AnyStep>)}
+        />
+      )}
+
+      {isLocatorStep(step) && (
+        <div className="space-y-3 rounded-lg border bg-background p-3">
+          <div>
+            <p className="text-sm font-medium">Locator 우선순위</p>
+            <p className="text-xs text-muted-foreground">
+              1. getByRole() 2. getByLabel() 3. getByPlaceholder() 4. getByText() 5. getByTestId()
+            </p>
+          </div>
+
+          <div className="grid gap-2 md:grid-cols-2">
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Role 예: button, checkbox, textbox"
+              value={getEditorLocator(step).role ?? ""}
+              onChange={(event) => updateLocator({ role: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Accessible Name 예: 로그인"
+              value={getEditorLocator(step).name ?? ""}
+              onChange={(event) => updateLocator({ name: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Label 텍스트"
+              value={getEditorLocator(step).label ?? ""}
+              onChange={(event) => updateLocator({ label: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Placeholder 텍스트"
+              value={getEditorLocator(step).placeholder ?? ""}
+              onChange={(event) => updateLocator({ placeholder: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="화면 텍스트"
+              value={getEditorLocator(step).text ?? ""}
+              onChange={(event) => updateLocator({ text: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="data-testid 값"
+              value={getEditorLocator(step).testId ?? ""}
+              onChange={(event) => updateLocator({ testId: event.target.value })}
+            />
+          </div>
+
+          <input
+            className="col-span-2 rounded border px-2 py-1 text-sm"
+            placeholder="iframe selector 예: iframe[title='우편번호 검색 프레임']"
+            value={getEditorLocator(step).frame ?? ""}
+            onChange={(event) => updateLocator({ frame: event.target.value })}
+          />
+
+          <details className="rounded border border-dashed p-2">
+            <summary className="cursor-pointer text-xs text-muted-foreground">
+              기존 selector fallback
+            </summary>
+            <input
+              className="mt-2 w-full rounded border px-2 py-1 text-sm"
+              placeholder="기존 CSS selector"
+              value={getEditorLocator(step).selector ?? ""}
+              onChange={(event) => updateLocator({ selector: event.target.value })}
+            />
+          </details>
+
+          {(step.type === "fill" || step.type === "select") && (
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder={step.type === "fill" ? "입력값" : "선택값"}
+              value={step.text}
+              onChange={(event) => update({ text: event.target.value } as Partial<AnyStep>)}
+            />
+          )}
+
+          {step.type === "mapClick" && (
+            <div className="grid gap-2 md:grid-cols-3">
+              <input
+                className="rounded border px-2 py-1 text-sm"
+                placeholder="X 좌표"
+                type="number"
+                value={step.x}
+                onChange={(event) =>
+                  update({ x: Number(event.target.value || "0") } as Partial<AnyStep>)
+                }
+              />
+              <input
+                className="rounded border px-2 py-1 text-sm"
+                placeholder="Y 좌표"
+                type="number"
+                value={step.y}
+                onChange={(event) =>
+                  update({ y: Number(event.target.value || "0") } as Partial<AnyStep>)
+                }
+              />
+              <div className="flex items-center text-xs text-muted-foreground">
+                locator 대상 요소 기준 상대 좌표
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {step.type === "swipe" && (
+        <div className="grid gap-2 md:grid-cols-2">
+          <select
+            className="rounded border px-2 py-1 text-sm"
+            value={step.direction}
+            onChange={(event) =>
+              update({
+                direction: event.target.value as "up" | "down" | "left" | "right",
+              } as Partial<AnyStep>)
+            }
+          >
+            <option value="up">위로</option>
+            <option value="down">아래로</option>
+            <option value="left">왼쪽</option>
+            <option value="right">오른쪽</option>
+          </select>
+          <input
+            className="rounded border px-2 py-1 text-sm"
+            type="number"
+            min={0}
+            placeholder="거리 (px, 기본 300)"
+            value={step.distance ?? 300}
+            onChange={(event) =>
+              update({ distance: Number(event.target.value || "300") } as Partial<AnyStep>)
+            }
+          />
+        </div>
+      )}
+
+      {step.type === "wait" && (
+        <input
+          className="w-full rounded border px-2 py-1 text-sm"
+          type="number"
+          min={0}
+          value={step.milliseconds}
+          onChange={(event) =>
+            update({ milliseconds: Number(event.target.value || "0") } as Partial<AnyStep>)
+          }
+        />
+      )}
+
+      {step.type === "evaluate" && (
+        <textarea
+          className="w-full rounded border px-2 py-1 font-mono text-sm"
+          rows={3}
+          placeholder="JavaScript"
+          value={step.script}
+          onChange={(event) => update({ script: event.target.value } as Partial<AnyStep>)}
+        />
+      )}
+
+      {step.type === "switchTab" && (
+        <input
+          className="w-full rounded border px-2 py-1 text-sm"
+          type="number"
+          min={0}
+          placeholder="탭 인덱스 (0부터 시작)"
+          value={step.index}
+          onChange={(event) =>
+            update({ index: Number(event.target.value || "0") } as Partial<AnyStep>)
+          }
+        />
+      )}
+
+      {step.type === "dbQuery" && (
+        <div className="space-y-2">
+          <input
+            className="w-full rounded border px-2 py-1 text-sm"
+            placeholder="Query ID"
+            value={step.queryId}
+            onChange={(event) => update({ queryId: event.target.value } as Partial<AnyStep>)}
+          />
+          <textarea
+            className="w-full rounded border px-2 py-1 font-mono text-sm"
+            rows={4}
+            placeholder="SELECT * FROM ..."
+            value={step.query}
+            onChange={(event) => update({ query: event.target.value } as Partial<AnyStep>)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}

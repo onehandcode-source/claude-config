@@ -1,0 +1,104 @@
+import { getLocatorSummary } from "./locator-utils.ts";
+import type { AnyStep, TestCase } from "./types.js";
+
+export interface ScenarioDiagramStep {
+  id: string;
+  stepIndex: number;
+  label: string;
+  summary: string;
+  description?: string;
+}
+
+export interface ScenarioDiagramGroup {
+  id: string;
+  title: string;
+  subtitle: string;
+  steps: ScenarioDiagramStep[];
+}
+
+function getStepLabel(step: AnyStep): string {
+  switch (step.type) {
+    case "navigate":
+      return "페이지 이동";
+    case "click":
+      return "클릭";
+    case "mapClick":
+      return "지도 클릭";
+    case "fill":
+      return "입력";
+    case "select":
+      return "선택";
+    case "wait":
+      return "대기";
+    case "screenshot":
+      return "스크린샷";
+    case "evaluate":
+      return "스크립트 실행";
+    case "dbQuery":
+      return "DB 조회";
+    case "switchTab":
+      return "탭 전환";
+    case "tap":
+      return "탭";
+    case "swipe":
+      return "스와이프";
+    case "pressBack":
+      return "뒤로가기";
+  }
+}
+
+function getStepSummary(step: AnyStep): string {
+  switch (step.type) {
+    case "navigate":
+      return step.url;
+    case "click":
+      return getLocatorSummary(step.locator, step.selector);
+    case "mapClick":
+      return `${getLocatorSummary(step.locator, step.selector)} @ (${step.x}, ${step.y})`;
+    case "fill":
+      return `${getLocatorSummary(step.locator, step.selector)} ← ${step.text}`;
+    case "select":
+      return `${getLocatorSummary(step.locator, step.selector)} ← ${step.text}`;
+    case "wait":
+      return `${step.milliseconds}ms`;
+    case "screenshot":
+      return "현재 화면 캡처";
+    case "evaluate":
+      return "사용자 스크립트 실행";
+    case "dbQuery":
+      return step.queryId;
+    case "switchTab":
+      return `탭 ${step.index}`;
+    case "tap":
+      return getLocatorSummary(step.locator, step.selector);
+    case "swipe":
+      return `${step.direction} ${step.distance ?? 300}px`;
+    case "pressBack":
+      return "뒤로가기";
+  }
+}
+
+export function buildScenarioDiagram(testCases: TestCase[]): ScenarioDiagramGroup[] {
+  return testCases.map((testCase) => ({
+    id: testCase.id,
+    title: testCase.name,
+    subtitle: testCase.baseUrl,
+    steps:
+      testCase.steps.length > 0
+        ? testCase.steps.map((step, index) => ({
+            id: `${testCase.id}-${index}`,
+            stepIndex: index,
+            label: getStepLabel(step),
+            summary: getStepSummary(step),
+            description: step.description?.trim() || undefined,
+          }))
+        : [
+            {
+              id: `${testCase.id}-empty`,
+              stepIndex: -1,
+              label: "Step 없음",
+              summary: "아직 등록된 step이 없습니다.",
+            },
+          ],
+  }));
+}

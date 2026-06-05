@@ -1,0 +1,36 @@
+'use client'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+
+const navItems = [
+  { href: '/admin/dashboard', label: '대시보드' },
+  { href: '/admin/domain', label: '도메인' },
+  { href: '/admin/word', label: '단어' },
+  { href: '/admin/term', label: '용어' },
+  { href: '/admin/forbidden', label: '금지어' },
+  { href: '/admin/import', label: 'Import' },
+  { href: '/admin/inspection', label: '검수' },
+  { href: '/admin/settings', label: '설정' },
+]
+
+export function Sidebar() {
+  const pathname = usePathname()
+  return (
+    <aside className="w-64 min-h-screen bg-slate-900 text-white p-4">
+      <h1 className="text-lg font-bold mb-8">용어 사전</h1>
+      <nav className="space-y-1">
+        {navItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`block px-3 py-2 rounded text-sm ${
+              pathname.startsWith(item.href) ? 'bg-slate-700' : 'hover:bg-slate-800'
+            }`}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+    </aside>
+  )
+}

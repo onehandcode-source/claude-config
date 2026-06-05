@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 통합 모니터링 — 전체 아키텍처</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 28px 32px;
+      min-width: 1440px;
+    }
+
+    /* ── 헤더 ── */
+    .page-header { text-align: center; margin-bottom: 20px; }
+    .page-header h1 { font-size: 22px; font-weight: 700; color: #f0f6fc; margin-bottom: 5px; }
+
+    /* ── 범례 ── */
+    .legend { display: flex; gap: 18px; justify-content: center; margin-bottom: 22px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8b949e; }
+    .legend-dot  { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .dot-existing { background: #b45309; border: 1px solid #f97316; }
+    .dot-new      { background: #1a3424; border: 1px solid #3fb950; }
+    .dot-internet { background: #0c1929; border: 2px solid #3b82f6; }
+    .dot-intranet { background: #1a1200; border: 2px solid #d29922; }
+    .dot-rpm      { background: #374151; border: 1px dashed #9ca3af; }
+    .dot-docker   { background: #2496ed; border: 1px solid #ffffff; }
+    .dot-plugin   { background: #1a0a2e; border: 1.5px solid #a855f7; }
+    .dot-llm      { background: #150f2a; border: 1.5px dashed #7c3aed; }
+
+    /* ── 최상위 ── */
+    .main-wrap { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+    /* ── 공용 섹션 ── */
+    .section { width: 100%; max-width: 1380px; border-radius: 12px; padding: 16px 18px; }
+    .sec-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.1px;
+      text-transform: uppercase; margin-bottom: 12px; opacity: 0.8;
+    }
+
+    /* ── 배포/설정 관리 ── */
+    .sec-deploy { background: #161b22; border: 1.5px solid #1f4068; }
+    .sec-deploy .sec-label { color: #58a6ff; }
+    .deploy-inner { display: flex; gap: 12px; }
+    .deploy-card {
+      flex: 1; background: #0d1117; border: 1px solid #1f4068;
+      border-radius: 8px; padding: 12px 14px;
+    }
+    .deploy-card h3 { font-size: 12px; font-weight: 600; color: #58a6ff; margin-bottom: 8px; }
+    .mono { font-size: 11px; font-family: monospace; color: #8b949e; line-height: 2; }
+    .mono .hl  { color: #e3b341; }
+    .mono .ok  { color: #3fb950; }
+    .mono .bad { color: #f87171; }
+    .mono .pl  { color: #c084fc; }
+
+    /* ── 연결선 ── */
+    .vconn { display: flex; flex-direction: column; align-items: center; padding: 15px 0; }
+    .vline { width: 2px; height: 14px; background: #444c56; }
+    .vtag  {
+      font-size: 13px; font-weight: 700; color: #f0f6fc; background: #1f2937;
+      padding: 6px 24px; border-radius: 20px; border: 2px solid #3b82f6;
+      white-space: nowrap; margin: 4px 0;
+      box-shadow: 0 0 15px rgba(59,130,246,0.3);
+    }
+
+    /* ── 현장 섹션 ── */
+    .sec-site { background: #161b22; border: 1.5px solid #238636; }
+    .sec-site > .sec-label { color: #3fb950; }
+
+    /* ── 그리드 (3열 × 2행) ── */
+    .site-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.2fr;
+      grid-template-rows: auto auto;
+      gap: 12px;
+    }
+    .cell-internet { grid-column: 1; grid-row: 1; }
+    .cell-intranet { grid-column: 2; grid-row: 1; }
+    .cell-infra    { grid-column: 3; grid-row: 1; }
+    .cell-mon      { grid-column: 1 / 3; grid-row: 2; }
+    .cell-llm      { grid-column: 3;     grid-row: 2; }
+
+    /* ── 망 박스 ── */
+    .net-box {
+      border-radius: 10px; padding: 12px 14px; height: 100%;
+      display: flex; flex-direction: column;
+    }
+    .net-internet { background: #0c1929; border: 1.5px solid #3b82f6; }
+    .net-intranet { background: #1a1200; border: 1.5px solid #d29922; }
+    .net-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+      text-transform: uppercase; margin-bottom: 10px;
+    }
+    .net-internet .net-label { color: #3b82f6; }
+    .net-intranet .net-label { color: #d29922; }
+
+    /* ── 엣지 서버 카드 ── */
+    .edge-card {
+      background: #091826; border: 1.5px solid #60a5fa;
+      border-radius: 8px; padding: 9px 10px;
+    }
+    .net-intranet .edge-card { background: #1a1000; border-color: #f59e0b; }
+    .edge-header { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; flex-wrap: wrap; }
+    .edge-badge {
+      font-size: 8px; font-weight: 700; letter-spacing: 0.5px;
+      background: #1d4ed8; color: #bfdbfe;
+      padding: 2px 6px; border-radius: 3px;
+    }
+    .net-intranet .edge-badge { background: #92400e; color: #fde68a; }
+    .edge-name { font-size: 12px; font-weight: 700; color: #e6edf3; }
+    .edge-ip   { font-size: 10px; font-family: monospace; color: #7d8590; margin-left: auto; }
+    .otlp-out {
+      margin-top: 7px; font-size: 10px; font-family: monospace;
+      color: #22d3ee; text-align: right;
+      padding: 3px 7px; background: #081e22;
+      border-radius: 4px; border: 1px solid #06b6d4;
+    }
+    .zone-arrow {
+      text-align: center; font-size: 11px; color: #444c56;
+      padding: 5px 0; font-family: monospace; letter-spacing: 1px;
+    }
+
+    /* ── 서버 풀 카드 ── */
+    .pool-card {
+      background: #0d1117; border: 1px dashed #30363d;
+      border-radius: 8px; padding: 9px 10px;
+    }
+    .net-intranet .pool-card { border-color: #3a2800; }
+    .pool-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .pool-label { font-size: 11px; color: #8b949e; font-weight: 600; }
+    .pool-count {
+      font-size: 11px; font-weight: 700; color: #60a5fa;
+      background: #0c1929; padding: 1px 8px;
+      border-radius: 10px; border: 1px solid #1d4ed8;
+    }
+    .net-intranet .pool-count { color: #fbbf24; background: #1a1000; border-color: #92400e; }
+
+    /* ── 컴포넌트 ── */
+    .comp {
+      border-radius: 5px; padding: 5px 8px;
+      display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .comp:last-child { margin-bottom: 0; }
+    .comp-e { background: #2d1810; border: 1px solid #92400e; }
+    .comp-n { background: #0d1f12; border: 1px solid #166534; }
+    .comp-name { font-size: 11px; font-weight: 600; flex: 1; }
+    .comp-e .comp-name { color: #f97316; }
+    .comp-n .comp-name { color: #4ade80; }
+    .comp-port { font-size: 10px; font-family: monospace; color: #6e7681; }
+
+    /* ── 태그 ── */
+    .tag {
+      font-size: 9px; padding: 1px 5px; border-radius: 3px;
+      font-weight: 700; white-space: nowrap; flex-shrink: 0;
+    }
+    .tag-new    { background: #166534; color: #4ade80; }
+    .tag-rpm    { background: #374151; color: #9ca3af; }
+    .tag-jar    { background: #7c2d12; color: #fb923c; }
+    .tag-docker { background: #2496ed; color: #ffffff; border: 1px solid rgba(255,255,255,0.3); }
+    .tag-gw     { background: #1e3a5f; color: #93c5fd; }
+    .tag-plugin { background: #2d1f5e; color: #c084fc; }
+
+    /* ── 인프라 스택 ── */
+    .infra-stack { display: flex; flex-direction: column; gap: 8px; height: 100%; }
+    .infra-item { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 10px 12px; flex: 1; }
+    .infra-item h4 { font-size: 11px; font-weight: 600; color: #8b949e; margin-bottom: 4px; }
+    .infra-item p  { font-size: 10px; color: #6e7681; line-height: 1.6; font-family: monospace; }
+
+    /* ── 모니터링 서버 ── */
+    .mon-box {
+      background: #0c1929; border: 2px solid #3b82f6;
+      border-radius: 10px; padding: 14px 16px; height: 100%;
+    }
+    .mon-title { font-size: 13px; font-weight: 700; color: #e6edf3; margin-bottom: 2px; }
+    .mon-ip    { font-size: 11px; font-family: monospace; color: #7d8590; margin-bottom: 6px; }
+    .mon-recv  {
+      display: inline-block; margin-bottom: 10px;
+      font-size: 10px; font-family: monospace; color: #22d3ee;
+      background: #081e22; padding: 3px 9px;
+      border-radius: 4px; border: 1px solid #06b6d4;
+    }
+    .mon-inner { display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; }
+    .mon-sub { border-radius: 8px; padding: 10px 12px; }
+    .mon-sub-e { background: #1a0e00; border: 1px solid #92400e; }
+    .mon-sub-n { background: #0d1f12; border: 1px solid #166534; }
+    .mon-sub-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .mon-sub-e .mon-sub-label { color: #f97316; }
+    .mon-sub-n .mon-sub-label { color: #4ade80; }
+    .mon-comps { display: flex; flex-direction: column; gap: 6px; }
+    .mc {
+      border-radius: 6px; padding: 7px 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .mc-e { background: #2d1810; border: 1px solid #92400e; }
+    .mc-n { background: #0d2a18; border: 1px solid #166534; }
+    .mc-name { font-size: 12px; font-weight: 700; }
+    .mc-e .mc-name { color: #f97316; }
+    .mc-n .mc-name { color: #4ade80; }
+    .mc-port { font-size: 11px; font-family: monospace; color: #7d8590; }
+    .mc-tags { display: flex; gap: 4px; margin-left: auto; align-items: center; }
+
+    /* ── Grafana 플러그인 행 ── */
+    .plugin-row {
+      border-radius: 5px; padding: 5px 10px 5px 12px;
+      display: flex; align-items: center; gap: 8px;
+      background: #1a0a2e; border: 1px solid #5b21b6;
+      border-left: 3px solid #a855f7;
+    }
+    .plugin-name { font-size: 11px; font-weight: 600; color: #c084fc; flex: 1; }
+    .plugin-desc { font-size: 10px; color: #7c3aed; }
+
+    /* ── LLM 전용 서버 ── */
+    .llm-box {
+      background: #1a0f3e; border: 2px solid #7c3aed;
+      border-radius: 12px; padding: 16px 18px; height: 100%;
+      box-shadow: 0 0 24px rgba(124,58,237,0.2);
+    }
+    .llm-box-title { font-size: 14px; color: #c4b5fd; font-weight: 700; margin-bottom: 5px; }
+    .llm-box-sub   { font-size: 10px; font-family: monospace; color: #7d8590; margin-bottom: 10px; }
+    .llm-spec {
+      margin-top: 10px; font-size: 10px; font-family: monospace;
+      color: #8b949e; line-height: 1.9;
+      background: #0d0a1e; padding: 7px 10px;
+      border-radius: 6px; border: 1px solid #3b2f6e;
+    }
+    .llm-spec .sp-k { color: #a78bfa; }
+    .llm-spec .sp-c { color: #6d28d9; font-size: 9px; letter-spacing: 0.5px; }
+    .llm-conn {
+      margin-top: 12px; font-size: 11px; font-weight: 700;
+      color: #c084fc; background: #2d1f5e;
+      padding: 6px 10px; border-radius: 6px; border: 1px solid #7c3aed;
+      text-align: center;
+    }
+
+    /* ── 데이터 흐름 ── */
+    .flow-panel {
+      width: 100%; max-width: 1380px;
+      background: #161b22; border: 1px solid #30363d;
+      border-radius: 12px; padding: 16px 18px; margin-top: 20px;
+    }
+    .flow-title { font-size: 10px; font-weight: 700; color: #7d8590; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+    .flow-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 10px; }
+    .fi { background: #0d1117; border-radius: 8px; padding: 10px 12px; border-left: 3px solid; }
+    .fi.fi-e { background: #1a0a04; border-left-color: #f97316; }
+    .fi.fi-n { background: #0d1f12; border-left-color: #3fb950; }
+    .fi.fi-p { background: #1a0a2e; border-left-color: #a855f7; }
+    .fi-t { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+    .fi.fi-e .fi-t { color: #f97316; }
+    .fi.fi-n .fi-t { color: #3fb950; }
+    .fi.fi-p .fi-t { color: #c084fc; }
+    .fi-d { font-size: 10px; color: #6e7681; line-height: 1.7; font-family: monospace; }
+    .flow-group-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+      padding: 3px 10px; border-radius: 4px; display: inline-block; margin-bottom: 8px;
+    }
+    .flow-existing-label { color: #f97316; background: #1a0a04; }
+    .flow-new-label      { color: #3fb950; background: #0d1f12; margin-top: 10px; }
+    .flow-plugin-label   { color: #c084fc; background: #1a0a2e; margin-top: 10px; }
+
+    footer { text-align: center; font-size: 11px; color: #444c56; margin-top: 25px; }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>AI Agent 기반 지능형 통합 모니터링 — 전체 아키텍처</h1>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot dot-existing"></div>기존 컴포넌트 (운영중)</div>
+  <div class="legend-item"><div class="legend-dot dot-new"></div>신규 추가 (AI 모니터링 고도화)</div>
+  <div class="legend-item"><div class="legend-dot dot-internet"></div>인터넷망</div>
+  <div class="legend-item"><div class="legend-dot dot-intranet"></div>업무망</div>
+  <div class="legend-item"><div class="legend-dot dot-rpm"></div>RPM 직접설치</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7c2d12;border:1px solid #fb923c;"></div>JAR 배포</div>
+  <div class="legend-item"><div class="legend-dot dot-docker"></div>Docker 컨테이너</div>
+  <div class="legend-item"><div class="legend-dot dot-plugin"></div>Grafana 플러그인 (오프라인)</div>
+  <div class="legend-item"><div class="legend-dot dot-llm"></div>LLM 전용 서버 (옵션)</div>
+</div>
+
+<div class="main-wrap">
+
+  <!-- ══ 배포/설정 관리 ══ -->
+  <div class="section sec-deploy">
+    <div class="sec-label">배포 및 설정 관리 — 폐쇄망 제약 반영 (SSH Push 불가 → Pull 방식)</div>
+    <div class="deploy-inner">
+      <div class="deploy-card">
+        <h3>📦 초기 설치 (1회, 수동)</h3>
+        <div class="mono">
+          1. NAS에 <span class="hl">alloy.rpm</span> 업로드<br>
+          2. 각 서버 NAS 마운트 후 rpm2cpio 설치<br>
+          3. systemctl enable --now alloy<br>
+          4. config URL: <span class="hl">http://엣지서버:9090/config/</span>
+        </div>
+      </div>
+      <div class="deploy-card">
+        <h3>⚙️ Config 변경 (이후 자동)</h3>
+        <div class="mono">
+          1. 엣지서버 Config Server 파일 수정<br>
+          2. 각 서버 Alloy → HTTP pull <span class="ok">(5분 주기)</span><br>
+          3. 무중단 반영 <span class="hl">/-/reload API</span><br>
+          <span class="bad">※ SSH 불필요 — Outbound 단방향만 사용</span>
+        </div>
+      </div>
+      <div class="deploy-card">
+        <h3>🔒 방화벽 신규 요청 (최소 2개)</h3>
+        <div class="mono">
+          <span class="ok">신규</span> ewas1 → mon :<span class="hl">4317</span> &nbsp;(OTLP)<br>
+          <span class="ok">신규</span> anl1  → mon :<span class="hl">4317</span> &nbsp;(OTLP)<br>
+          <span class="ok">존 내부</span> 각서버 → 엣지 :<span class="hl">4317 :9090</span><br>
+          <span class="bad">기존 유지</span> :9091 :3000 그대로
+        </div>
+      </div>
+      <div class="deploy-card">
+        <h3>🔌 Grafana 플러그인 (오프라인 설치)</h3>
+        <div class="mono">
+          1. NAS에 <span class="pl">grafana-llm-app.zip</span> 업로드<br>
+          2. 압축 해제 → <span class="pl">~/grafana/plugins/</span><br>
+          3. grafana.ini 설정:<br>
+          &nbsp;&nbsp;<span class="pl">allow_loading_unsigned_plugins</span><br>
+          4. LLM URL: <span class="hl">http://ollama:11434/v1/</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="vconn">
+    <div class="vline"></div>
+    <div class="vtag">초기 설치: NAS → rpm2cpio (1회) · 이후: HTTP Pull 자동 반영 · 엣지 → mon OTLP :4317 단일 포트</div>
+    <div class="vline"></div>
+  </div>
+
+  <!-- ══ 현장 ══ -->
+  <div class="section sec-site">
+    <div class="sec-label">현장 — 폐쇄망 (인터넷 차단 · 엣지 게이트웨이 집약 구조)</div>
+
+    <div class="site-grid">
+
+      <!-- Col 1: 인터넷망 -->
+      <div class="cell-internet">
+        <div class="net-box net-internet">
+          <div class="net-label">🌐 인터넷망 (외부망) — 총 32대</div>
+          <div class="edge-card">
+            <div class="edge-header">
+              <span class="edge-badge">EDGE · GATEWAY</span>
+              <span class="edge-name">new-safe-ewas1</span>
+              <span class="edge-ip">10.176.62.211</span>
+            </div>
+            <div class="comp comp-n">
+              <span class="comp-name">Alloy Gateway</span>
+              <span class="comp-port">:4317</span>
+              <span class="tag tag-new">신규</span>
+              <span class="tag tag-rpm">RPM</span>
+              <span class="tag tag-gw">GW</span>
+            </div>
+            <div class="comp comp-n">
+              <span class="comp-name">Config Server</span>
+              <span class="comp-port">:9090</span>
+              <span class="tag tag-new">신규</span>
+            </div>
+            <div class="otlp-out">↑ mon:4317 OTLP (단일 포트)</div>
+          </div>
+          <div class="zone-arrow">↑ OTLP :4317 (존 내부 수집)</div>
+          <div class="pool-card">
+            <div class="pool-header">
+              <span class="pool-label">ewas2 + 일반 서버</span>
+              <span class="pool-count">× 31대</span>
+            </div>
+            <div class="comp comp-n">
+              <span class="comp-name">Alloy</span>
+              <span class="comp-port">:12345</span>
+              <span class="tag tag-new">신규</span>
+              <span class="tag tag-rpm">RPM</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 2: 업무망 -->
+      <div class="cell-intranet">
+        <div class="net-box net-intranet">
+          <div class="net-label">🏢 업무망 (내부망) — 총 20대</div>
+          <div class="edge-card">
+            <div class="edge-header">
+              <span class="edge-badge">EDGE · GATEWAY</span>
+              <span class="edge-name">new-safe-anl1</span>
+              <span class="edge-ip">10.177.18.138</span>
+            </div>
+            <div class="comp comp-n">
+              <span class="comp-name">Alloy Gateway</span>
+              <span class="comp-port">:4317</span>
+              <span class="tag tag-new">신규</span>
+              <span class="tag tag-rpm">RPM</span>
+              <span class="tag tag-gw">GW</span>
+            </div>
+            <div class="comp comp-n">
+              <span class="comp-name">Config Server</span>
+              <span class="comp-port">:9090</span>
+              <span class="tag tag-new">신규</span>
+            </div>
+            <div class="otlp-out">↑ mon:4317 OTLP (단일 포트)</div>
+          </div>
+          <div class="zone-arrow">↑ OTLP :4317 (존 내부 수집)</div>
+          <div class="pool-card">
+            <div class="pool-header">
+              <span class="pool-label">anl2 + 일반 서버</span>
+              <span class="pool-count">× 19대</span>
+            </div>
+            <div class="comp comp-n">
+              <span class="comp-name">Alloy</span>
+              <span class="comp-port">:12345</span>
+              <span class="tag tag-new">신규</span>
+              <span class="tag tag-rpm">RPM</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 3 Row 1: 인프라 -->
+      <div class="cell-infra">
+        <div class="infra-stack">
+          <div class="infra-item">
+            <h4>🗄️ NAS</h4>
+            <p>FileSync<br>외부망 ↔ 내부망<br>+ alloy.rpm 배포<br>+ grafana-plugins.zip</p>
+          </div>
+          <div class="infra-item">
+            <h4>🗃️ Tibero DB</h4>
+            <p>FileQ Table<br>@Scheduled<br>(6개월 cron)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 1-2 Row 2: 모니터링 서버 -->
+      <div class="cell-mon">
+        <div class="mon-box">
+          <div class="mon-title">🖥️ new-safe-mon — 모니터링 서버</div>
+          <div class="mon-ip">내부IP: 10.176.62.225</div>
+          <div class="mon-recv">← ewas1:4317 &nbsp;·&nbsp; anl1:4317 &nbsp;&nbsp;OTLP 수신 (단일 포트)</div>
+          <div class="mon-inner">
+
+            <div class="mon-sub mon-sub-e">
+              <div class="mon-sub-label">기존 운영중</div>
+              <div class="mon-comps">
+                <div class="mc mc-e">
+                  <div><div class="mc-name">Grafana</div><div class="mc-port">:3000</div></div>
+                  <div class="mc-tags"><span class="tag tag-rpm">RPM</span></div>
+                </div>
+                <div class="plugin-row">
+                  <span class="plugin-name">LLM App Plugin</span>
+                  <span class="plugin-desc">→ Ollama :11434/v1/</span>
+                  <span class="tag tag-plugin">플러그인</span>
+                </div>
+                <div class="mc mc-e">
+                  <div><div class="mc-name">Prometheus</div><div class="mc-port">:9091</div></div>
+                  <div class="mc-tags"><span class="tag tag-rpm">RPM</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mon-sub mon-sub-n">
+              <div class="mon-sub-label">신규 AI 모니터링 고도화</div>
+              <div class="mon-comps">
+                <div class="mc mc-n">
+                  <div><div class="mc-name">Alloy</div><div class="mc-port">:4317</div></div>
+                  <div class="mc-tags"><span class="tag tag-rpm">RPM</span></div>
+                </div>
+                <div class="mc mc-n">
+                  <div><div class="mc-name">Loki</div><div class="mc-port">:3100</div></div>
+                  <div class="mc-tags"><span class="tag tag-rpm">RPM</span></div>
+                </div>
+                <div class="mc mc-n">
+                  <div><div class="mc-name">Spring Boot</div><div class="mc-port">:8000</div></div>
+                  <div class="mc-tags"><span class="tag tag-jar">JAR</span></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 3 Row 2: LLM 전용 서버 -->
+      <div class="cell-llm">
+        <div class="llm-box">
+          <div class="llm-box-title">🤖 LLM 전용 서버</div>
+          <div class="llm-box-sub">고성능 서버 확보 시 별도 분리 권장</div>
+          <div class="mon-comps">
+            <div class="mc mc-n">
+              <div><div class="mc-name">Ollama</div><div class="mc-port">:11434</div></div>
+              <div class="mc-tags"><span class="tag tag-docker">Docker</span><span class="tag tag-new">신규</span></div>
+            </div>
+          </div>
+          <div class="llm-spec">
+            <span class="sp-c">── 코딩 / PromQL 특화 ──────────────</span><br>
+            <span class="sp-k">qwen2.5-coder:7b &nbsp;</span> RAM 8GB+<br>
+            <span class="sp-k">qwen2.5-coder:14b</span> RAM 12GB+<br>
+            <span class="sp-k">qwen2.5-coder:32b</span> RAM 24GB+<br>
+            <span class="sp-c">── 범용 추론 ────────────────────────</span><br>
+            <span class="sp-k">qwen3:8b &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> RAM 8GB+<br>
+            <span class="sp-k">qwen3:14b &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> RAM 16GB+<br>
+            <span class="sp-k">deepseek-r1:7b &nbsp;&nbsp;</span> RAM 8GB+<br>
+            <span class="sp-c">── 경량 (저사양 서버) ───────────────</span><br>
+            <span class="sp-k">phi4:14b &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> RAM 10GB+<br>
+            <span class="sp-k">gemma3:4b &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> RAM 4GB+<br>
+            <span class="sp-c">── 고성능 (전용 서버 확보 시) ───────</span><br>
+            <span class="sp-k">qwen3:32b &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> RAM 24GB+<br>
+            <span class="sp-k">deepseek-r1:32b &nbsp;</span> RAM 24GB+
+          </div>
+          <div class="llm-conn">Grafana LLM Plugin ──→ :11434/v1/</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ 데이터 흐름 ══ -->
+  <div class="flow-panel">
+    <div class="flow-title">데이터 흐름</div>
+
+    <div class="flow-group-label flow-existing-label">▸ 기존 모니터링 흐름</div>
+    <div class="flow-grid" style="grid-template-columns: repeat(2,1fr);">
+      <div class="fi fi-e">
+        <div class="fi-t">Prometheus 스크레이프</div>
+        <div class="fi-d">mon → 각 서버 actuator<br>:8081 / :8083 (기존 허용 포트)</div>
+      </div>
+      <div class="fi fi-e">
+        <div class="fi-t">NAS (alloy.rpm 배포)</div>
+        <div class="fi-d">NAS → 각 서버 마운트<br>rpm2cpio 설치 (1회)<br>외부망 ↔ 내부망</div>
+      </div>
+    </div>
+
+    <div class="flow-group-label flow-new-label">▸ 신규 데이터 흐름 — AI 모니터링 고도화</div>
+    <div class="flow-grid">
+      <div class="fi fi-n">
+        <div class="fi-t">Alloy 엣지 집약 (OTLP)</div>
+        <div class="fi-d">각 서버 Alloy<br>→ ewas1 / anl1 :4317<br>→ mon :4317 (단일 포트)</div>
+      </div>
+      <div class="fi fi-n">
+        <div class="fi-t">메트릭 + 로그 분기</div>
+        <div class="fi-d">mon Alloy :4317 수신<br>→ Prometheus (메트릭)<br>→ Loki (로그)</div>
+      </div>
+      <div class="fi fi-n">
+        <div class="fi-t">Config Pull (Alloy)</div>
+        <div class="fi-d">각 서버 Alloy<br>→ 엣지 Config Server :9090<br>HTTP pull (5분 주기)</div>
+      </div>
+      <div class="fi fi-n">
+        <div class="fi-t">Spring Boot 스케줄러</div>
+        <div class="fi-d">일일 리포트 (@Scheduled 08:00)<br>Prometheus API → Ollama 분석</div>
+      </div>
+    </div>
+
+    <div class="flow-group-label flow-plugin-label">▸ Grafana LLM Plugin — AI 분석 흐름</div>
+    <div class="flow-grid" style="grid-template-columns: repeat(3,1fr);">
+      <div class="fi fi-p">
+        <div class="fi-t">LLM App Plugin</div>
+        <div class="fi-d">Grafana → Ollama<br>:11434/v1/ (OpenAI 호환)<br>자연어 → PromQL 변환</div>
+      </div>
+      <div class="fi fi-p">
+        <div class="fi-t">Alert AI 분석</div>
+        <div class="fi-d">알림 발생 시<br>관련 로그 자동 조회<br>원인 요약 · 조치 방향 제시</div>
+      </div>
+      <div class="fi fi-p">
+        <div class="fi-t">일일 점검 리포트</div>
+        <div class="fi-d">Spring Boot @Scheduled (08:00)<br>AI 전일 비교 분석<br>담당자 메신저 자동 전달</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  AI Agent 기반 지능형 통합 모니터링 고도화 설계 &nbsp;·&nbsp; Grafana LLM Plugin 통합 &nbsp;·&nbsp; 2026-05-29
+</footer>
+
+</body>
+</html>

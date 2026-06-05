@@ -1,0 +1,46 @@
+"use client";
+
+import { Badge } from "@/components/ui/badge";
+import type { ScenarioResult } from "@/lib/types";
+
+export function RunView({ result }: { result: ScenarioResult }) {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        실행 시각: {new Date(result.executedAt).toLocaleString("ko-KR")}
+      </p>
+
+      {result.testCaseResults.map((testCase) => (
+        <div key={testCase.testCaseId} className="rounded-xl border p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="font-medium">{testCase.testCaseName}</span>
+            <Badge variant={testCase.status === "passed" ? "success" : "destructive"}>
+              {testCase.status} ({testCase.executionTime}ms)
+            </Badge>
+          </div>
+
+          <div className="space-y-2">
+            {testCase.stepResults.map((stepResult, index) => (
+              <div
+                key={`${testCase.testCaseId}-${index}`}
+                className="rounded border bg-muted/20 p-2 text-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={stepResult.status === "passed" ? "text-green-600" : "text-red-600"}
+                  >
+                    {stepResult.status}
+                  </span>
+                  <span>{stepResult.step.description ?? stepResult.step.type}</span>
+                </div>
+                {stepResult.error && (
+                  <p className="mt-1 text-xs text-red-600">{stepResult.error}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

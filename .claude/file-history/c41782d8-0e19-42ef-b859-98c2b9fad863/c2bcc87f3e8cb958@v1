@@ -1,0 +1,70 @@
+package com.devwogns.trmdict.module.auth.service;
+
+import com.devwogns.trmdict.common.exception.BusinessException;
+import com.devwogns.trmdict.common.exception.ErrorCode;
+import com.devwogns.trmdict.common.security.JwtTokenProvider;
+import com.devwogns.trmdict.module.auth.entity.AuthUserEntity;
+import com.devwogns.trmdict.module.auth.repository.AuthRepository;
+import com.devwogns.trmdict.module.auth.vo.AuthUserVo;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final AuthRepository authRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @Transactional(readOnly = true)
+    public LoginResult login(String username, String rawPassword) {
+        AuthUserEntity user = authRepository.findByUsername(username)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_1001));
+        if ("N".equals(user.getUseYn())) {
+            throw new BusinessException(ErrorCode.AUTH_1003);
+        }
+        if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.AUTH_1001);
+        }
+
+        String token = jwtTokenProvider.issue(user.getId(), user.getUsername(), user.getRole());
+        long expiresIn = jwtTokenProvider.getExpirationSeconds();
+        AuthUserVo userVo = toVo(user);
+        log.info("[AuthService.login] user={} role={}", userVo.getUsername(), userVo.getRole());
+
+        return new LoginResult(token, expiresIn, userVo);
+    }
+
+    @Transactional(readOnly = true)
+    public AuthUserVo getMe(Long userId) {
+        AuthUserEntity user = authRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_1002));
+        return toVo(user);
+    }
+
+    private AuthUserVo toVo(AuthUserEntity entity) {
+        AuthUserVo vo = new AuthUserVo();
+        vo.setId(entity.getId());
+        vo.setUsername(entity.getUsername());
+        vo.setPasswordHash(entity.getPasswordHash());
+        vo.setName(entity.getName());
+        vo.setEmail(entity.getEmail());
+        vo.setRole(entity.getRole());
+        vo.setUseYn(entity.getUseYn());
+        return vo;
+    }
+
+    @Getter
+    @RequiredArgsConstructor
+    public static class LoginResult {
+        private final String accessToken;
+        private final long expiresIn;
+        private final AuthUserVo user;
+    }
+}

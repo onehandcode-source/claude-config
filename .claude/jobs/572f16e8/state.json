@@ -1,0 +1,31 @@
+{
+  "state": "done",
+  "detail": "`docs/cycles/03-c2-frontend-core/plan.md` — Angular 15 → React 18(Vite/shadcn/Zustand/Vitest) 전면 재작성 후 master 머지 완료",
+  "tempo": "idle",
+  "inFlight": {
+    "tasks": 0,
+    "queued": 0,
+    "kinds": []
+  },
+  "output": {
+    "result": "`docs/cycles/03-c2-frontend-core/plan.md` — Angular 15 → React 18(Vite/shadcn/Zustand/Vitest) 전면 재작성 후 master 머지 완료"
+  },
+  "children": null,
+  "linkScanOffset": 6908696,
+  "linkScanPath": "C:\\Users\\ygkim\\.claude\\projects\\D--20--POC-TrmWordDict\\572f16e8-cf72-45dc-8781-ab37de7ce221.jsonl",
+  "template": "claude",
+  "respawnFlags": [],
+  "intent": "03-c2-frontend-core 하위 status.md 수정 필요. 01. system.md 내용이 의하면 frontend는 react로 하도록 수정되었음.",
+  "name": "frontend core status update",
+  "nameSource": "auto",
+  "sessionId": "572f16e8-cf72-45dc-8781-ab37de7ce221",
+  "resumeSessionId": "572f16e8-cf72-45dc-8781-ab37de7ce221",
+  "daemonShort": "572f16e8",
+  "cliVersion": "2.1.140",
+  "cwd": "D:\\20. POC\\TrmWordDict",
+  "createdAt": "2026-05-15T07:48:03.578Z",
+  "updatedAt": "2026-05-18T03:57:40.002Z",
+  "firstTerminalAt": "2026-05-15T08:37:39.625Z",
+  "originCwd": "D:\\20. POC\\TrmWordDict",
+  "backend": "daemon"
+}

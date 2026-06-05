@@ -1,0 +1,230 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { normalizeStepForSave } from "@/lib/locator-utils";
+import { parseTestCasesJson } from "@/lib/scenario-import";
+import { reorderScenarioSteps } from "@/lib/step-order";
+import { createEmptyTiberoConfig, resolveScenarioDbConfig } from "@/lib/tibero-config";
+import type { GlobalSettings, Scenario, TestCase, TiberoConfig } from "@/lib/types";
+import { ScenarioDiagram } from "./ScenarioDiagram";
+import { TestCaseEditor } from "./TestCaseEditor";
+
+interface ScenarioFormProps {
+  initial?: Partial<Scenario>;
+  loading?: boolean;
+  onSave: (scenario: Partial<Scenario>) => void;
+}
+
+function newTestCase(): TestCase {
+  return {
+    id: crypto.randomUUID(),
+    name: "새 테스트 케이스",
+    description: "",
+    baseUrl: "",
+    steps: [],
+  };
+}
+
+export function ScenarioForm({ initial, loading = false, onSave }: ScenarioFormProps) {
+  const [name, setName] = useState(initial?.name ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [platform, setPlatform] = useState<"web" | "android">(initial?.platform ?? "web");
+  const [testCases, setTestCases] = useState<TestCase[]>(initial?.testCases ?? []);
+  const [showDb, setShowDb] = useState(Boolean(initial?.dbConfig));
+  const [importError, setImportError] = useState<string | null>(null);
+  const [dbConfig, setDbConfig] = useState<TiberoConfig>(
+    resolveScenarioDbConfig(initial?.dbConfig, undefined)
+  );
+
+  useEffect(() => {
+    if (initial?.dbConfig) {
+      return;
+    }
+
+    void fetch("/api/settings/tibero")
+      .then((response) => response.json())
+      .then((payload: { success: boolean; data?: GlobalSettings | null }) => {
+        if (!payload.success || !payload.data?.tiberoConfig) {
+          return;
+        }
+
+        setDbConfig(resolveScenarioDbConfig(undefined, payload.data.tiberoConfig));
+        setShowDb(true);
+      })
+      .catch(() => {
+        setDbConfig(createEmptyTiberoConfig());
+      });
+  }, [initial?.dbConfig]);
+
+  function updateTestCase(index: number, next: TestCase) {
+    const updated = [...testCases];
+    updated[index] = next;
+    setTestCases(updated);
+  }
+
+  function handleReorderStep(testCaseId: string, fromIndex: number, toIndex: number) {
+    setTestCases((current) => reorderScenarioSteps(current, testCaseId, fromIndex, toIndex));
+  }
+
+  async function handleJsonUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const content = await file.text();
+      setTestCases(parseTestCasesJson(content));
+      setImportError(null);
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "JSON 업로드에 실패했습니다.");
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  return (
+    <form
+      className="space-y-6"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave({
+          name,
+          description,
+          platform,
+          dbConfig: showDb ? dbConfig : undefined,
+          testCases: testCases.map((testCase) => ({
+            ...testCase,
+            steps: testCase.steps.map((step) => normalizeStepForSave(step)),
+          })),
+        });
+      }}
+    >
+      <div className="space-y-2">
+        <input
+          className="w-full rounded border px-3 py-2"
+          placeholder="시나리오 이름"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+        <textarea
+          className="w-full rounded border px-3 py-2"
+          rows={3}
+          placeholder="설명"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+        />
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium">플랫폼</label>
+          <select
+            className="rounded border px-2 py-1 text-sm"
+            value={platform}
+            onChange={(event) => setPlatform(event.target.value as "web" | "android")}
+          >
+            <option value="web">Web (Playwright)</option>
+            <option value="android">Android</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="space-y-3 rounded-xl border bg-card p-4">
+        <button
+          className="text-sm font-medium text-primary"
+          type="button"
+          onClick={() => setShowDb((current) => !current)}
+        >
+          {showDb ? "Tibero 설정 숨기기" : "Tibero 공통 설정 추가"}
+        </button>
+
+        {showDb && (
+          <div className="grid gap-2 md:grid-cols-2">
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Host"
+              value={dbConfig.host}
+              onChange={(event) => setDbConfig({ ...dbConfig, host: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Port"
+              type="number"
+              value={dbConfig.port}
+              onChange={(event) =>
+                setDbConfig({ ...dbConfig, port: Number(event.target.value || "0") })
+              }
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Username"
+              value={dbConfig.username}
+              onChange={(event) => setDbConfig({ ...dbConfig, username: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Password"
+              type="password"
+              value={dbConfig.password}
+              onChange={(event) => setDbConfig({ ...dbConfig, password: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm md:col-span-2"
+              placeholder="Service Name"
+              value={dbConfig.serviceName}
+              onChange={(event) => setDbConfig({ ...dbConfig, serviceName: event.target.value })}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">테스트 케이스</h2>
+          <div className="flex items-center gap-2">
+            <label className="inline-flex cursor-pointer items-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+              JSON 업로드
+              <input
+                accept=".json,application/json"
+                className="hidden"
+                type="file"
+                onChange={handleJsonUpload}
+              />
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setTestCases((current) => [...current, newTestCase()])}
+            >
+              + 테스트 케이스
+            </Button>
+          </div>
+        </div>
+
+        {importError && <p className="text-sm text-red-600">{importError}</p>}
+
+        <div className="space-y-3">
+          {testCases.map((testCase, index) => (
+            <TestCaseEditor
+              key={testCase.id}
+              testCase={testCase}
+              platform={platform}
+              onChange={(next) => updateTestCase(index, next)}
+              onRemove={() =>
+                setTestCases((current) =>
+                  current.filter((_, currentIndex) => currentIndex !== index)
+                )
+              }
+            />
+          ))}
+        </div>
+      </div>
+
+      <ScenarioDiagram testCases={testCases} onReorderStep={handleReorderStep} />
+
+      <Button type="submit" disabled={loading || name.trim().length === 0}>
+        {loading ? "저장 중..." : "저장"}
+      </Button>
+    </form>
+  );
+}

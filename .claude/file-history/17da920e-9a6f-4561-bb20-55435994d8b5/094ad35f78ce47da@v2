@@ -1,0 +1,140 @@
+# TrmWordDict2 — Next.js + Supabase 스택 전환 설계
+
+**작성일**: 2026-05-29
+**대상**: TrmWordDict2 전체 시스템을 Spring Boot + React → Next.js 15 + Supabase(Self-hosted)로 마이그레이션
+**선택 옵션**: A — Next.js + Prisma + Supabase 분리형
+
+---
+
+## 1. 전환 배경 및 목표
+
+| 항목 | AS-IS | TO-BE |
+|------|-------|-------|
+| Backend | Spring Boot 2.7.18 (Java 1.8) | Next.js 15 App Router (Node.js) |
+| Frontend | React 19 (Vite, 별도 서버) | Next.js 15 (통합, SSR/RSC) |
+| ORM | Spring Data JPA / Tibero7 Dialect | Prisma 6 / PostgreSQL |
+| DB | Tibero7 (사내 전용) | Supabase PostgreSQL (Self-hosted) |
+| Auth | Spring Security + JWT 직접 구현 | Supabase Auth (GoTrue) |
+| 배포 | 단일 JAR (Apache + Tomcat) | Vercel (클라우드) / Docker Compose (온프레미스) 이중 지원 |
+
+**전환 이유**:
+- 인프라 제약(Node.js 실행 가능 환경)이 해소됨
+- Full-stack 단일 프레임워크로 빌드·배포 단순화
+- Tibero7 라이선스 및 사내 DB 의존 탈피 (PostgreSQL 기반 Self-hosted)
+- Vercel Edge 배포 및 온프레미스 Docker 모두 지원하는 이식성 확보
+
+---
+
+## 2. 전체 아키텍처
+
+```
+┌─────────────────────────────────────────────────┐
+│                   Browser                        │
+└─────────────────┬───────────────────────────────┘
+                  │ HTTPS
+┌─────────────────▼───────────────────────────────┐
+│           Next.js 15 App Router                  │
+│  ┌──────────────┐  ┌──────────────────────────┐  │
+│  │ Server Comp. │  │  API Routes / Server     │  │
+│  │  (RSC, SSR)  │  │  Actions                 │  │
+│  └──────────────┘  └────────────┬─────────────┘  │
+└───────────────────────────────┬─┼───────────────┘
+                                │ │
+              ┌─────────────────▼─▼──────────────┐
+              │            Prisma Client           │
+              └─────────────────┬─────────────────┘
+                                │
+              ┌─────────────────▼─────────────────┐
+              │   Self-hosted Supabase (Docker)    │
+              │  ┌────────────┐ ┌───────────────┐  │
+              │  │ PostgreSQL │ │  GoTrue Auth  │  │
+              │  └────────────┘ └───────────────┘  │
+              └───────────────────────────────────┘
+```
+
+**핵심 원칙**:
+- **DB 접근**: 모든 DB 쿼리는 Prisma를 통해서만. Supabase JS 클라이언트는 Auth 세션 관리 전용.
+- **렌더링**: 목록/상세 조회는 Server Component(RSC). 인터랙션 폼·모달은 Client Component.
+- **Auth**: Supabase Auth JWT 발급 → Next.js Middleware 토큰 검증 → 보호 라우트 접근 제어.
+- **배포 이중화**: 환경변수 주입만으로 Vercel / Docker Compose 전환. 코드 변경 없음.
+
+---
+
+## 3. 디렉터리 구조
+
+```
+TrmWordDict2/
+├── app/                              # Next.js App Router
+│   ├── (auth)/login/page.tsx
+│   ├── (admin)/                      # 관리자 보호 레이아웃
+│   │   ├── layout.tsx
+│   │   ├── dashboard/page.tsx
+│   │   ├── domain/page.tsx
+│   │   ├── word/page.tsx
+│   │   ├── term/page.tsx
+│   │   ├── forbidden/page.tsx
+│   │   ├── import/page.tsx
+│   │   └── inspection/page.tsx
+│   ├── api/
+│   │   ├── auth/[...supabase]/route.ts
+│   │   └── import/jobs/route.ts
+│   └── layout.tsx
+├── features/                         # 기능별 모듈
+│   ├── domain/  word/  term/  forbidden/  import/  inspection/
+│   │   ├── actions.ts                # Server Actions
+│   │   ├── queries.ts                # Prisma 조회
+│   │   ├── schema.ts                 # Zod 검증
+│   │   ├── types.ts
+│   │   └── components/
+├── lib/
+│   ├── prisma.ts
+│   ├── supabase/server.ts
+│   ├── supabase/client.ts
+│   └── auth.ts
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+├── middleware.ts
+├── components/
+├── docker-compose.yml
+└── Dockerfile
+```
+
+---
+
+## 4. 인증 흐름
+
+```
+[브라우저] → POST /api/auth/login → [GoTrue]
+                                        ↓ JWT 발급
+[브라우저] ← Set-Cookie (HttpOnly) ← [Next.js @supabase/ssr]
+
+보호 라우트:
+[브라우저] → GET /admin/* → [middleware.ts] 세션 검증
+                              ├── 유효: 페이지 렌더
+                              └── 무효: /login 리다이렉트
+```
+
+---
+
+## 5. 기존 기능 → 신규 매핑
+
+| 기존 기능 | 신규 위치 |
+|---|---|
+| Import Job 비동기 처리 | `app/api/import/jobs/route.ts` |
+| 단어 복합 검색 | `features/word/queries.ts` (Prisma where 조합) |
+| 금지어 관리 | `features/forbidden/actions.ts` (Server Action) |
+| 도메인 분류 관리 | `features/domain/actions.ts` |
+| CSV 파싱 | `papaparse` (Node.js) |
+| Auth 필터 | `middleware.ts` |
+| JWT 발급 | Supabase GoTrue |
+
+---
+
+## 6. 관련 스팩 문서
+
+- `docs/superpowers/specs/2026-05-29-code-structure-design.md` — 코드 구조 표준
+- `docs/superpowers/specs/2026-05-29-prisma-schema-design.md` — DB 스키마 (Prisma)
+- `docs/superpowers/specs/2026-05-29-auth-supabase-design.md` — 인증 설계
+- `docs/superpowers/specs/2026-05-29-deployment-design.md` — 배포 구성
+- `docs/superpowers/ygKim/01. system.md` — 기술 스택 정의서 (업데이트됨)

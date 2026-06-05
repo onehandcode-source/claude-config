@@ -1,0 +1,30 @@
+# Session: 2026-05-20
+**Date:** 2026-05-20
+**Started:** 16:26
+**Last Updated:** 16:32
+**Project:** sia
+**Branch:** feature/파일_복원기능
+**Worktree:** C:\Dev\dev_safetyreport\workspace\sia
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- @src/main/java/egov/common/file/web/AtchFileController.java /file/copyFiles.do 사용하고 있는 전체 로직 확인. 아마 vhclTrfcVltnMngPup.jsp, vhclTrfcVltnMngInqMngPup.jsp 두군데에만 되어있을거야  해당 파일복원 프로세스에 대한 전체적인 그림이 하나 필요함.
+- 1. jsp 페이지에서 복원 버튼이 나오는 조건 정리 2. 복원 메인 비즈니스 로직만 다시 정리
+
+### Tools Used
+Grep, Read
+
+### Stats
+- Total user messages: 2
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

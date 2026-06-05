@@ -1,0 +1,2 @@
+export CODEX_COMPANION_SESSION_ID='77ac2710-f058-4a8a-9d86-8090b523ae3e'
+export CLAUDE_PLUGIN_DATA='C:/Users/ygkim/.claude/plugins/data/codex-openai-codex'

@@ -1,0 +1,207 @@
+'use client';
+
+import { useState } from 'react';
+import { TestAction } from '@/lib/types';
+
+interface ActionBuilderProps {
+  onAddAction: (action: TestAction) => void;
+}
+
+export default function ActionBuilder({ onAddAction }: ActionBuilderProps) {
+  const [actionType, setActionType] = useState<TestAction['type']>('navigate');
+  const [formData, setFormData] = useState({
+    selector: '',
+    text: '',
+    url: '',
+    milliseconds: 1000,
+    script: '',
+    description: '',
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'milliseconds' ? parseInt(value) || 0 : value,
+    }));
+  };
+
+  const handleAddAction = () => {
+    const action: TestAction = {
+      type: actionType,
+      description: formData.description || undefined,
+    };
+
+    switch (actionType) {
+      case 'navigate':
+        if (!formData.url) {
+          alert('❌ Please enter URL');
+          return;
+        }
+        action.url = formData.url;
+        break;
+      case 'click':
+      case 'fill':
+      case 'select':
+        if (!formData.selector) {
+          alert('❌ Please enter selector');
+          return;
+        }
+        action.selector = formData.selector;
+        if (actionType === 'fill' || actionType === 'select') {
+          if (!formData.text) {
+            alert('❌ Please enter text/value');
+            return;
+          }
+          action.text = formData.text;
+        }
+        break;
+      case 'wait':
+        action.milliseconds = formData.milliseconds;
+        break;
+      case 'evaluate':
+        if (!formData.script) {
+          alert('❌ Please enter JavaScript code');
+          return;
+        }
+        action.script = formData.script;
+        break;
+    }
+
+    onAddAction(action);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setActionType('navigate');
+    setFormData({
+      selector: '',
+      text: '',
+      url: '',
+      milliseconds: 1000,
+      script: '',
+      description: '',
+    });
+  };
+
+  return (
+    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        {/* 액션 타입 선택 */}
+        <div>
+          <label className="block text-sm font-semibold mb-2">Action Type</label>
+          <select
+            value={actionType}
+            onChange={(e) => setActionType(e.target.value as TestAction['type'])}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          >
+            <option value="navigate">Navigate</option>
+            <option value="click">Click</option>
+            <option value="fill">Fill/Type</option>
+            <option value="select">Select</option>
+            <option value="wait">Wait</option>
+            <option value="screenshot">Screenshot</option>
+            <option value="evaluate">Evaluate JS</option>
+          </select>
+        </div>
+
+        {/* 설명 */}
+        <div>
+          <label className="block text-sm font-semibold mb-2">
+            Description (optional)
+          </label>
+          <input
+            type="text"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="e.g., Click login button"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+        </div>
+      </div>
+
+      {/* 조건부 필드 */}
+      {actionType === 'navigate' && (
+        <div className="mb-4">
+          <label className="block text-sm font-semibold mb-2">URL</label>
+          <input
+            type="url"
+            name="url"
+            value={formData.url}
+            onChange={handleChange}
+            placeholder="https://example.com/page"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+        </div>
+      )}
+
+      {(actionType === 'click' || actionType === 'fill' || actionType === 'select') && (
+        <div className="mb-4">
+          <label className="block text-sm font-semibold mb-2">CSS Selector</label>
+          <input
+            type="text"
+            name="selector"
+            value={formData.selector}
+            onChange={handleChange}
+            placeholder="#id, .class, input[type=email]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+        </div>
+      )}
+
+      {(actionType === 'fill' || actionType === 'select') && (
+        <div className="mb-4">
+          <label className="block text-sm font-semibold mb-2">
+            {actionType === 'fill' ? 'Text to Type' : 'Value to Select'}
+          </label>
+          <input
+            type="text"
+            name="text"
+            value={formData.text}
+            onChange={handleChange}
+            placeholder={actionType === 'fill' ? 'e.g., user@example.com' : 'e.g., option-value'}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+        </div>
+      )}
+
+      {actionType === 'wait' && (
+        <div className="mb-4">
+          <label className="block text-sm font-semibold mb-2">
+            Milliseconds (ms)
+          </label>
+          <input
+            type="number"
+            name="milliseconds"
+            value={formData.milliseconds}
+            onChange={handleChange}
+            min="100"
+            step="100"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+        </div>
+      )}
+
+      {actionType === 'evaluate' && (
+        <div className="mb-4">
+          <label className="block text-sm font-semibold mb-2">
+            JavaScript Code
+          </label>
+          <textarea
+            name="script"
+            value={formData.script}
+            onChange={handleChange}
+            placeholder="document.title // or any JS code"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono text-sm"
+            rows={3}
+          />
+        </div>
+      )}
+
+      <button onClick={handleAddAction} className="btn-primary w-full">
+        ➕ Add Action
+      </button>
+    </div>
+  );
+}

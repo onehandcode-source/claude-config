@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 통합 모니터링 — 전체 아키텍처</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 32px;
+      min-width: 1200px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 600;
+      color: #f0f6fc;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 13px;
+      color: #7d8590;
+      margin-bottom: 36px;
+    }
+
+    .arch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* ── 공통 섹션 ── */
+    .section {
+      width: 100%;
+      max-width: 1100px;
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      opacity: 0.75;
+    }
+
+    .section-hq     { background: #161b22; border: 1.5px solid #1f4068; }
+    .section-bundle { background: #161b22; border: 1.5px dashed #d29922; }
+    .section-site   { background: #161b22; border: 1.5px solid #238636; }
+
+    .section-hq     .section-label { color: #58a6ff; }
+    .section-bundle .section-label { color: #e3b341; }
+    .section-site   .section-label { color: #3fb950; }
+
+    /* ── 연결 화살표 ── */
+    .connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 4px 0;
+      gap: 2px;
+    }
+    .connector-line {
+      width: 2px;
+      height: 18px;
+      background: #444c56;
+    }
+    .connector-label {
+      font-size: 11px;
+      color: #7d8590;
+      background: #0d1117;
+      padding: 2px 12px;
+      border-radius: 10px;
+      border: 1px solid #30363d;
+      white-space: nowrap;
+    }
+
+    /* ── HQ 내부 ── */
+    .hq-inner { display: flex; gap: 16px; align-items: flex-start; }
+
+    .git-box {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid #1f4068;
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .git-box h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #58a6ff;
+      margin-bottom: 10px;
+    }
+    .git-tree {
+      font-size: 12px;
+      font-family: 'Consolas', monospace;
+      color: #8b949e;
+      line-height: 1.9;
+    }
+    .git-tree .hl { color: #e3b341; }
+
+    .hq-right { display: flex; flex-direction: column; gap: 12px; min-width: 210px; }
+
+    .mini-box {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+    .mini-box h4 { font-size: 12px; font-weight: 600; color: #8b949e; margin-bottom: 4px; }
+    .mini-box p  { font-size: 11px; color: #6e7681; line-height: 1.6; }
+
+    .badge {
+      display: inline-block; font-size: 10px;
+      padding: 1px 7px; border-radius: 20px; font-weight: 600;
+    }
+    .badge-blue   { background: #1f4068; color: #58a6ff; }
+    .badge-green  { background: #1a3424; color: #3fb950; }
+    .badge-gray   { background: #21262d; color: #8b949e; }
+    .badge-orange { background: #2d1f00; color: #e3b341; }
+
+    /* ── Bundle 내부 ── */
+    .bundle-inner { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .bundle-item {
+      background: #0d1117;
+      border: 1px solid #d29922;
+      border-radius: 8px;
+      padding: 12px 16px;
+      flex: 1; min-width: 160px;
+    }
+    .bundle-item h4 { font-size: 12px; font-weight: 600; color: #e3b341; margin-bottom: 8px; }
+    .bundle-item ul { list-style: none; font-size: 11px; color: #8b949e; line-height: 2; }
+    .bundle-item ul li::before { content: '├ '; color: #444c56; }
+    .bundle-item ul li:last-child::before { content: '└ '; }
+
+    /* ── Site 내부 ── */
+    .site-inner { display: flex; gap: 20px; align-items: stretch; }
+
+    .monitoring-server {
+      flex: 1.3;
+      background: #0d1117;
+      border: 1px solid #238636;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .monitoring-server h3 {
+      font-size: 13px; font-weight: 600; color: #3fb950;
+      margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    }
+    .dc-badge {
+      font-size: 10px; padding: 2px 8px; border-radius: 4px;
+      background: #1a3424; color: #3fb950; font-weight: 600; letter-spacing: 0.5px;
+    }
+
+    .services-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+    .service-box {
+      background: #161b22; border: 1px solid #30363d;
+      border-radius: 8px; padding: 10px 12px;
+      transition: border-color 0.2s;
+    }
+    .service-box:hover { border-color: #58a6ff; }
+    .service-name { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+    .service-port { font-size: 11px; color: #7d8590; font-family: monospace; margin-bottom: 4px; }
+    .service-desc { font-size: 11px; color: #6e7681; line-height: 1.5; }
+
+    .svc-grafana    .service-name { color: #f46800; }
+    .svc-prometheus .service-name { color: #e6522c; }
+    .svc-loki       .service-name { color: #f0a500; }
+    .svc-ollama     .service-name { color: #a78bfa; }
+    .svc-fastapi    .service-name { color: #06b6d4; }
+    .svc-n8n        .service-name { color: #ea4b71; }
+
+    /* 사이트 내부 화살표 */
+    .site-arrow {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 6px; min-width: 56px;
+    }
+    .arrow-tag {
+      font-size: 10px; color: #7d8590; background: #161b22;
+      border: 1px solid #30363d; padding: 2px 6px;
+      border-radius: 4px; white-space: nowrap;
+    }
+    .arrow-line {
+      width: 2px; height: 60px;
+      background: repeating-linear-gradient(
+        to bottom, #444c56 0,#444c56 6px, transparent 6px, transparent 12px
+      );
+    }
+    .arrow-head { font-size: 18px; color: #444c56; line-height: 1; }
+
+    /* 수집 대상 서버들 */
+    .target-servers {
+      flex: 1; background: #0d1117;
+      border: 1px solid #30363d; border-radius: 10px; padding: 16px;
+    }
+    .target-servers h3 { font-size: 13px; font-weight: 600; color: #8b949e; margin-bottom: 14px; }
+
+    .server-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+
+    .server-item {
+      background: #161b22; border: 1px solid #30363d;
+      border-radius: 8px; padding: 10px 14px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .server-name  { font-size: 13px; font-weight: 600; color: #e6edf3; }
+    .server-alloy { font-size: 11px; font-family: monospace; color: #7d8590; }
+
+    .alloy-box {
+      background: #161b22; border: 1px solid #1f4068;
+      border-radius: 8px; padding: 12px 14px;
+    }
+    .alloy-box h4 {
+      font-size: 11px; font-weight: 700; color: #58a6ff;
+      margin-bottom: 8px; letter-spacing: 0.5px;
+    }
+    .collect-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; color: #8b949e; margin-bottom: 5px;
+    }
+    .collect-item:last-child { margin-bottom: 0; }
+    .cicon { width: 20px; text-align: center; font-size: 13px; }
+    .cmethod {
+      margin-left: auto; font-size: 10px; font-family: monospace;
+      color: #444c56; background: #0d1117;
+      padding: 1px 6px; border-radius: 4px;
+    }
+
+    /* ── 데이터 흐름 ── */
+    .flow-panel {
+      width: 100%; max-width: 1100px;
+      background: #161b22; border: 1px solid #30363d;
+      border-radius: 12px; padding: 16px 24px; margin-top: 20px;
+    }
+    .panel-title {
+      font-size: 11px; font-weight: 700; color: #7d8590;
+      letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px;
+    }
+    .flow-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+
+    .flow-item {
+      background: #0d1117; border-radius: 8px;
+      padding: 10px 14px; border-left: 3px solid;
+    }
+    .flow-item.blue   { border-color: #58a6ff; }
+    .flow-item.cyan   { border-color: #06b6d4; }
+    .flow-item.green  { border-color: #3fb950; }
+    .flow-item.orange { border-color: #e3b341; }
+    .flow-item.pink   { border-color: #ea4b71; }
+    .flow-item.purple { border-color: #a78bfa; }
+
+    .flow-title { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+    .flow-item.blue   .flow-title { color: #58a6ff; }
+    .flow-item.cyan   .flow-title { color: #06b6d4; }
+    .flow-item.green  .flow-title { color: #3fb950; }
+    .flow-item.orange .flow-title { color: #e3b341; }
+    .flow-item.pink   .flow-title { color: #ea4b71; }
+    .flow-item.purple .flow-title { color: #a78bfa; }
+
+    .flow-desc { font-size: 11px; color: #6e7681; line-height: 1.7; font-family: monospace; }
+
+    /* ── 타임라인 ── */
+    .timeline-panel {
+      width: 100%; max-width: 1100px;
+      background: #161b22; border: 1px solid #30363d;
+      border-radius: 12px; padding: 16px 24px; margin-top: 12px;
+    }
+    .timeline-track { display: flex; }
+
+    .tl-item { flex: 1; padding: 10px 14px; background: #0d1117; border-top: 3px solid; }
+    .tl-item:first-child { border-radius: 8px 0 0 8px; }
+    .tl-item:last-child  { border-radius: 0 8px 8px 0; }
+    .tl-item.w1 { border-color: #1f4068; }
+    .tl-item.w2 { border-color: #238636; }
+    .tl-item.w3 { border-color: #a78bfa; }
+    .tl-item.w4 { border-color: #e3b341; }
+
+    .tl-weeks { font-size: 10px; font-weight: 700; color: #7d8590; margin-bottom: 4px; }
+    .tl-title { font-size: 12px; font-weight: 600; color: #e6edf3; margin-bottom: 6px; }
+    .tl-list  { list-style: none; font-size: 11px; color: #6e7681; line-height: 1.9; }
+    .tl-list li::before { content: '· '; }
+
+    footer { text-align: center; font-size: 11px; color: #444c56; margin-top: 24px; }
+  </style>
+</head>
+<body>
+
+<h1>AI Agent 기반 지능형 통합 모니터링 — 전체 아키텍처</h1>
+<p class="subtitle">폐쇄망 다환경 배포 &nbsp;·&nbsp; GitOps + 사이트 독립형 &nbsp;·&nbsp; 2인팀 v1</p>
+
+<div class="arch">
+
+  <!-- ══ HQ ══ -->
+  <div class="section section-hq">
+    <div class="section-label">HQ — 내부망</div>
+    <div class="hq-inner">
+      <div class="git-box">
+        <h3>📁 Git 저장소 (설정 코드 중앙 관리)</h3>
+        <div class="git-tree">
+          ansible/<br>
+          &nbsp;&nbsp;├── roles/<br>
+          &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── grafana &nbsp;/&nbsp; prometheus &nbsp;/&nbsp; loki<br>
+          &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── ollama &nbsp;/&nbsp; fastapi &nbsp;/&nbsp; n8n<br>
+          &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── alloy<br>
+          &nbsp;&nbsp;├── profiles/<br>
+          &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="hl">bare-metal-highspec.yml</span><br>
+          &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="hl">bare-metal-lowspec.yml</span><br>
+          &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="hl">docker-only.yml</span><br>
+          &nbsp;&nbsp;└── sites/<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="hl">template/</span> &nbsp;← 신규 현장 복사 기준<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── site-A / inventory.yml<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── site-B / inventory.yml
+        </div>
+      </div>
+      <div class="hq-right">
+        <div class="mini-box">
+          <h4>⚙️ Ansible Control Node</h4>
+          <p>VPN 연결 시 현장에 배포·설정 변경<br>preflight → deploy → rollback</p>
+        </div>
+        <div class="mini-box">
+          <h4>📡 Health Beacon 집계</h4>
+          <p>전체 현장 상태 카드 뷰<br>
+            <span class="badge badge-gray">v1: 선택</span>&nbsp;
+            <span class="badge badge-green">v2: 표준</span>
+          </p>
+        </div>
+        <div class="mini-box">
+          <h4>📦 번들 배포 채널</h4>
+          <p>USB 드라이브<br>또는 내부 파일 서버 (nginx)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-label">오프라인 반입 (USB / 내부 파일서버)</div>
+    <div class="connector-line"></div>
+  </div>
+
+  <!-- ══ BUNDLE ══ -->
+  <div class="section section-bundle">
+    <div class="section-label">오프라인 배포 패키지 &nbsp;·&nbsp; 예상 크기: 20–25 GB</div>
+    <div class="bundle-inner">
+      <div class="bundle-item">
+        <h4>🐳 Docker Images</h4>
+        <ul>
+          <li>grafana/grafana:10.4.0</li>
+          <li>prom/prometheus:v2.51</li>
+          <li>grafana/loki:3.0.0</li>
+          <li>ollama/ollama:latest</li>
+          <li>custom/ai-service (FastAPI)</li>
+          <li>n8nio/n8n:latest</li>
+        </ul>
+      </div>
+      <div class="bundle-item">
+        <h4>🤖 Ollama 모델 파일</h4>
+        <ul>
+          <li>llama3.1:8b-instruct (GPU)</li>
+          <li>llama3.1:8b-q4_K_M (RAM 16G+)</li>
+          <li>phi3.5:3.8b-q4_K_M (RAM 8G+)</li>
+        </ul>
+      </div>
+      <div class="bundle-item">
+        <h4>📦 RPM / 바이너리</h4>
+        <ul>
+          <li>grafana-alloy-*.rpm</li>
+          <li>docker-ce RPM (미설치 시)</li>
+          <li>python3 wheels (FastAPI)</li>
+        </ul>
+      </div>
+      <div class="bundle-item">
+        <h4>📋 Ansible + 스크립트</h4>
+        <ul>
+          <li>ansible/ (플레이북 전체)</li>
+          <li>install.sh (진입점)</li>
+          <li>preflight.yml</li>
+          <li>rollback.yml</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-label">ansible-playbook deploy.yml &nbsp;(목표: 30분 이내)</div>
+    <div class="connector-line"></div>
+  </div>
+
+  <!-- ══ SITE ══ -->
+  <div class="section section-site">
+    <div class="section-label">각 현장 — 폐쇄망 (인터넷 차단 · 업무망 통신 가능)</div>
+    <div class="site-inner">
+
+      <!-- 모니터링 서버 -->
+      <div class="monitoring-server">
+        <h3>🖥️ 모니터링 서버 (1대) <span class="dc-badge">Docker Compose</span></h3>
+        <div class="services-grid">
+          <div class="service-box svc-grafana">
+            <div class="service-name">Grafana</div>
+            <div class="service-port">:3000</div>
+            <div class="service-desc">대시보드 · 알림<br>실시간 로그 UI</div>
+          </div>
+          <div class="service-box svc-prometheus">
+            <div class="service-name">Prometheus</div>
+            <div class="service-port">:9090</div>
+            <div class="service-desc">메트릭 저장<br>file_sd_configs</div>
+          </div>
+          <div class="service-box svc-loki">
+            <div class="service-name">Loki</div>
+            <div class="service-port">:3100</div>
+            <div class="service-desc">로그 저장<br>LogQL 조회</div>
+          </div>
+          <div class="service-box svc-ollama">
+            <div class="service-name">Ollama</div>
+            <div class="service-port">:11434</div>
+            <div class="service-desc">온프레미스 LLM<br>스펙별 모델 자동 선택</div>
+          </div>
+          <div class="service-box svc-fastapi">
+            <div class="service-name">FastAPI</div>
+            <div class="service-port">:8000</div>
+            <div class="service-desc">AI 분석 API<br>수집 대상 관리 UI</div>
+          </div>
+          <div class="service-box svc-n8n">
+            <div class="service-name">n8n</div>
+            <div class="service-port">:5678</div>
+            <div class="service-desc">워크플로우 자동화<br>리포트 · 알림 보강</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 화살표 -->
+      <div class="site-arrow">
+        <div class="arrow-tag">metrics →</div>
+        <div class="arrow-tag">logs →</div>
+        <div class="arrow-line"></div>
+        <div class="arrow-head">◀</div>
+        <div class="arrow-tag">scrape</div>
+      </div>
+
+      <!-- 수집 대상 서버들 -->
+      <div class="target-servers">
+        <h3>📡 수집 대상 서버들</h3>
+        <div class="server-list">
+          <div class="server-item">
+            <span class="server-name">서버 A</span>
+            <span class="server-alloy">Alloy :12345</span>
+            <span class="badge badge-green">운영중</span>
+          </div>
+          <div class="server-item">
+            <span class="server-name">서버 B</span>
+            <span class="server-alloy">Alloy :12345</span>
+            <span class="badge badge-green">운영중</span>
+          </div>
+          <div class="server-item">
+            <span class="server-name">서버 C</span>
+            <span class="server-alloy">Alloy :12345</span>
+            <span class="badge badge-green">운영중</span>
+          </div>
+          <div class="server-item">
+            <span class="server-name">서버 D</span>
+            <span class="server-alloy">Alloy :12345</span>
+            <span class="badge badge-green">운영중</span>
+          </div>
+          <div class="server-item">
+            <span class="server-name">서버 E</span>
+            <span class="server-alloy">Alloy :12345</span>
+            <span class="badge badge-orange">추가 예정</span>
+          </div>
+        </div>
+        <div class="alloy-box">
+          <h4>ALLOY 수집 항목 (node_exporter 불필요)</h4>
+          <div class="collect-item">
+            <span class="cicon">💾</span>
+            <span>DISK / CPU / RAM</span>
+            <span class="cmethod">exporter.unix</span>
+          </div>
+          <div class="collect-item">
+            <span class="cicon">⚙️</span>
+            <span>데몬 · 앱 상태</span>
+            <span class="cmethod">systemd collector</span>
+          </div>
+          <div class="collect-item">
+            <span class="cicon">🔌</span>
+            <span>포트 연결 가능 여부</span>
+            <span class="cmethod">exporter.blackbox</span>
+          </div>
+          <div class="collect-item">
+            <span class="cicon">📄</span>
+            <span>앱 로그 · 시스템 로그</span>
+            <span class="cmethod">loki.source.*</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ 데이터 흐름 ══ -->
+  <div class="flow-panel">
+    <div class="panel-title">데이터 흐름</div>
+    <div class="flow-grid">
+      <div class="flow-item blue">
+        <div class="flow-title">운영자 → 대시보드</div>
+        <div class="flow-desc">Grafana :3000<br>대시보드 조회 / 실시간 로그</div>
+      </div>
+      <div class="flow-item cyan">
+        <div class="flow-title">운영자 → 자연어 질의</div>
+        <div class="flow-desc">FastAPI /api/analyze<br>→ Ollama → Prometheus → 요약</div>
+      </div>
+      <div class="flow-item green">
+        <div class="flow-title">운영자 → 수집 대상 관리</div>
+        <div class="flow-desc">FastAPI /admin<br>→ targets.json → Prometheus 30초 반영</div>
+      </div>
+      <div class="flow-item orange">
+        <div class="flow-title">n8n → 일일 리포트</div>
+        <div class="flow-desc">Cron 08:00<br>→ Prometheus → Ollama → 발송</div>
+      </div>
+      <div class="flow-item pink">
+        <div class="flow-title">n8n → 알림 AI 보강</div>
+        <div class="flow-desc">Grafana Alert → n8n Webhook<br>→ Ollama 분석 → 보강 알림</div>
+      </div>
+      <div class="flow-item purple">
+        <div class="flow-title">n8n → Health Beacon</div>
+        <div class="flow-desc">Cron 10분 (VPN 시)<br>→ 현장 상태 → HQ POST</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 타임라인 ══ -->
+  <div class="timeline-panel">
+    <div class="panel-title">빌드 타임라인 (v1 · 6–8주)</div>
+    <div class="timeline-track">
+      <div class="tl-item w1">
+        <div class="tl-weeks">WEEK 1–2</div>
+        <div class="tl-title">GitOps 기반 구성</div>
+        <ul class="tl-list">
+          <li>Ansible roles 작성</li>
+          <li>환경 프로파일 3종</li>
+          <li>sites/template/ 세팅</li>
+        </ul>
+      </div>
+      <div class="tl-item w2">
+        <div class="tl-weeks">WEEK 3–4</div>
+        <div class="tl-title">오프라인 번들</div>
+        <ul class="tl-list">
+          <li>Docker images tarball</li>
+          <li>install.sh 완성</li>
+          <li>Alloy RPM 포함</li>
+        </ul>
+      </div>
+      <div class="tl-item w3">
+        <div class="tl-weeks">WEEK 5–6</div>
+        <div class="tl-title">AI 분석 + n8n</div>
+        <ul class="tl-list">
+          <li>FastAPI /api/analyze</li>
+          <li>PromQL 폴백 로직</li>
+          <li>n8n 워크플로우 3종</li>
+        </ul>
+      </div>
+      <div class="tl-item w4">
+        <div class="tl-weeks">WEEK 7–8</div>
+        <div class="tl-title">현장 검증</div>
+        <ul class="tl-list">
+          <li>1번 현장 배포 + 스모크 테스트</li>
+          <li>2번 현장 반복 검증</li>
+          <li>acceptance.md 커밋</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  AI Agent 기반 지능형 통합 모니터링 고도화 &nbsp;·&nbsp; 2인팀 v1 &nbsp;·&nbsp; 2026-05-28
+</footer>
+
+</body>
+</html>

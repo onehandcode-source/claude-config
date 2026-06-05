@@ -1,0 +1,208 @@
+2026-05-15T00:30:23.857Z [DEBUG] Watching for changes in setting files C:\Users\ygkim\.claude, D:\21. harness\agent-harness-ygkim\.claude...
+2026-05-15T00:30:23.936Z [DEBUG] Using bash path: "C:\Program Files\Git\bin\bash.exe"
+2026-05-15T00:30:23.968Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-05-15T00:30:23.968Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-05-15T00:30:23.968Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 1)
+2026-05-15T00:30:23.973Z [DEBUG] [STARTUP] Loading MCP configs...
+2026-05-15T00:30:24.012Z [DEBUG] Found 0 plugins (0 enabled, 0 disabled)
+2026-05-15T00:30:24.014Z [DEBUG] Total LSP servers loaded: 0
+2026-05-15T00:30:24.014Z [DEBUG] [LSP SERVER MANAGER] getAllLspServers returned 0 server(s)
+2026-05-15T00:30:24.014Z [DEBUG] LSP manager initialized with 0 servers
+2026-05-15T00:30:24.014Z [DEBUG] LSP server manager initialized successfully
+2026-05-15T00:30:24.014Z [DEBUG] LSP notification handlers registered successfully for all 0 server(s)
+2026-05-15T00:30:24.014Z [DEBUG] [STARTUP] MCP configs loaded in 41ms
+2026-05-15T00:30:24.017Z [DEBUG] [STARTUP] Running setup()...
+2026-05-15T00:30:24.029Z [DEBUG] Stats cache is up to date
+2026-05-15T00:30:24.031Z [DEBUG] Plugin autoupdate: skipped (auto-updater disabled)
+2026-05-15T00:30:24.044Z [DEBUG] Loading skills from: managed=C:\ProgramData\ClaudeCode\.claude\skills, user=C:\Users\ygkim\.claude\skills, project=[]
+2026-05-15T00:30:24.068Z [DEBUG] Loaded 17 installed plugins from C:\Users\ygkim\.claude\plugins\installed_plugins.json
+2026-05-15T00:30:24.110Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude\todos\9a12b20d-22a6-4f98-8d18-e21b7c19eb7c-agent-9a12b20d-22a6-4f98-8d18-e21b7c19eb7c.json.tmp.33788.1778805024110
+2026-05-15T00:30:24.112Z [DEBUG] Temp file written successfully, size: 2 bytes
+2026-05-15T00:30:24.112Z [DEBUG] Renaming C:\Users\ygkim\.claude\todos\9a12b20d-22a6-4f98-8d18-e21b7c19eb7c-agent-9a12b20d-22a6-4f98-8d18-e21b7c19eb7c.json.tmp.33788.1778805024110 to C:\Users\ygkim\.claude\todos\9a12b20d-22a6-4f98-8d18-e21b7c19eb7c-agent-9a12b20d-22a6-4f98-8d18-e21b7c19eb7c.json
+2026-05-15T00:30:24.114Z [DEBUG] File C:\Users\ygkim\.claude\todos\9a12b20d-22a6-4f98-8d18-e21b7c19eb7c-agent-9a12b20d-22a6-4f98-8d18-e21b7c19eb7c.json written atomically
+2026-05-15T00:30:24.125Z [DEBUG] getPluginSkills: Processing 0 enabled plugins
+2026-05-15T00:30:24.125Z [DEBUG] Total plugin skills loaded: 0
+2026-05-15T00:30:24.125Z [DEBUG] Total plugin commands loaded: 0
+2026-05-15T00:30:24.125Z [DEBUG] Registered 0 hooks from 0 plugins
+2026-05-15T00:30:24.196Z [DEBUG] [STARTUP] setup() completed in 179ms
+2026-05-15T00:30:24.196Z [DEBUG] [STARTUP] Loading commands and agents...
+2026-05-15T00:30:24.253Z [DEBUG] Total plugin agents loaded: 0
+2026-05-15T00:30:24.253Z [DEBUG] Loaded 0 unique skills (managed: 0, user: 0, project: 0, legacy commands: 0)
+2026-05-15T00:30:24.265Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills
+2026-05-15T00:30:24.269Z [DEBUG] [STARTUP] Commands and agents loaded in 73ms
+2026-05-15T00:30:24.354Z [DEBUG] Initialized versioned plugins system with 17 plugins
+2026-05-15T00:30:24.514Z [DEBUG] Getting matching hook commands for SessionStart with query: startup
+2026-05-15T00:30:24.514Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:24.514Z [DEBUG] Matched 0 unique hooks for query "startup" (0 before deduplication)
+2026-05-15T00:30:24.642Z [DEBUG] Total plugin output styles loaded: 0
+2026-05-15T00:30:24.667Z [DEBUG] Git remote URL: null
+2026-05-15T00:30:24.667Z [DEBUG] No git remote URL found
+2026-05-15T00:30:24.667Z [DEBUG] Not in a GitHub repository, skipping path mapping update
+2026-05-15T00:30:24.674Z [DEBUG] Ripgrep first use test: PASSED (mode=builtin, path=C:\Users\ygkim\.claude\plugins\cache\superpowers-marketplace\episodic-memory\1.0.15\node_modules\@anthropic-ai\claude-agent-sdk\vendor\ripgrep\x64-win32\rg.exe)
+2026-05-15T00:30:24.678Z [DEBUG] Creating shell snapshot for bash (C:\Program Files\Git\bin\bash.exe)
+2026-05-15T00:30:24.679Z [DEBUG] Looking for shell config file: C:\Users\ygkim\.bashrc
+2026-05-15T00:30:24.679Z [DEBUG] Shell config file not found: C:\Users\ygkim\.bashrc, creating snapshot with Claude Code defaults only
+2026-05-15T00:30:24.679Z [DEBUG] Snapshots directory: C:\Users\ygkim\.claude\shell-snapshots
+2026-05-15T00:30:24.704Z [ERROR] "Error: Error: EPERM: operation not permitted, symlink 'C:\\Users\\ygkim\\.claude\\projects\\D--21--harness-agent-harness-ygkim\\agent-a63ccf6.jsonl' -> 'C:\\Users\\ygkim\\AppData\\Local\\Temp\\claude\\D--21--harness-agent-harness-ygkim\\tasks\\a63ccf6.output'\n    at symlinkSync (node:fs:1890:11)\n    at oWA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1672:9724)\n    at L22 (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1829:1191)\n    at file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21577\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)\n    at esA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:237:14363)\n    at Object.call (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21300)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"
+2026-05-15T00:30:24.708Z [DEBUG] Getting matching hook commands for SubagentStart with query: Explore
+2026-05-15T00:30:24.708Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:24.708Z [DEBUG] Matched 0 unique hooks for query "Explore" (0 before deduplication)
+2026-05-15T00:30:24.725Z [ERROR] "Error: Error: EPERM: operation not permitted, symlink 'C:\\Users\\ygkim\\.claude\\projects\\D--21--harness-agent-harness-ygkim\\agent-a8a4625.jsonl' -> 'C:\\Users\\ygkim\\AppData\\Local\\Temp\\claude\\D--21--harness-agent-harness-ygkim\\tasks\\a8a4625.output'\n    at symlinkSync (node:fs:1890:11)\n    at oWA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1672:9724)\n    at L22 (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1829:1191)\n    at file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21577\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)\n    at esA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:237:14363)\n    at Object.call (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21300)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"
+2026-05-15T00:30:24.729Z [DEBUG] Getting matching hook commands for SubagentStart with query: Plan
+2026-05-15T00:30:24.729Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:24.729Z [DEBUG] Matched 0 unique hooks for query "Plan" (0 before deduplication)
+2026-05-15T00:30:24.742Z [ERROR] "Error: Error: EPERM: operation not permitted, symlink 'C:\\Users\\ygkim\\.claude\\projects\\D--21--harness-agent-harness-ygkim\\agent-a85e3c4.jsonl' -> 'C:\\Users\\ygkim\\AppData\\Local\\Temp\\claude\\D--21--harness-agent-harness-ygkim\\tasks\\a85e3c4.output'\n    at symlinkSync (node:fs:1890:11)\n    at oWA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1672:9724)\n    at L22 (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1829:1191)\n    at file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21577\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)\n    at esA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:237:14363)\n    at Object.call (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21300)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"
+2026-05-15T00:30:24.745Z [DEBUG] Getting matching hook commands for SubagentStart with query: Bash
+2026-05-15T00:30:24.745Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:24.745Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-15T00:30:24.779Z [DEBUG] Skills and commands included in Skill tool:
+2026-05-15T00:30:24.790Z [DEBUG] Watching for changes in skill directories: C:\Users\ygkim\.claude\skills...
+2026-05-15T00:30:24.799Z [DEBUG] Creating snapshot at: C:\Users\ygkim\.claude\shell-snapshots\snapshot-bash-1778805024679-05elk6.sh
+2026-05-15T00:30:24.799Z [DEBUG] Shell binary exists: true
+2026-05-15T00:30:24.799Z [DEBUG] Execution timeout: 10000ms
+2026-05-15T00:30:24.891Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-15T00:30:24.919Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-15T00:30:24.947Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-15T00:30:24.947Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-15T00:30:24.949Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-15T00:30:24.949Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-15T00:30:24.958Z [DEBUG] Getting matching hook commands for UserPromptSubmit with query: undefined
+2026-05-15T00:30:24.958Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:24.958Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-05-15T00:30:24.962Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-15T00:30:24.984Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-15T00:30:25.225Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.33788.1778805025225
+2026-05-15T00:30:25.225Z [DEBUG] Preserving file permissions: 100666
+2026-05-15T00:30:25.226Z [DEBUG] Temp file written successfully, size: 59648 bytes
+2026-05-15T00:30:25.227Z [DEBUG] Applied original permissions to temp file
+2026-05-15T00:30:25.227Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.33788.1778805025225 to C:\Users\ygkim\.claude.json
+2026-05-15T00:30:25.228Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-15T00:30:25.282Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.33788.1778805025281
+2026-05-15T00:30:25.282Z [DEBUG] Preserving file permissions: 100666
+2026-05-15T00:30:25.283Z [DEBUG] Temp file written successfully, size: 59686 bytes
+2026-05-15T00:30:25.283Z [DEBUG] Applied original permissions to temp file
+2026-05-15T00:30:25.283Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.33788.1778805025281 to C:\Users\ygkim\.claude.json
+2026-05-15T00:30:25.284Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-15T00:30:25.309Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.33788.1778805025309
+2026-05-15T00:30:25.309Z [DEBUG] Preserving file permissions: 100666
+2026-05-15T00:30:25.312Z [DEBUG] Temp file written successfully, size: 59722 bytes
+2026-05-15T00:30:25.312Z [DEBUG] Applied original permissions to temp file
+2026-05-15T00:30:25.312Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.33788.1778805025309 to C:\Users\ygkim\.claude.json
+2026-05-15T00:30:25.313Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-15T00:30:25.325Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.33788.1778805025325
+2026-05-15T00:30:25.326Z [DEBUG] Preserving file permissions: 100666
+2026-05-15T00:30:25.327Z [DEBUG] Temp file written successfully, size: 59752 bytes
+2026-05-15T00:30:25.328Z [DEBUG] Applied original permissions to temp file
+2026-05-15T00:30:25.328Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.33788.1778805025325 to C:\Users\ygkim\.claude.json
+2026-05-15T00:30:25.329Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-15T00:30:25.349Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.33788.1778805025348
+2026-05-15T00:30:25.349Z [DEBUG] Preserving file permissions: 100666
+2026-05-15T00:30:25.350Z [DEBUG] Temp file written successfully, size: 59799 bytes
+2026-05-15T00:30:25.350Z [DEBUG] Applied original permissions to temp file
+2026-05-15T00:30:25.350Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.33788.1778805025348 to C:\Users\ygkim\.claude.json
+2026-05-15T00:30:25.351Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-15T00:30:25.707Z [DEBUG] Stream started - received first chunk
+2026-05-15T00:30:25.723Z [DEBUG] Stream started - received first chunk
+2026-05-15T00:30:25.770Z [ERROR] Error streaming, falling back to non-streaming mode: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"},"request_id":"req_011Cb3QmPRXf3YCYHu8e143Y"}
+2026-05-15T00:30:26.102Z [DEBUG] Shell snapshot created successfully (396 bytes)
+2026-05-15T00:30:26.605Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-05-15T00:30:26.605Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-05-15T00:30:26.605Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-05-15T00:30:26.605Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:26.605Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-05-15T00:30:26.605Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-05-15T00:30:26.605Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:26.605Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-05-15T00:30:31.067Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.33788.1778805031067
+2026-05-15T00:30:31.067Z [DEBUG] Preserving file permissions: 100666
+2026-05-15T00:30:31.068Z [DEBUG] Temp file written successfully, size: 59799 bytes
+2026-05-15T00:30:31.069Z [DEBUG] Applied original permissions to temp file
+2026-05-15T00:30:31.069Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.33788.1778805031067 to C:\Users\ygkim\.claude.json
+2026-05-15T00:30:31.069Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-15T00:30:31.122Z [ERROR] Error streaming, falling back to non-streaming mode: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"},"request_id":"req_011Cb3QmPQ3fPmREeguaLWeu"}
+2026-05-15T00:30:31.128Z [DEBUG] Getting matching hook commands for PostToolUse with query: Glob
+2026-05-15T00:30:31.128Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:31.128Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-05-15T00:30:31.137Z [DEBUG] Getting matching hook commands for PostToolUse with query: Glob
+2026-05-15T00:30:31.137Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:31.137Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-05-15T00:30:31.242Z [DEBUG] Getting matching hook commands for SubagentStop with query: undefined
+2026-05-15T00:30:31.242Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:31.242Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-05-15T00:30:31.274Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-15T00:30:31.274Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-15T00:30:31.274Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-15T00:30:31.274Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-15T00:30:31.278Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-15T00:30:31.985Z [DEBUG] Stream started - received first chunk
+2026-05-15T00:30:33.112Z [DEBUG] executePreToolHooks called for tool: Read
+2026-05-15T00:30:33.112Z [DEBUG] executePreToolHooks called for tool: Read
+2026-05-15T00:30:33.113Z [DEBUG] Getting matching hook commands for PreToolUse with query: Read
+2026-05-15T00:30:33.113Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:33.113Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-15T00:30:33.113Z [DEBUG] Getting matching hook commands for PreToolUse with query: Read
+2026-05-15T00:30:33.113Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:33.113Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-15T00:30:36.760Z [DEBUG] Getting matching hook commands for PostToolUse with query: Read
+2026-05-15T00:30:36.760Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:36.760Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-15T00:30:36.761Z [DEBUG] Getting matching hook commands for PostToolUse with query: Read
+2026-05-15T00:30:36.761Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:36.761Z [DEBUG] Matched 0 unique hooks for query "Read" (0 before deduplication)
+2026-05-15T00:30:36.906Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-15T00:30:36.906Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-15T00:30:36.906Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-15T00:30:36.906Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-15T00:30:36.911Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-15T00:30:38.406Z [DEBUG] Stream started - received first chunk
+2026-05-15T00:30:42.210Z [DEBUG] executePreToolHooks called for tool: Write
+2026-05-15T00:30:42.211Z [DEBUG] Getting matching hook commands for PreToolUse with query: Write
+2026-05-15T00:30:42.211Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:42.211Z [DEBUG] Matched 0 unique hooks for query "Write" (0 before deduplication)
+2026-05-15T00:30:43.702Z [DEBUG] "Permission suggestions for Write: [\n  {\n    \"type\": \"setMode\",\n    \"mode\": \"acceptEdits\",\n    \"destination\": \"session\"\n  }\n]"
+2026-05-15T00:30:43.768Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-15T00:30:43.768Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-15T00:30:43.768Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-15T00:30:43.768Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-15T00:30:43.773Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-15T00:30:44.477Z [DEBUG] Stream started - received first chunk
+2026-05-15T00:30:45.158Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-15T00:30:45.159Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-15T00:30:45.159Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:45.159Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-15T00:30:45.216Z [DEBUG] tree-sitter: loaded from disk
+2026-05-15T00:30:46.000Z [DEBUG] Session environment not yet supported on Windows
+2026-05-15T00:30:46.828Z [DEBUG] Getting matching hook commands for PostToolUseFailure with query: Bash
+2026-05-15T00:30:46.828Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:46.828Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-15T00:30:46.887Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-15T00:30:46.887Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-15T00:30:46.887Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-15T00:30:46.887Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-15T00:30:46.892Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-15T00:30:47.786Z [DEBUG] Stream started - received first chunk
+2026-05-15T00:30:48.495Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-05-15T00:30:48.495Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-05-15T00:30:48.495Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:48.495Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-15T00:30:50.800Z [DEBUG] "Permission suggestions for Bash: [\n  {\n    \"type\": \"addRules\",\n    \"rules\": [\n      {\n        \"toolName\": \"Read\",\n        \"ruleContent\": \"//d//**\"\n      }\n    ],\n    \"behavior\": \"allow\",\n    \"destination\": \"session\"\n  }\n]"
+2026-05-15T00:30:50.878Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-15T00:30:50.878Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-15T00:30:50.878Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-15T00:30:50.878Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-15T00:30:50.885Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-15T00:30:51.602Z [DEBUG] Stream started - received first chunk
+2026-05-15T00:30:53.420Z [DEBUG] Getting matching hook commands for Stop with query: undefined
+2026-05-15T00:30:53.420Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:53.420Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-05-15T00:30:53.426Z [DEBUG] Getting matching hook commands for SessionEnd with query: other
+2026-05-15T00:30:53.426Z [DEBUG] Found 0 hook matchers in settings
+2026-05-15T00:30:53.426Z [DEBUG] Matched 0 unique hooks for query "other" (0 before deduplication)
+2026-05-15T00:30:53.432Z [DEBUG] Cleaned up session snapshot: C:\Users\ygkim\.claude\shell-snapshots\snapshot-bash-1778805024679-05elk6.sh
+2026-05-15T00:30:53.432Z [DEBUG] LSP server manager shut down successfully
+2026-05-15T00:30:53.927Z [DEBUG] Metrics opt-out API response: enabled=true, vcsLinking=undefined
+2026-05-15T00:30:54.330Z [DEBUG] BigQuery metrics exported successfully
+2026-05-15T00:30:54.330Z [DEBUG] "BigQuery API Response: {\n  \"accepted_count\": 5,\n  \"rejected_count\": 0\n}"
+2026-05-15T00:30:54.330Z [DEBUG] BigQuery metrics exporter flush complete
+2026-05-15T00:30:54.330Z [DEBUG] BigQuery metrics exporter flush complete
+2026-05-15T00:30:54.330Z [DEBUG] BigQuery metrics exporter shutdown complete

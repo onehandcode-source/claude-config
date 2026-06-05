@@ -1,0 +1,47 @@
+import '@testing-library/jest-dom/vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { HomePage } from './HomePage';
+import { useAuthStore } from '@/store/useAuthStore';
+
+describe('HomePage', () => {
+    test('shows quick entry cards for the main areas', () => {
+        useAuthStore.getState().setUser({
+            id: 1,
+            username: 'admin',
+            name: 'Admin User',
+            email: null,
+            role: 'ADMIN',
+        });
+
+        render(
+            <MemoryRouter>
+                <HomePage />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByRole('link', { name: /데이터 가져오기/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /도메인 관리/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /단어 관리/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /금칙어 관리/i })).toBeInTheDocument();
+    });
+
+    test('greets the current user', () => {
+        useAuthStore.getState().setUser({
+            id: 1,
+            username: 'admin',
+            name: 'Admin User',
+            email: null,
+            role: 'ADMIN',
+        });
+
+        render(
+            <MemoryRouter>
+                <HomePage />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByRole('heading', { name: /안녕하세요/i })).toBeInTheDocument();
+        expect(screen.getByText('Admin User')).toBeInTheDocument();
+    });
+});

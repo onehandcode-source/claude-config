@@ -1,0 +1,51 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+    darkMode: ['class'],
+    content: ['./index.html', './src/**/*.{js,jsx}', './component/**/*.{js,jsx}'],
+    theme: {
+        extend: {
+            colors: {
+                /* ── Core brand tokens ── */
+                bg: 'hsl(var(--bg))',
+                surface: 'hsl(var(--surface))',
+                fg: 'hsl(var(--fg))',
+                border: 'hsl(var(--border))',
+                'border-lt': 'hsl(var(--border-lt))',
+                accent: 'hsl(var(--accent))',
+                'accent-soft': 'hsl(var(--accent-soft))',
+                /* ── Shadcn-compatible aliases ── */
+                background: 'hsl(var(--bg))',
+                foreground: 'hsl(var(--fg))',
+                card: {
+                    DEFAULT: 'hsl(var(--surface))',
+                    foreground: 'hsl(var(--fg))',
+                },
+                primary: {
+                    DEFAULT: 'hsl(var(--accent))',
+                    foreground: '#ffffff',
+                },
+                secondary: {
+                    DEFAULT: 'hsl(var(--border-lt))',
+                    foreground: 'hsl(var(--fg))',
+                },
+                muted: {
+                    DEFAULT: 'hsl(var(--surface))',
+                    foreground: 'hsl(var(--muted))',
+                },
+                destructive: {
+                    DEFAULT: 'hsl(0 72% 51%)',
+                    foreground: '#ffffff',
+                },
+                input: 'hsl(var(--border-lt))',
+                ring: 'hsl(var(--accent))',
+            },
+            fontFamily: {
+                display: ["'Iowan Old Style'", 'Charter', 'Georgia', 'serif'],
+            },
+            borderRadius: {
+                DEFAULT: 'var(--radius)',
+            },
+        },
+    },
+    plugins: [],
+};

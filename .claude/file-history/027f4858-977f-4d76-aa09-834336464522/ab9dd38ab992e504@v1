@@ -1,0 +1,51 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+yarn.lock
+package-lock.json
+
+# Testing
+/coverage
+.nyc_output
+
+# Next.js
+/.next/
+/out/
+*.unzip
+
+# Production
+/build
+/dist
+
+# Misc
+.DS_Store
+*.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+.codex-tests/
+data/snapshots/
+data/scenarios/
+data/settings/
+!data/snapshots/.gitkeep
+!data/scenarios/.gitkeep
+!data/settings/.gitkeep

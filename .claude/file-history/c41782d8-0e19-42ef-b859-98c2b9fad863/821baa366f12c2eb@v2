@@ -1,0 +1,36 @@
+package com.devwogns.trmdict.module.domain.vo;
+
+import com.devwogns.trmdict.module.domain.entity.DomainEntity;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Builder;
+import lombok.Getter;
+
+@Getter
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class DomainListVo {
+
+    private Long id;
+    private String stdDmnNm;
+    private String stdDmnGroupNm;
+    private String stdDmnClsfNm;
+    private String dataTypeNm;
+    private String dataLen;
+    private String unitNm;
+    private String enctCycl;
+    private String useYn;
+
+    public static DomainListVo fromEntity(DomainEntity entity) {
+        return DomainListVo.builder()
+                .id(entity.getId())
+                .stdDmnNm(entity.getStdDmnNm())
+                .stdDmnGroupNm(entity.getStdDmnGroupNm())
+                .stdDmnClsfNm(entity.getStdDmnClsfNm())
+                .dataTypeNm(entity.getDataTypeNm())
+                .dataLen(entity.getDataLen())
+                .unitNm(entity.getUnitNm())
+                .enctCycl(entity.getEnctCycl())
+                .useYn(entity.getUseYn())
+                .build();
+    }
+}

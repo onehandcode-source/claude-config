@@ -1,0 +1,109 @@
+# HealthProbe probe URL 동적 결정 설계
+
+**날짜**: 2026-05-08  
+**작성자**: 김영건  
+**상태**: 승인됨
+
+---
+
+## 배경 및 문제
+
+### 발견 경위
+
+2026-05-07 19:12 로그에서 ePath LB(27.101.236.83:8080) 503 장애 발생 시,  
+HealthProbe가 잘못된 URL(iPath LB)을 probe하여 HALF_OPEN을 조기 전환,  
+실제 요청은 여전히 503으로 실패하여 OPEN↔HALF_OPEN 루프가 발생했다.
+
+### 근본 원인
+
+`RMUpstreamHealthProbe`가 CB 이름과 probe URL을 **하드코딩**으로 매핑:
+
+```java
+probeOne("filesync-main",     iHost + iPath);  // 항상 iPath LB
+probeOne("filesync-recovery", eHost + ePath);  // 항상 ePath LB
+```
+
+실제 큐-LB 매핑 (ConsumerUtil.getRootUri 기준):
+
+| 서버 | 큐(QUEUE_NAME) | 실제 요청 LB | probe 대상 (수정 전) |
+|------|---------------|-------------|-------------------|
+| anl1,2 | iQueue | ePath LB (E_HOST+E_PATH) | iPath LB ← **불일치** |
+| ewas1,2 | eQueue | iPath LB (I_HOST+I_PATH) | iPath LB ← 일치 |
+| ewas1,2 | iRecoveryQueue | bwas LB (B_HOST+B_PATH) | ePath LB ← **불일치** |
+| iwas1,2 | eRecoveryQueue | iPath LB (I_HOST+I_PATH) | ePath LB ← **불일치** |
+
+---
+
+## 설계 결정
+
+### 선택한 접근법: A — QUEUE_NAME 기반 동적 probe URL
+
+**변경 범위**: `RMUpstreamHealthProbe.java` 단일 파일
+
+각 서버 인스턴스의 `${QUEUE_NAME}`, `${RECOVERY_QUEUE_NAME}` 환경변수를 주입받아,  
+`ConsumerUtil.getRootUri`와 동일한 기준으로 probe URL을 동적으로 결정한다.
+
+### 기각된 접근법
+
+- **B (properties 명시)**: 프로파일이 서버 역할을 직접 표현하지 않아 properties 구조 재편 필요. 관리 부담.
+- **C (ConsumerUtil 주입)**: HealthProbe(인프라 레이어)가 task/util 레이어에 의존하는 구조적 어색함.
+
+---
+
+## 구현 명세
+
+### 추가 주입값
+
+```java
+@Value("${file.backup.load_balancer_server}")
+private String bHost;
+
+@Value("${request.file.url.bPath}")
+private String bPath;
+
+@Value("${QUEUE_NAME}")
+private String queueName;
+
+@Value("${RECOVERY_QUEUE_NAME:${QUEUE_NAME}}")
+private String recoveryQueueName;
+```
+
+### probe 메서드 변경
+
+```java
+// 변경 전
+probeOne("filesync-main",     iHost + iPath);
+probeOne("filesync-recovery", eHost + ePath);
+
+// 변경 후
+probeOne("filesync-main",     resolveProbeUrl(queueName));
+probeOne("filesync-recovery", resolveProbeUrl(recoveryQueueName));
+```
+
+### resolveProbeUrl 로직
+
+```java
+private String resolveProbeUrl(String qName) {
+    switch (qName) {
+        case "iQueue":         return eHost + ePath;  // anl 서버 → ewas LB
+        case "iRecoveryQueue": return bHost + bPath;  // ewas 서버 → bwas LB
+        default:               return iHost + iPath;  // eQueue, eRecoveryQueue → anl LB
+    }
+}
+```
+
+### 수정 후 probe 매핑
+
+| 서버 | QUEUE_NAME | probe URL |
+|------|-----------|-----------|
+| anl1,2 | iQueue | E_HOST+E_PATH (ePath LB) |
+| ewas1,2 | eQueue | I_HOST+I_PATH (iPath LB) |
+| ewas1,2 | iRecoveryQueue | B_HOST+B_PATH (bwas LB) |
+| iwas1,2 | eRecoveryQueue | I_HOST+I_PATH (iPath LB) |
+
+---
+
+## 테스트 범위
+
+- `RMUpstreamHealthProbeTest`: probe URL 인자 검증 케이스 업데이트 (4가지 QUEUE_NAME 시나리오)
+- 기존 `executeProbe` mock 방식 유지

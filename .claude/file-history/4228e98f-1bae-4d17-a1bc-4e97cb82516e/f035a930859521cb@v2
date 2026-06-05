@@ -1,0 +1,35 @@
+import 'server-only'
+import { prisma } from '@/lib/prisma'
+import type { DomainSearchInput } from './schema'
+
+export async function getDomains(params: DomainSearchInput) {
+  try {
+    const where = params.keyword
+      ? {
+          OR: [
+            { code: { contains: params.keyword } },
+            { name: { contains: params.keyword } },
+          ],
+        }
+      : {}
+
+    const [items, total] = await prisma.$transaction([
+      prisma.domain.findMany({
+        where,
+        select: { id: true, code: true, name: true, description: true, createdAt: true },
+        skip: params.page * params.size,
+        take: params.size,
+        orderBy: { code: 'asc' },
+      }),
+      prisma.domain.count({ where }),
+    ])
+
+    return { items, total }
+  } catch {
+    return { items: [], total: 0 }
+  }
+}
+
+export async function getDomainById(id: number) {
+  return prisma.domain.findUnique({ where: { id } })
+}

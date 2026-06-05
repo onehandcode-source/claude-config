@@ -1,0 +1,83 @@
+import { Button } from '../ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+
+const buildPageItems = (currentPage, totalPages) => {
+    if (totalPages <= 1) return [];
+    if (totalPages <= 7) {
+        return Array.from({ length: totalPages }, (_, i) => ({ type: 'page', value: i + 1 }));
+    }
+    const pages = new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+    const ordered = [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+    const items = [];
+    let last = 0;
+    ordered.forEach((p) => {
+        if (p - last > 1) items.push({ type: 'ellipsis', key: `e-${last}-${p}` });
+        items.push({ type: 'page', value: p });
+        last = p;
+    });
+    return items;
+};
+
+export const CardList = ({ pageData, pageSizeOptions = [10, 20, 50, 100], onPageChange, renderItem }) => {
+    const items = pageData?.items ?? [];
+    const pageItems = buildPageItems(pageData?.page ?? 1, pageData?.totalPages ?? 1);
+
+    return (
+        <div>
+            <div className='flex items-center justify-between mb-3'>
+                <span className='text-[13px] text-muted-foreground'>
+                    총 <strong className='text-foreground'>{pageData?.totalElements ?? 0}</strong>건
+                </span>
+                <Select
+                    value={String(pageData?.size ?? pageSizeOptions[0])}
+                    onValueChange={(value) => onPageChange?.({ page: 1, size: Number(value) })}
+                >
+                    <SelectTrigger className='h-8 w-fit px-2 text-[13px] bg-card'>
+                        <SelectValue placeholder='페이지 크기' />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {pageSizeOptions.map((opt) => (
+                            <SelectItem key={opt} value={String(opt)}>
+                                {opt}개씩 보기
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {items.length === 0 ? (
+                <div className='py-12 text-center text-muted-foreground text-sm bg-card rounded-xl border border-border'>
+                    데이터가 없습니다.
+                </div>
+            ) : (
+                <div className='flex flex-col gap-2'>
+                    {items.map((item) => renderItem(item))}
+                </div>
+            )}
+
+            {pageItems.length > 0 ? (
+                <div className='flex items-center justify-center gap-1 mt-4'>
+                    {pageItems.map((pi) =>
+                        pi.type === 'ellipsis' ? (
+                            <span key={pi.key} className='px-2 text-muted-foreground text-[13px]'>
+                                ...
+                            </span>
+                        ) : (
+                            <Button
+                                key={pi.value}
+                                variant={pi.value === pageData.page ? 'default' : 'outline'}
+                                size='sm'
+                                type='button'
+                                className='min-w-[36px]'
+                                aria-current={pi.value === pageData.page ? 'page' : undefined}
+                                onClick={() => onPageChange?.({ page: pi.value, size: pageData.size })}
+                            >
+                                {pi.value}
+                            </Button>
+                        ),
+                    )}
+                </div>
+            ) : null}
+        </div>
+    );
+};

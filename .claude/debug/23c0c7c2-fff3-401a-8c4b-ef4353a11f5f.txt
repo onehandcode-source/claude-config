@@ -1,0 +1,92 @@
+2026-05-07T08:43:56.090Z [DEBUG] Watching for changes in setting files C:\Users\ygkim\.claude, C:\Users\ygkim\.claude...
+2026-05-07T08:43:56.157Z [DEBUG] Using bash path: "C:\Program Files\Git\bin\bash.exe"
+2026-05-07T08:43:56.186Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-05-07T08:43:56.186Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-05-07T08:43:56.186Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 1)
+2026-05-07T08:43:56.192Z [DEBUG] [STARTUP] Loading MCP configs...
+2026-05-07T08:43:56.224Z [DEBUG] Found 0 plugins (0 enabled, 0 disabled)
+2026-05-07T08:43:56.224Z [DEBUG] Total LSP servers loaded: 0
+2026-05-07T08:43:56.224Z [DEBUG] [LSP SERVER MANAGER] getAllLspServers returned 0 server(s)
+2026-05-07T08:43:56.224Z [DEBUG] LSP manager initialized with 0 servers
+2026-05-07T08:43:56.224Z [DEBUG] LSP server manager initialized successfully
+2026-05-07T08:43:56.225Z [DEBUG] LSP notification handlers registered successfully for all 0 server(s)
+2026-05-07T08:43:56.225Z [DEBUG] [STARTUP] MCP configs loaded in 33ms
+2026-05-07T08:43:56.227Z [DEBUG] [STARTUP] Running setup()...
+2026-05-07T08:43:56.234Z [DEBUG] Stats cache is up to date
+2026-05-07T08:43:56.235Z [DEBUG] Plugin autoupdate: skipped (auto-updater disabled)
+2026-05-07T08:43:57.745Z [DEBUG] Loading skills from: managed=C:\ProgramData\ClaudeCode\.claude\skills, user=C:\Users\ygkim\.claude\skills, project=[]
+2026-05-07T08:43:58.684Z [DEBUG] Loaded 16 installed plugins from C:\Users\ygkim\.claude\plugins\installed_plugins.json
+2026-05-07T08:43:58.711Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude\todos\23c0c7c2-fff3-401a-8c4b-ef4353a11f5f-agent-23c0c7c2-fff3-401a-8c4b-ef4353a11f5f.json.tmp.37676.1778143438711
+2026-05-07T08:43:58.712Z [DEBUG] Temp file written successfully, size: 2 bytes
+2026-05-07T08:43:58.712Z [DEBUG] Renaming C:\Users\ygkim\.claude\todos\23c0c7c2-fff3-401a-8c4b-ef4353a11f5f-agent-23c0c7c2-fff3-401a-8c4b-ef4353a11f5f.json.tmp.37676.1778143438711 to C:\Users\ygkim\.claude\todos\23c0c7c2-fff3-401a-8c4b-ef4353a11f5f-agent-23c0c7c2-fff3-401a-8c4b-ef4353a11f5f.json
+2026-05-07T08:43:58.714Z [DEBUG] File C:\Users\ygkim\.claude\todos\23c0c7c2-fff3-401a-8c4b-ef4353a11f5f-agent-23c0c7c2-fff3-401a-8c4b-ef4353a11f5f.json written atomically
+2026-05-07T08:43:58.731Z [DEBUG] getPluginSkills: Processing 0 enabled plugins
+2026-05-07T08:43:58.731Z [DEBUG] Total plugin skills loaded: 0
+2026-05-07T08:43:58.731Z [DEBUG] Total plugin commands loaded: 0
+2026-05-07T08:43:58.732Z [DEBUG] Registered 0 hooks from 0 plugins
+2026-05-07T08:43:58.741Z [DEBUG] [STARTUP] setup() completed in 2514ms
+2026-05-07T08:43:58.741Z [DEBUG] [STARTUP] Loading commands and agents...
+2026-05-07T08:43:58.761Z [DEBUG] Total plugin agents loaded: 0
+2026-05-07T08:43:58.761Z [DEBUG] Loaded 0 unique skills (managed: 0, user: 0, project: 0, legacy commands: 0)
+2026-05-07T08:43:58.762Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills
+2026-05-07T08:43:58.764Z [DEBUG] [STARTUP] Commands and agents loaded in 23ms
+2026-05-07T08:43:58.887Z [DEBUG] Initialized versioned plugins system with 16 plugins
+2026-05-07T08:44:00.147Z [DEBUG] Getting matching hook commands for SessionStart with query: startup
+2026-05-07T08:44:00.147Z [DEBUG] Found 0 hook matchers in settings
+2026-05-07T08:44:00.147Z [DEBUG] Matched 0 unique hooks for query "startup" (0 before deduplication)
+2026-05-07T08:44:00.299Z [DEBUG] Total plugin output styles loaded: 0
+2026-05-07T08:44:00.326Z [DEBUG] Git remote URL: null
+2026-05-07T08:44:00.326Z [DEBUG] No git remote URL found
+2026-05-07T08:44:00.326Z [DEBUG] Not in a GitHub repository, skipping path mapping update
+2026-05-07T08:44:00.342Z [DEBUG] Skills and commands included in Skill tool:
+2026-05-07T08:44:00.349Z [DEBUG] Creating shell snapshot for bash (C:\Program Files\Git\bin\bash.exe)
+2026-05-07T08:44:00.350Z [DEBUG] Looking for shell config file: C:\Users\ygkim\.bashrc
+2026-05-07T08:44:00.350Z [DEBUG] Shell config file not found: C:\Users\ygkim\.bashrc, creating snapshot with Claude Code defaults only
+2026-05-07T08:44:00.350Z [DEBUG] Snapshots directory: C:\Users\ygkim\.claude\shell-snapshots
+2026-05-07T08:44:00.382Z [ERROR] "Error: Error: EPERM: operation not permitted, symlink 'C:\\Users\\ygkim\\.claude\\projects\\C--Users-ygkim\\agent-ab7e7df.jsonl' -> 'C:\\Users\\ygkim\\AppData\\Local\\Temp\\claude\\C--Users-ygkim\\tasks\\ab7e7df.output'\n    at symlinkSync (node:fs:1890:11)\n    at oWA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1672:9724)\n    at L22 (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1829:1191)\n    at file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21577\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)\n    at esA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:237:14363)\n    at Object.call (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21300)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"
+2026-05-07T08:44:00.389Z [DEBUG] Getting matching hook commands for SubagentStart with query: Explore
+2026-05-07T08:44:00.389Z [DEBUG] Found 0 hook matchers in settings
+2026-05-07T08:44:00.389Z [DEBUG] Matched 0 unique hooks for query "Explore" (0 before deduplication)
+2026-05-07T08:44:00.410Z [ERROR] "Error: Error: EPERM: operation not permitted, symlink 'C:\\Users\\ygkim\\.claude\\projects\\C--Users-ygkim\\agent-a72f258.jsonl' -> 'C:\\Users\\ygkim\\AppData\\Local\\Temp\\claude\\C--Users-ygkim\\tasks\\a72f258.output'\n    at symlinkSync (node:fs:1890:11)\n    at oWA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1672:9724)\n    at L22 (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1829:1191)\n    at file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21577\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)\n    at esA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:237:14363)\n    at Object.call (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21300)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"
+2026-05-07T08:44:00.414Z [DEBUG] Getting matching hook commands for SubagentStart with query: Plan
+2026-05-07T08:44:00.414Z [DEBUG] Found 0 hook matchers in settings
+2026-05-07T08:44:00.414Z [DEBUG] Matched 0 unique hooks for query "Plan" (0 before deduplication)
+2026-05-07T08:44:00.429Z [ERROR] "Error: Error: EPERM: operation not permitted, symlink 'C:\\Users\\ygkim\\.claude\\projects\\C--Users-ygkim\\agent-a690a5f.jsonl' -> 'C:\\Users\\ygkim\\AppData\\Local\\Temp\\claude\\C--Users-ygkim\\tasks\\a690a5f.output'\n    at symlinkSync (node:fs:1890:11)\n    at oWA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1672:9724)\n    at L22 (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:1829:1191)\n    at file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21577\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)\n    at esA (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:237:14363)\n    at Object.call (file:///C:/Users/ygkim/.claude/plugins/cache/superpowers-marketplace/episodic-memory/1.0.15/node_modules/@anthropic-ai/claude-agent-sdk/cli.js:3248:21300)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"
+2026-05-07T08:44:00.433Z [DEBUG] Getting matching hook commands for SubagentStart with query: Bash
+2026-05-07T08:44:00.433Z [DEBUG] Found 0 hook matchers in settings
+2026-05-07T08:44:00.433Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-05-07T08:44:00.448Z [DEBUG] Watching for changes in skill directories: C:\Users\ygkim\.claude\skills, C:\Users\ygkim\.claude\skills...
+2026-05-07T08:44:00.458Z [DEBUG] Creating snapshot at: C:\Users\ygkim\.claude\shell-snapshots\snapshot-bash-1778143440350-o4ap9f.sh
+2026-05-07T08:44:00.458Z [DEBUG] Shell binary exists: true
+2026-05-07T08:44:00.458Z [DEBUG] Execution timeout: 10000ms
+2026-05-07T08:44:01.433Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-05-07T08:44:01.433Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-05-07T08:44:01.433Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-05-07T08:44:01.433Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-05-07T08:44:01.435Z [DEBUG] Getting matching hook commands for UserPromptSubmit with query: undefined
+2026-05-07T08:44:01.435Z [DEBUG] Found 0 hook matchers in settings
+2026-05-07T08:44:01.435Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-05-07T08:44:01.440Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-07T08:44:01.509Z [DEBUG] Shell snapshot created successfully (396 bytes)
+2026-05-07T08:44:01.554Z [DEBUG] Tool search disabled for model 'claude-haiku-4-5-20251001': model does not support tool_reference blocks. This feature is only available on Claude Sonnet 4+, Opus 4+, and newer models.
+2026-05-07T08:44:01.555Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-07T08:44:01.555Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-05-07T08:44:02.400Z [DEBUG] Stream started - received first chunk
+2026-05-07T08:44:02.618Z [DEBUG] Stream started - received first chunk
+2026-05-07T08:44:03.269Z [DEBUG] Getting matching hook commands for SubagentStop with query: undefined
+2026-05-07T08:44:03.269Z [DEBUG] Found 0 hook matchers in settings
+2026-05-07T08:44:03.269Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-05-07T08:44:03.506Z [DEBUG] Stream started - received first chunk
+2026-05-07T08:44:03.531Z [DEBUG] Writing to temp file: C:\Users\ygkim\.claude.json.tmp.37676.1778143443531
+2026-05-07T08:44:03.531Z [DEBUG] Preserving file permissions: 100666
+2026-05-07T08:44:03.532Z [DEBUG] Temp file written successfully, size: 46787 bytes
+2026-05-07T08:44:03.532Z [DEBUG] Applied original permissions to temp file
+2026-05-07T08:44:03.532Z [DEBUG] Renaming C:\Users\ygkim\.claude.json.tmp.37676.1778143443531 to C:\Users\ygkim\.claude.json
+2026-05-07T08:44:03.533Z [DEBUG] File C:\Users\ygkim\.claude.json written atomically
+2026-05-07T08:44:03.641Z [DEBUG] Stream started - received first chunk
+2026-05-07T08:44:03.960Z [DEBUG] Getting matching hook commands for Stop with query: undefined
+2026-05-07T08:44:03.960Z [DEBUG] Found 0 hook matchers in settings
+2026-05-07T08:44:03.960Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-05-07T08:44:03.974Z [DEBUG] Getting matching hook commands for SessionEnd with query: other
+2026-05-07T08:44:03.974Z [DEBUG] Found 0 hook matchers in settings
+2026-05-07T08:44:03.974Z [DEBUG] Matched 0 unique hooks for query "other" (0 before deduplication)

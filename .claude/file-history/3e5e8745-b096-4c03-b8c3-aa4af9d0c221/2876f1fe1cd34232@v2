@@ -1,0 +1,1784 @@
+# MCP Server (Phase 1 MVP) Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task-by-task.
+
+**Goal:** TrmWordDict의 행안부 표준 단어/도메인 데이터를 사내 공용 MCP 서버(Claude Code/Cursor/사내 Agent 호환)로 노출한다. Phase 1은 인증 인프라 + 5개 핵심 Tool + Vercel 배포까지의 출시 가능 단위.
+
+**Architecture:** Next.js 15 App Router + `@modelcontextprotocol/sdk` + Streamable HTTP. Vercel Serverless + Supabase Cloud PostgreSQL. PAT(Personal Access Token) 인증, Postgres 내부 Rate Limit, 비동기 감사 로그. Stateless 설계로 다중 사용자/다중 프로젝트 동시 호출.
+
+**Tech Stack:** Next.js 15.1, React 19, Prisma 6, Supabase SSR, `@modelcontextprotocol/sdk`, Vitest 4, vitest-mock-extended, next-test-api-route-handler, Zod 3, TypeScript 5
+
+**Design Reference:** `docs/plans/2026-06-04-mcp-server-design.md`
+
+---
+
+## 진행 규칙
+
+각 Task는 TDD 5단계를 강제한다:
+1. **실패 테스트 작성** — 인터페이스/입출력 먼저 정의
+2. **실패 확인** — 테스트 실행 → FAIL
+3. **최소 구현** — 테스트만 통과시키는 최소 코드
+4. **통과 확인** — 테스트 실행 → PASS
+5. **커밋** — 단일 책임 단위로 커밋
+
+각 Task 완료 후 `docs/worklog.md`에 한 줄 추가.
+
+---
+
+## Task 1: 테스트 인프라 설치 + DB 마이그레이션 (신규 4 테이블)
+
+**Files:**
+- Create: `vitest.config.ts`
+- Create: `vitest.setup.ts`
+- Modify: `package.json` (scripts + devDependencies)
+- Modify: `prisma/schema.prisma` (4 모델 추가)
+- Create: `prisma/migrations/{timestamp}_add_mcp_tables/migration.sql`
+- Create: `__tests__/sanity.test.ts`
+
+### Step 1: Vitest 설치
+
+```bash
+pnpm add -D vitest @vitest/coverage-v8 vitest-mock-extended @vitejs/plugin-react jsdom
+```
+
+### Step 2: `vitest.config.ts` 작성
+
+```typescript
+import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
+import path from 'path'
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'node',
+    setupFiles: ['./vitest.setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      include: ['features/mcp/**/*.ts', 'app/api/mcp/**/*.ts'],
+      thresholds: { branches: 90, functions: 90, lines: 90, statements: 90 },
+    },
+  },
+  resolve: {
+    alias: { '@': path.resolve(__dirname, '.') },
+  },
+})
+```
+
+### Step 3: `vitest.setup.ts` 작성
+
+```typescript
+import { beforeEach, vi } from 'vitest'
+import { mockDeep, mockReset } from 'vitest-mock-extended'
+import type { PrismaClient } from '@prisma/client'
+
+export const prismaMock = mockDeep<PrismaClient>()
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: prismaMock,
+}))
+
+beforeEach(() => {
+  mockReset(prismaMock)
+})
+```
+
+### Step 4: `package.json` scripts 추가
+
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  }
+}
+```
+
+### Step 5: 실패 테스트 작성 (`__tests__/sanity.test.ts`)
+
+```typescript
+import { describe, it, expect } from 'vitest'
+
+describe('sanity', () => {
+  it('vitest is installed and working', () => {
+    expect(1 + 1).toBe(2)
+  })
+})
+```
+
+### Step 6: 테스트 실행 — PASS 확인
+
+```bash
+pnpm test
+```
+예상: `__tests__/sanity.test.ts (1)` PASS
+
+### Step 7: Prisma schema에 4 모델 추가
+
+`prisma/schema.prisma` 끝에 append:
+
+```prisma
+model TbTrmMcpToken {
+  id          BigInt    @id @default(autoincrement())
+  tokenHash   String    @unique @map("token_hash")
+  name        String
+  userId      String    @map("user_id") @db.Uuid
+  scopes      String[]  @default(["read", "write"])
+  expiresAt   DateTime? @map("expires_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  rateLimits  TbTrmMcpRateLimit[]
+  auditLogs   TbTrmMcpAuditLog[]
+
+  @@index([userId])
+  @@map("tb_trm_mcp_token")
+}
+
+model TbTrmMcpRateLimit {
+  tokenId    BigInt   @map("token_id")
+  windowKey  String   @map("window_key")
+  count      Int      @default(0)
+
+  token      TbTrmMcpToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  @@id([tokenId, windowKey])
+  @@map("tb_trm_mcp_rate_limit")
+}
+
+model TbTrmMcpAuditLog {
+  id          BigInt   @id @default(autoincrement())
+  tokenId     BigInt?  @map("token_id")
+  userId      String?  @map("user_id") @db.Uuid
+  toolName    String   @map("tool_name")
+  paramsHash  String?  @map("params_hash")
+  status      String
+  errorCode   Int?     @map("error_code")
+  latencyMs   Int?     @map("latency_ms")
+  ts          DateTime @default(now())
+
+  token       TbTrmMcpToken? @relation(fields: [tokenId], references: [id], onDelete: SetNull)
+
+  @@index([userId, ts])
+  @@index([toolName, ts])
+  @@map("tb_trm_mcp_audit_log")
+}
+
+model TbTrmCustomWord {
+  id            BigInt    @id @default(autoincrement())
+  wordKrNm      String    @map("word_kr_nm")
+  wordEngNm     String?   @map("word_eng_nm")
+  wordEngAbbrNm String?   @map("word_eng_abbr_nm")
+  reasonCn      String?   @map("reason_cn")
+  useYn         String    @default("Y") @map("use_yn")
+  rgtrId        String?   @map("rgtr_id")
+  regDt         DateTime  @default(now()) @map("reg_dt")
+  mdfrId        String?   @map("mdfr_id")
+  mdfcnDt       DateTime? @updatedAt @map("mdfcn_dt")
+
+  @@index([wordEngAbbrNm])
+  @@index([wordKrNm])
+  @@map("tb_trm_custom_word")
+}
+```
+
+### Step 8: Migration 생성 및 적용
+
+```bash
+pnpm prisma migrate dev --name add_mcp_tables
+pnpm prisma generate
+```
+예상: `prisma/migrations/{timestamp}_add_mcp_tables/migration.sql` 생성, DB에 4 테이블 적용.
+
+### Step 9: 커밋
+
+```bash
+git add vitest.config.ts vitest.setup.ts package.json pnpm-lock.yaml __tests__/sanity.test.ts \
+        prisma/schema.prisma prisma/migrations
+git commit -m "feat(mcp): add Vitest infra + Prisma migration for MCP tables"
+```
+
+---
+
+## Task 2: 데이터 시드 검증 스크립트
+
+**Files:**
+- Create: `scripts/check-mcp-seed.ts`
+- Modify: `package.json` (scripts 추가)
+- Create: `scripts/__tests__/check-mcp-seed.test.ts`
+
+### Step 1: 실패 테스트 작성
+
+```typescript
+// scripts/__tests__/check-mcp-seed.test.ts
+import { describe, it, expect } from 'vitest'
+import { checkSeed } from '../check-mcp-seed'
+import { prismaMock } from '@/vitest.setup'
+
+describe('checkSeed', () => {
+  it('returns ok=true when TbStdWord has rows', async () => {
+    prismaMock.tbStdWord.count.mockResolvedValue(30000)
+    prismaMock.tbStdDomain.count.mockResolvedValue(500)
+    prismaMock.tbTrmForbiddenWord.count.mockResolvedValue(50)
+
+    const result = await checkSeed()
+    expect(result.ok).toBe(true)
+    expect(result.counts.stdWord).toBe(30000)
+  })
+
+  it('returns ok=false when TbStdWord is empty', async () => {
+    prismaMock.tbStdWord.count.mockResolvedValue(0)
+    prismaMock.tbStdDomain.count.mockResolvedValue(0)
+    prismaMock.tbTrmForbiddenWord.count.mockResolvedValue(0)
+
+    const result = await checkSeed()
+    expect(result.ok).toBe(false)
+    expect(result.missingTables).toContain('TbStdWord')
+  })
+})
+```
+
+### Step 2: 테스트 실행 — FAIL 확인
+
+```bash
+pnpm test scripts/__tests__/check-mcp-seed.test.ts
+```
+예상: FAIL ("Cannot find module ../check-mcp-seed")
+
+### Step 3: 구현
+
+```typescript
+// scripts/check-mcp-seed.ts
+import { prisma } from '@/lib/prisma'
+
+export type SeedCheckResult = {
+  ok: boolean
+  counts: { stdWord: number; stdDomain: number; forbiddenWord: number }
+  missingTables: string[]
+}
+
+export async function checkSeed(): Promise<SeedCheckResult> {
+  const [stdWord, stdDomain, forbiddenWord] = await Promise.all([
+    prisma.tbStdWord.count(),
+    prisma.tbStdDomain.count(),
+    prisma.tbTrmForbiddenWord.count(),
+  ])
+  const missingTables: string[] = []
+  if (stdWord === 0) missingTables.push('TbStdWord')
+  if (stdDomain === 0) missingTables.push('TbStdDomain')
+  if (forbiddenWord === 0) missingTables.push('TbTrmForbiddenWord')
+  return { ok: missingTables.length === 0, counts: { stdWord, stdDomain, forbiddenWord }, missingTables }
+}
+
+if (require.main === module) {
+  checkSeed().then((r) => {
+    console.log(JSON.stringify(r, null, 2))
+    if (!r.ok) {
+      console.error('Missing seed:', r.missingTables.join(', '))
+      console.error('   Tibero -> Supabase 마이그레이션 또는 Import job 실행 필요.')
+      process.exit(1)
+    }
+  })
+}
+```
+
+### Step 4: `package.json` scripts에 추가 + tsx 설치
+
+```bash
+pnpm add -D tsx
+```
+
+```json
+"check:mcp-seed": "tsx scripts/check-mcp-seed.ts"
+```
+
+### Step 5: 테스트 통과 확인
+
+```bash
+pnpm test scripts/__tests__/check-mcp-seed.test.ts
+```
+예상: PASS
+
+### Step 6: 실 DB 검증
+
+```bash
+pnpm check:mcp-seed
+```
+예상 결과:
+- ok=true → 계속 진행
+- ok=false → **여기서 멈추고** Tibero → Supabase 마이그레이션 또는 Import job으로 시드 적재 후 재실행
+
+### Step 7: 커밋
+
+```bash
+git add scripts/check-mcp-seed.ts scripts/__tests__/check-mcp-seed.test.ts package.json pnpm-lock.yaml
+git commit -m "feat(mcp): seed check script (TbStdWord/Domain/ForbiddenWord)"
+```
+
+---
+
+## Task 3: PAT 발급 UI (`/admin/settings`)
+
+**Files:**
+- Create: `features/mcp-token/types.ts`
+- Create: `features/mcp-token/queries.ts`
+- Create: `features/mcp-token/actions.ts`
+- Create: `features/mcp-token/__tests__/actions.test.ts`
+- Create: `features/mcp-token/components/McpTokenList.tsx`
+- Create: `features/mcp-token/components/McpTokenIssueDialog.tsx`
+- Create: `app/(admin)/settings/page.tsx`
+
+### Step 1: 실패 테스트 작성
+
+```typescript
+// features/mcp-token/__tests__/actions.test.ts
+import { describe, it, expect, vi } from 'vitest'
+import { issueToken, revokeToken } from '../actions'
+import { prismaMock } from '@/vitest.setup'
+
+vi.mock('@/lib/auth', () => ({
+  requireAuth: vi.fn().mockResolvedValue({ id: 'user-uuid-1', role: 'ADMIN' }),
+}))
+
+describe('issueToken', () => {
+  it('generates trmdict_pat_ prefixed token and stores SHA-256 hash', async () => {
+    prismaMock.tbTrmMcpToken.create.mockResolvedValue({ id: 1n } as any)
+    const result = await issueToken({ name: 'my-laptop' })
+    expect(result.token).toMatch(/^trmdict_pat_[a-f0-9]{64}$/)
+    expect(prismaMock.tbTrmMcpToken.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tokenHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        userId: 'user-uuid-1',
+        name: 'my-laptop',
+      }),
+    })
+  })
+})
+
+describe('revokeToken', () => {
+  it('sets revokedAt to now() for owned token', async () => {
+    prismaMock.tbTrmMcpToken.findFirst.mockResolvedValue({ id: 5n, userId: 'user-uuid-1' } as any)
+    prismaMock.tbTrmMcpToken.update.mockResolvedValue({} as any)
+    await revokeToken(5n)
+    expect(prismaMock.tbTrmMcpToken.update).toHaveBeenCalledWith({
+      where: { id: 5n },
+      data: { revokedAt: expect.any(Date) },
+    })
+  })
+
+  it('throws when token not owned by current user', async () => {
+    prismaMock.tbTrmMcpToken.findFirst.mockResolvedValue(null)
+    await expect(revokeToken(99n)).rejects.toThrow('Token not found')
+  })
+})
+```
+
+### Step 2: 테스트 실행 — FAIL
+
+```bash
+pnpm test features/mcp-token
+```
+
+### Step 3: types/queries/actions 구현
+
+```typescript
+// features/mcp-token/types.ts
+export type McpTokenListItem = {
+  id: bigint
+  name: string
+  createdAt: Date
+  lastUsedAt: Date | null
+  expiresAt: Date | null
+  revokedAt: Date | null
+}
+
+export type IssueTokenInput = { name: string; expiresInDays?: number }
+export type IssueTokenResult = { id: bigint; token: string }
+```
+
+```typescript
+// features/mcp-token/queries.ts
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/auth'
+import type { McpTokenListItem } from './types'
+
+export async function listMyTokens(): Promise<McpTokenListItem[]> {
+  const user = await requireAuth()
+  return prisma.tbTrmMcpToken.findMany({
+    where: { userId: user.id },
+    select: { id: true, name: true, createdAt: true, lastUsedAt: true, expiresAt: true, revokedAt: true },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+```
+
+```typescript
+// features/mcp-token/actions.ts
+'use server'
+import { randomBytes, createHash } from 'crypto'
+import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/auth'
+import { revalidatePath } from 'next/cache'
+import type { IssueTokenInput, IssueTokenResult } from './types'
+
+export async function issueToken(input: IssueTokenInput): Promise<IssueTokenResult> {
+  const user = await requireAuth()
+  const raw = randomBytes(32).toString('hex')
+  const token = `trmdict_pat_${raw}`
+  const tokenHash = createHash('sha256').update(token).digest('hex')
+
+  const expiresAt = input.expiresInDays
+    ? new Date(Date.now() + input.expiresInDays * 86_400_000)
+    : null
+
+  const created = await prisma.tbTrmMcpToken.create({
+    data: { tokenHash, name: input.name, userId: user.id, expiresAt },
+  })
+  revalidatePath('/admin/settings')
+  return { id: created.id, token }
+}
+
+export async function revokeToken(id: bigint): Promise<void> {
+  const user = await requireAuth()
+  const owned = await prisma.tbTrmMcpToken.findFirst({ where: { id, userId: user.id } })
+  if (!owned) throw new Error('Token not found')
+  await prisma.tbTrmMcpToken.update({ where: { id }, data: { revokedAt: new Date() } })
+  revalidatePath('/admin/settings')
+}
+```
+
+### Step 4: UI 컴포넌트 구현
+
+```tsx
+// features/mcp-token/components/McpTokenList.tsx
+import { listMyTokens } from '../queries'
+import { revokeToken } from '../actions'
+import { Button } from '@/components/ui/button'
+
+export async function McpTokenList() {
+  const tokens = await listMyTokens()
+  return (
+    <table className="w-full border-collapse">
+      <thead>
+        <tr className="border-b">
+          <th className="text-left p-2">이름</th>
+          <th className="text-left p-2">생성</th>
+          <th className="text-left p-2">마지막 사용</th>
+          <th className="text-left p-2">상태</th>
+          <th className="text-left p-2">액션</th>
+        </tr>
+      </thead>
+      <tbody>
+        {tokens.map((t) => (
+          <tr key={t.id.toString()} className="border-b">
+            <td className="p-2">{t.name}</td>
+            <td className="p-2">{t.createdAt.toLocaleString('ko-KR')}</td>
+            <td className="p-2">{t.lastUsedAt?.toLocaleString('ko-KR') ?? '-'}</td>
+            <td className="p-2">{t.revokedAt ? 'revoked' : t.expiresAt && t.expiresAt < new Date() ? 'expired' : 'active'}</td>
+            <td className="p-2">
+              {!t.revokedAt && (
+                <form action={async () => { 'use server'; await revokeToken(t.id) }}>
+                  <Button type="submit" variant="destructive" size="sm">Revoke</Button>
+                </form>
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+```
+
+```tsx
+// features/mcp-token/components/McpTokenIssueDialog.tsx
+'use client'
+import { useState } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { issueToken } from '../actions'
+
+export function McpTokenIssueDialog() {
+  const [name, setName] = useState('')
+  const [issued, setIssued] = useState<string | null>(null)
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button>MCP PAT 발급</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>MCP Personal Access Token 발급</DialogTitle></DialogHeader>
+        {issued ? (
+          <div className="space-y-3">
+            <p className="text-sm text-destructive">이 토큰은 다시 표시되지 않습니다. 즉시 복사하세요.</p>
+            <code className="block break-all bg-muted p-3 rounded font-mono text-xs">{issued}</code>
+            <Button onClick={() => { navigator.clipboard.writeText(issued); }}>복사</Button>
+          </div>
+        ) : (
+          <form onSubmit={async (e) => {
+            e.preventDefault()
+            const r = await issueToken({ name })
+            setIssued(r.token)
+          }}>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 회사 PC" required />
+            <Button type="submit" className="mt-3">발급</Button>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+```
+
+### Step 5: 페이지 구현
+
+```tsx
+// app/(admin)/settings/page.tsx
+import { McpTokenList } from '@/features/mcp-token/components/McpTokenList'
+import { McpTokenIssueDialog } from '@/features/mcp-token/components/McpTokenIssueDialog'
+
+export default function SettingsPage() {
+  return (
+    <div className="space-y-6 p-6">
+      <header className="flex justify-between items-center">
+        <h1 className="text-2xl font-display">설정 — MCP Personal Access Token</h1>
+        <McpTokenIssueDialog />
+      </header>
+      <McpTokenList />
+    </div>
+  )
+}
+```
+
+### Step 6: 테스트 통과 확인
+
+```bash
+pnpm test features/mcp-token
+pnpm typecheck
+```
+예상: 3 tests PASS, 0 type errors.
+
+### Step 7: 커밋
+
+```bash
+git add features/mcp-token "app/(admin)/settings"
+git commit -m "feat(mcp): PAT issue/revoke UI on /admin/settings"
+```
+
+---
+
+## Task 4: 인증 미들웨어 (`verifyPat`)
+
+**Files:**
+- Create: `features/mcp/errors.ts`
+- Create: `features/mcp/auth/verify-pat.ts`
+- Create: `features/mcp/auth/__tests__/verify-pat.test.ts`
+
+### Step 1: 실패 테스트 작성
+
+```typescript
+// features/mcp/auth/__tests__/verify-pat.test.ts
+import { describe, it, expect } from 'vitest'
+import { verifyPat } from '../verify-pat'
+import { prismaMock } from '@/vitest.setup'
+
+describe('verifyPat', () => {
+  it('returns auth context for valid active token', async () => {
+    prismaMock.tbTrmMcpToken.findUnique.mockResolvedValue({
+      id: 1n, tokenHash: 'hash', userId: 'user-uuid', revokedAt: null, expiresAt: null, scopes: ['read'],
+    } as any)
+    prismaMock.authUser.findUnique.mockResolvedValue({ id: 'user-uuid', role: 'USER' } as any)
+
+    const result = await verifyPat('Bearer trmdict_pat_xxx')
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.tokenId).toBe(1n)
+      expect(result.userId).toBe('user-uuid')
+      expect(result.role).toBe('USER')
+    }
+  })
+
+  it('returns -32001 when header missing', async () => {
+    const r = await verifyPat(null)
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errorCode).toBe(-32001)
+  })
+
+  it('returns -32002 when token not found in DB', async () => {
+    prismaMock.tbTrmMcpToken.findUnique.mockResolvedValue(null)
+    const r = await verifyPat('Bearer trmdict_pat_xxx')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errorCode).toBe(-32002)
+  })
+
+  it('returns -32002 when token revoked', async () => {
+    prismaMock.tbTrmMcpToken.findUnique.mockResolvedValue({
+      id: 1n, tokenHash: 'h', userId: 'u', revokedAt: new Date(), expiresAt: null,
+    } as any)
+    const r = await verifyPat('Bearer trmdict_pat_xxx')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errorCode).toBe(-32002)
+  })
+
+  it('returns -32002 when token expired', async () => {
+    prismaMock.tbTrmMcpToken.findUnique.mockResolvedValue({
+      id: 1n, tokenHash: 'h', userId: 'u', revokedAt: null,
+      expiresAt: new Date(Date.now() - 1000),
+    } as any)
+    const r = await verifyPat('Bearer trmdict_pat_xxx')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errorCode).toBe(-32002)
+  })
+
+  it('updates lastUsedAt asynchronously (fire-and-forget)', async () => {
+    prismaMock.tbTrmMcpToken.findUnique.mockResolvedValue({
+      id: 1n, tokenHash: 'h', userId: 'u', revokedAt: null, expiresAt: null,
+    } as any)
+    prismaMock.authUser.findUnique.mockResolvedValue({ id: 'u', role: 'USER' } as any)
+    await verifyPat('Bearer trmdict_pat_xxx')
+    expect(prismaMock.tbTrmMcpToken.update).toHaveBeenCalledWith({
+      where: { id: 1n }, data: { lastUsedAt: expect.any(Date) },
+    })
+  })
+})
+```
+
+### Step 2: 테스트 실행 — FAIL
+
+### Step 3: `errors.ts` 구현
+
+```typescript
+// features/mcp/errors.ts
+export const MCP_ERROR = {
+  PARSE_ERROR: -32700,
+  INVALID_REQUEST: -32600,
+  METHOD_NOT_FOUND: -32601,
+  INVALID_PARAMS: -32602,
+  INTERNAL_ERROR: -32603,
+  AUTH_REQUIRED: -32001,
+  INVALID_TOKEN: -32002,
+  RATE_LIMIT: -32003,
+  PERMISSION_DENIED: -32004,
+  TOOL_NOT_FOUND: -32005,
+} as const
+
+export type McpErrorCode = (typeof MCP_ERROR)[keyof typeof MCP_ERROR]
+export type AuthContext = { tokenId: bigint; userId: string; role: 'USER' | 'ADMIN' }
+export type AuthResult =
+  | { ok: true; tokenId: bigint; userId: string; role: 'USER' | 'ADMIN' }
+  | { ok: false; errorCode: McpErrorCode; message: string }
+```
+
+### Step 4: `verify-pat.ts` 구현
+
+```typescript
+// features/mcp/auth/verify-pat.ts
+import { createHash } from 'crypto'
+import { prisma } from '@/lib/prisma'
+import { MCP_ERROR, type AuthResult } from '../errors'
+
+export async function verifyPat(authHeader: string | null): Promise<AuthResult> {
+  if (!authHeader) {
+    return { ok: false, errorCode: MCP_ERROR.AUTH_REQUIRED, message: 'Authentication required' }
+  }
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+  if (!token.startsWith('trmdict_pat_')) {
+    return { ok: false, errorCode: MCP_ERROR.INVALID_TOKEN, message: 'Invalid token format' }
+  }
+  const tokenHash = createHash('sha256').update(token).digest('hex')
+  const row = await prisma.tbTrmMcpToken.findUnique({ where: { tokenHash } })
+  if (!row) return { ok: false, errorCode: MCP_ERROR.INVALID_TOKEN, message: 'Invalid token' }
+  if (row.revokedAt) return { ok: false, errorCode: MCP_ERROR.INVALID_TOKEN, message: 'Token revoked' }
+  if (row.expiresAt && row.expiresAt < new Date()) {
+    return { ok: false, errorCode: MCP_ERROR.INVALID_TOKEN, message: 'Token expired' }
+  }
+  const user = await prisma.authUser.findUnique({ where: { id: row.userId } })
+  if (!user) return { ok: false, errorCode: MCP_ERROR.INVALID_TOKEN, message: 'User not found' }
+  void prisma.tbTrmMcpToken.update({ where: { id: row.id }, data: { lastUsedAt: new Date() } })
+  return { ok: true, tokenId: row.id, userId: row.userId, role: user.role as 'USER' | 'ADMIN' }
+}
+```
+
+### Step 5: 통과 확인 + 커밋
+
+```bash
+pnpm test features/mcp/auth
+git add features/mcp/auth features/mcp/errors.ts
+git commit -m "feat(mcp): verifyPat middleware (PAT SHA-256 lookup + role)"
+```
+
+---
+
+## Task 5: Rate Limit 카운터 (atomic upsert)
+
+**Files:**
+- Create: `features/mcp/rate-limit/check.ts`
+- Create: `features/mcp/rate-limit/__tests__/check.test.ts`
+
+### Step 1: 실패 테스트 작성
+
+```typescript
+// features/mcp/rate-limit/__tests__/check.test.ts
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { checkRateLimit } from '../check'
+import { prismaMock } from '@/vitest.setup'
+
+describe('checkRateLimit', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-06-04T15:23:45Z'))
+  })
+  afterEach(() => vi.useRealTimers())
+
+  it('returns ok when under limit (USER 60/min)', async () => {
+    prismaMock.$queryRaw.mockResolvedValueOnce([{ count: 5 }] as any)
+    const r = await checkRateLimit(1n, 'USER')
+    expect(r.ok).toBe(true)
+  })
+
+  it('returns blocked when minute limit exceeded (USER 60)', async () => {
+    prismaMock.$queryRaw.mockResolvedValueOnce([{ count: 61 }] as any)
+    const r = await checkRateLimit(1n, 'USER')
+    expect(r.ok).toBe(false)
+    if (!r.ok) {
+      expect(r.errorCode).toBe(-32003)
+      expect(r.retryAfter).toBeGreaterThan(0)
+    }
+  })
+
+  it('ADMIN has higher limit (200/min)', async () => {
+    prismaMock.$queryRaw.mockResolvedValueOnce([{ count: 100 }] as any)
+    const r = await checkRateLimit(1n, 'ADMIN')
+    expect(r.ok).toBe(true)
+  })
+})
+```
+
+### Step 2: FAIL 확인 → Step 3: 구현
+
+```typescript
+// features/mcp/rate-limit/check.ts
+import { prisma } from '@/lib/prisma'
+import { MCP_ERROR } from '../errors'
+
+const LIMITS = {
+  USER: { perMinute: 60, perDay: 5_000 },
+  ADMIN: { perMinute: 200, perDay: 20_000 },
+} as const
+
+export type RateLimitResult =
+  | { ok: true }
+  | { ok: false; errorCode: number; message: string; retryAfter: number }
+
+function minuteKey(d: Date): string {
+  return d.toISOString().slice(0, 16) // "2026-06-04T15:23"
+}
+
+export async function checkRateLimit(tokenId: bigint, role: 'USER' | 'ADMIN'): Promise<RateLimitResult> {
+  const now = new Date()
+  const windowKey = minuteKey(now)
+  const limit = LIMITS[role].perMinute
+
+  const rows = await prisma.$queryRaw<{ count: number }[]>`
+    INSERT INTO tb_trm_mcp_rate_limit (token_id, window_key, count)
+    VALUES (${tokenId}, ${windowKey}, 1)
+    ON CONFLICT (token_id, window_key)
+    DO UPDATE SET count = tb_trm_mcp_rate_limit.count + 1
+    RETURNING count
+  `
+  const count = Number(rows[0]?.count ?? 0)
+  if (count > limit) {
+    const retryAfter = 60 - now.getSeconds()
+    return { ok: false, errorCode: MCP_ERROR.RATE_LIMIT, message: 'Rate limit exceeded', retryAfter }
+  }
+  return { ok: true }
+}
+```
+
+### Step 4: 통과 + 커밋
+
+```bash
+pnpm test features/mcp/rate-limit
+git add features/mcp/rate-limit
+git commit -m "feat(mcp): rate limit (Postgres atomic upsert, USER 60/min ADMIN 200/min)"
+```
+
+---
+
+## Task 6: 감사 로그 (fire-and-forget)
+
+**Files:**
+- Create: `features/mcp/audit/log.ts`
+- Create: `features/mcp/audit/__tests__/log.test.ts`
+
+### Step 1: 실패 테스트 작성
+
+```typescript
+// features/mcp/audit/__tests__/log.test.ts
+import { describe, it, expect } from 'vitest'
+import { logAudit } from '../log'
+import { prismaMock } from '@/vitest.setup'
+
+describe('logAudit', () => {
+  it('inserts audit record with params hashed', async () => {
+    prismaMock.tbTrmMcpAuditLog.create.mockResolvedValue({} as any)
+    await logAudit({
+      tokenId: 1n, userId: 'u', toolName: 'search_term',
+      params: { query: '사용자' }, status: 'success', latencyMs: 45,
+    })
+    expect(prismaMock.tbTrmMcpAuditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tokenId: 1n, userId: 'u', toolName: 'search_term',
+        paramsHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        status: 'success', latencyMs: 45,
+      }),
+    })
+  })
+
+  it('does not throw when DB insert fails (fire-and-forget)', async () => {
+    prismaMock.tbTrmMcpAuditLog.create.mockRejectedValue(new Error('DB down'))
+    await expect(logAudit({
+      tokenId: 1n, userId: 'u', toolName: 'x', params: {}, status: 'success',
+    })).resolves.not.toThrow()
+  })
+
+  it('handles null tokenId/userId for unauthenticated requests', async () => {
+    prismaMock.tbTrmMcpAuditLog.create.mockResolvedValue({} as any)
+    await logAudit({
+      tokenId: null, userId: null, toolName: '<auth-fail>',
+      params: {}, status: 'denied', errorCode: -32001,
+    })
+    expect(prismaMock.tbTrmMcpAuditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ status: 'denied' }),
+    })
+  })
+})
+```
+
+### Step 2-3: FAIL → 구현
+
+```typescript
+// features/mcp/audit/log.ts
+import { createHash } from 'crypto'
+import { prisma } from '@/lib/prisma'
+
+export type AuditInput = {
+  tokenId: bigint | null
+  userId: string | null
+  toolName: string
+  params: unknown
+  status: 'success' | 'error' | 'denied'
+  errorCode?: number
+  latencyMs?: number
+}
+
+export async function logAudit(input: AuditInput): Promise<void> {
+  try {
+    const paramsHash = createHash('sha256')
+      .update(JSON.stringify(input.params ?? {}))
+      .digest('hex')
+    await prisma.tbTrmMcpAuditLog.create({
+      data: {
+        tokenId: input.tokenId ?? undefined,
+        userId: input.userId ?? undefined,
+        toolName: input.toolName,
+        paramsHash,
+        status: input.status,
+        errorCode: input.errorCode,
+        latencyMs: input.latencyMs,
+      },
+    })
+  } catch (e) {
+    console.error('[mcp-audit] failed:', e)
+  }
+}
+```
+
+### Step 4-5: 통과 + 커밋
+
+```bash
+pnpm test features/mcp/audit
+git add features/mcp/audit
+git commit -m "feat(mcp): audit log (fire-and-forget, SHA-256 params hash)"
+```
+
+---
+
+## Task 7: MCP Server 인프라 + Route Handler
+
+**Files:**
+- Create: `features/mcp/types.ts`
+- Create: `features/mcp/server.ts`
+- Create: `features/mcp/tools/index.ts` (placeholder)
+- Create: `app/api/mcp/route.ts`
+- Create: `features/mcp/__tests__/server.test.ts`
+
+### Step 1: 패키지 설치
+
+```bash
+pnpm add @modelcontextprotocol/sdk
+```
+
+### Step 2: 실패 테스트 작성
+
+```typescript
+// features/mcp/__tests__/server.test.ts
+import { describe, it, expect } from 'vitest'
+import { McpServer, type McpTool } from '../server'
+
+const echoTool: McpTool = {
+  name: 'echo',
+  description: 'returns input',
+  permission: 'USER',
+  inputSchema: { type: 'object', properties: { msg: { type: 'string' } }, required: ['msg'] },
+  execute: async (args) => ({ echoed: args.msg }),
+}
+
+describe('McpServer', () => {
+  it('registers tools and lists them', () => {
+    const s = new McpServer([echoTool])
+    const list = s.listTools()
+    expect(list).toHaveLength(1)
+    expect(list[0].name).toBe('echo')
+  })
+
+  it('dispatches tools/call to correct tool', async () => {
+    const s = new McpServer([echoTool])
+    const result = await s.callTool('echo', { msg: 'hi' }, { tokenId: 1n, userId: 'u', role: 'USER' })
+    expect(result).toEqual({ echoed: 'hi' })
+  })
+
+  it('throws TOOL_NOT_FOUND for unknown tool', async () => {
+    const s = new McpServer([echoTool])
+    await expect(s.callTool('unknown', {}, { tokenId: 1n, userId: 'u', role: 'USER' }))
+      .rejects.toMatchObject({ code: -32005 })
+  })
+
+  it('throws PERMISSION_DENIED when USER calls ADMIN tool', async () => {
+    const adminTool: McpTool = { ...echoTool, name: 'admin_only', permission: 'ADMIN' }
+    const s = new McpServer([adminTool])
+    await expect(s.callTool('admin_only', { msg: 'x' }, { tokenId: 1n, userId: 'u', role: 'USER' }))
+      .rejects.toMatchObject({ code: -32004 })
+  })
+})
+```
+
+### Step 3: 구현
+
+```typescript
+// features/mcp/types.ts
+import type { AuthContext } from './errors'
+export type { AuthContext } from './errors'
+
+export type McpTool = {
+  name: string
+  description: string
+  permission: 'USER' | 'ADMIN'
+  inputSchema: Record<string, unknown>
+  execute: (args: Record<string, unknown>, auth: AuthContext) => Promise<unknown>
+}
+```
+
+```typescript
+// features/mcp/server.ts
+import { MCP_ERROR } from './errors'
+import type { AuthContext, McpTool } from './types'
+
+export type { McpTool } from './types'
+
+export class McpError extends Error {
+  constructor(public code: number, message: string, public data?: unknown) { super(message) }
+}
+
+export class McpServer {
+  private tools: Map<string, McpTool>
+  constructor(tools: McpTool[]) {
+    this.tools = new Map(tools.map((t) => [t.name, t]))
+  }
+  listTools() {
+    return Array.from(this.tools.values()).map((t) => ({
+      name: t.name, description: t.description, inputSchema: t.inputSchema,
+    }))
+  }
+  async callTool(name: string, args: Record<string, unknown>, auth: AuthContext): Promise<unknown> {
+    const tool = this.tools.get(name)
+    if (!tool) throw new McpError(MCP_ERROR.TOOL_NOT_FOUND, `Tool not found: ${name}`)
+    if (tool.permission === 'ADMIN' && auth.role !== 'ADMIN') {
+      throw new McpError(MCP_ERROR.PERMISSION_DENIED, 'Admin permission required')
+    }
+    return tool.execute(args, auth)
+  }
+}
+```
+
+```typescript
+// features/mcp/tools/index.ts
+import type { McpTool } from '../types'
+export const ALL_TOOLS: McpTool[] = []  // Task 8에서 채움
+```
+
+```typescript
+// app/api/mcp/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyPat } from '@/features/mcp/auth/verify-pat'
+import { checkRateLimit } from '@/features/mcp/rate-limit/check'
+import { logAudit } from '@/features/mcp/audit/log'
+import { McpServer, McpError } from '@/features/mcp/server'
+import { MCP_ERROR } from '@/features/mcp/errors'
+import { ALL_TOOLS } from '@/features/mcp/tools'
+
+const server = new McpServer(ALL_TOOLS)
+
+function jsonRpcResponse(id: unknown, result: unknown) {
+  return NextResponse.json({ jsonrpc: '2.0', id, result })
+}
+function jsonRpcError(id: unknown, code: number, message: string, status = 200, data?: unknown) {
+  const body: any = { jsonrpc: '2.0', id, error: { code, message } }
+  if (data) body.error.data = data
+  return NextResponse.json(body, { status })
+}
+
+export async function POST(req: NextRequest) {
+  const startedAt = Date.now()
+  let body: any
+  try { body = await req.json() }
+  catch { return jsonRpcError(null, MCP_ERROR.PARSE_ERROR, 'Parse error', 400) }
+  const { id, method, params } = body ?? {}
+  if (!method) return jsonRpcError(id, MCP_ERROR.INVALID_REQUEST, 'Invalid Request', 400)
+
+  if (method === 'initialize') {
+    return jsonRpcResponse(id, {
+      protocolVersion: '2025-03-26',
+      capabilities: { tools: {} },
+      serverInfo: { name: 'trmdict', version: '1.0.0' },
+    })
+  }
+  if (method === 'notifications/initialized') {
+    return new NextResponse(null, { status: 204 })
+  }
+
+  const auth = await verifyPat(req.headers.get('authorization'))
+  if (!auth.ok) {
+    void logAudit({ tokenId: null, userId: null, toolName: '<auth>', params: {}, status: 'denied', errorCode: auth.errorCode })
+    return jsonRpcError(id, auth.errorCode, auth.message, 401)
+  }
+
+  const rl = await checkRateLimit(auth.tokenId, auth.role)
+  if (!rl.ok) {
+    return jsonRpcError(id, rl.errorCode, rl.message, 429, { retryAfter: rl.retryAfter })
+  }
+
+  try {
+    let result: unknown
+    if (method === 'tools/list') {
+      result = { tools: server.listTools() }
+    } else if (method === 'tools/call') {
+      const name = params?.name as string
+      const args = (params?.arguments as Record<string, unknown>) ?? {}
+      const toolResult = await server.callTool(name, args, { tokenId: auth.tokenId, userId: auth.userId, role: auth.role })
+      void logAudit({
+        tokenId: auth.tokenId, userId: auth.userId, toolName: name,
+        params: args, status: 'success', latencyMs: Date.now() - startedAt,
+      })
+      result = { content: [{ type: 'text', text: JSON.stringify(toolResult) }] }
+    } else {
+      return jsonRpcError(id, MCP_ERROR.METHOD_NOT_FOUND, `Method not found: ${method}`)
+    }
+    return jsonRpcResponse(id, result)
+  } catch (e) {
+    if (e instanceof McpError) {
+      const status = e.code === MCP_ERROR.PERMISSION_DENIED ? 403 : 200
+      void logAudit({
+        tokenId: auth.tokenId, userId: auth.userId, toolName: params?.name ?? '<unknown>',
+        params: params?.arguments ?? {}, status: 'denied', errorCode: e.code, latencyMs: Date.now() - startedAt,
+      })
+      return jsonRpcError(id, e.code, e.message, status)
+    }
+    console.error('[mcp] internal error', e)
+    void logAudit({
+      tokenId: auth.tokenId, userId: auth.userId, toolName: params?.name ?? '<unknown>',
+      params: params?.arguments ?? {}, status: 'error', errorCode: MCP_ERROR.INTERNAL_ERROR, latencyMs: Date.now() - startedAt,
+    })
+    return jsonRpcError(id, MCP_ERROR.INTERNAL_ERROR, 'Internal error')
+  }
+}
+```
+
+### Step 4-5: 통과 + 커밋
+
+```bash
+pnpm test features/mcp/__tests__/server.test.ts
+pnpm typecheck
+git add features/mcp/server.ts features/mcp/types.ts features/mcp/tools/index.ts \
+        app/api/mcp/route.ts features/mcp/__tests__/server.test.ts package.json pnpm-lock.yaml
+git commit -m "feat(mcp): server infra + POST /api/mcp route handler"
+```
+
+---
+
+## Task 8: 핵심 Tool 5개 구현
+
+각 Tool마다 TDD 5단계 반복. 완료 후 `features/mcp/tools/index.ts`에 등록.
+
+### 8.1 `search_term`
+
+**Step 1: 실패 테스트** (`features/mcp/tools/__tests__/search-term.test.ts`)
+
+```typescript
+import { describe, it, expect } from 'vitest'
+import { searchTermTool } from '../search-term'
+import { prismaMock } from '@/vitest.setup'
+
+const auth = { tokenId: 1n, userId: 'u', role: 'USER' as const }
+
+describe('search_term tool', () => {
+  it('returns results from TbStdWord when type=word', async () => {
+    prismaMock.tbStdWord.findMany.mockResolvedValue([
+      { id: 1n, stdWordNm: '사용자', engAbbrNm: 'USER', engNm: 'User' } as any,
+    ])
+    const r: any = await searchTermTool.execute({ query: '사용자', type: 'word', limit: 10 }, auth)
+    expect(r.results).toHaveLength(1)
+    expect(r.results[0]).toMatchObject({ type: 'word', name: '사용자', abbr: 'USER' })
+  })
+
+  it('rejects empty query (-32602)', async () => {
+    await expect(searchTermTool.execute({ query: '', type: 'all' }, auth)).rejects.toMatchObject({ code: -32602 })
+  })
+})
+```
+
+**Step 2-3: FAIL → 구현**
+
+```typescript
+// features/mcp/tools/search-term.ts
+import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
+import { McpError } from '../server'
+import { MCP_ERROR } from '../errors'
+import type { McpTool } from '../types'
+
+const InputSchema = z.object({
+  query: z.string().min(1, 'query is required'),
+  type: z.enum(['all', 'word', 'domain', 'term', 'forbidden']).default('all'),
+  limit: z.number().int().min(1).max(100).default(20),
+})
+
+export const searchTermTool: McpTool = {
+  name: 'search_term',
+  description: '행안부 표준 단어/도메인/시스템 용어/금칙어를 통합 검색합니다.',
+  permission: 'USER',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: '검색어' },
+      type: { type: 'string', enum: ['all', 'word', 'domain', 'term', 'forbidden'] },
+      limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+    },
+    required: ['query'],
+  },
+  async execute(args) {
+    const parsed = InputSchema.safeParse(args)
+    if (!parsed.success) throw new McpError(MCP_ERROR.INVALID_PARAMS, 'Invalid params', parsed.error.flatten())
+    const { query, type, limit } = parsed.data
+    const results: any[] = []
+
+    if (type === 'all' || type === 'word') {
+      const words = await prisma.tbStdWord.findMany({
+        where: { OR: [{ stdWordNm: { contains: query } }, { engAbbrNm: { contains: query, mode: 'insensitive' } }] },
+        take: limit,
+      })
+      results.push(...words.map((w) => ({ type: 'word', id: Number(w.id), name: w.stdWordNm, abbr: w.engAbbrNm, eng: w.engNm })))
+    }
+    if (type === 'all' || type === 'domain') {
+      const doms = await prisma.tbStdDomain.findMany({
+        where: { stdDomainNm: { contains: query } }, take: limit,
+      })
+      results.push(...doms.map((d) => ({ type: 'domain', id: Number(d.id), name: d.stdDomainNm })))
+    }
+    if (type === 'all' || type === 'term') {
+      const terms = await prisma.tbTrmTerm.findMany({
+        where: { termNm: { contains: query } }, take: limit,
+      })
+      results.push(...terms.map((t) => ({ type: 'term', id: Number(t.id), name: t.termNm })))
+    }
+    if (type === 'all' || type === 'forbidden') {
+      const fws = await prisma.tbTrmForbiddenWord.findMany({
+        where: { word: { contains: query } }, take: limit,
+      })
+      results.push(...fws.map((f) => ({ type: 'forbidden', id: Number(f.id), name: f.word, reason: f.reason })))
+    }
+    return { results }
+  },
+}
+```
+
+**Step 4-5: 통과 + 커밋**
+
+```bash
+pnpm test features/mcp/tools/__tests__/search-term.test.ts
+git add features/mcp/tools/search-term.ts features/mcp/tools/__tests__/search-term.test.ts
+git commit -m "feat(mcp): search_term tool (unified search across 4 domains)"
+```
+
+### 8.2 `get_word_detail`
+
+```typescript
+// features/mcp/tools/get-word-detail.ts
+import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
+import { McpError } from '../server'
+import { MCP_ERROR } from '../errors'
+import type { McpTool } from '../types'
+
+const InputSchema = z.union([
+  z.object({ abbr: z.string().min(1) }),
+  z.object({ id: z.number().int().positive() }),
+])
+
+export const getWordDetailTool: McpTool = {
+  name: 'get_word_detail',
+  description: '표준 단어 상세를 영문약어 또는 ID로 조회합니다.',
+  permission: 'USER',
+  inputSchema: {
+    type: 'object',
+    properties: { abbr: { type: 'string' }, id: { type: 'integer' } },
+  },
+  async execute(args) {
+    const parsed = InputSchema.safeParse(args)
+    if (!parsed.success) throw new McpError(MCP_ERROR.INVALID_PARAMS, 'abbr or id required')
+    const where = 'abbr' in parsed.data
+      ? { engAbbrNm: { equals: parsed.data.abbr, mode: 'insensitive' as const } }
+      : { id: BigInt(parsed.data.id) }
+    const word = await prisma.tbStdWord.findFirst({ where })
+    if (!word) return { found: false }
+    return {
+      found: true,
+      stdWordNm: word.stdWordNm, engAbbrNm: word.engAbbrNm, engNm: word.engNm,
+      stdDmnClsfNm: word.stdDmnClsfNm, descCn: word.descCn,
+    }
+  },
+}
+```
+
+Tests: `find by abbr`, `find by id`, `not found`. Commit: `feat(mcp): get_word_detail tool`.
+
+### 8.3 `validate_identifier`
+
+```typescript
+// features/mcp/tools/validate-identifier.ts
+import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
+import { McpError } from '../server'
+import { MCP_ERROR } from '../errors'
+import type { McpTool } from '../types'
+
+const InputSchema = z.object({
+  name: z.string().min(1),
+  kind: z.enum(['db_column', 'db_table', 'java_class', 'java_field', 'java_method']),
+})
+
+function tokenize(name: string, kind: string): string[] {
+  if (kind.startsWith('db_')) {
+    return name.toUpperCase().split('_').filter(Boolean)
+  }
+  return name.split(/(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/).filter(Boolean)
+}
+
+export const validateIdentifierTool: McpTool = {
+  name: 'validate_identifier',
+  description: 'DB 컬럼/테이블/Java 식별자가 행안부 표준 약어 규칙을 따르는지 검증합니다.',
+  permission: 'USER',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      kind: { type: 'string', enum: ['db_column', 'db_table', 'java_class', 'java_field', 'java_method'] },
+    },
+    required: ['name', 'kind'],
+  },
+  async execute(args) {
+    const parsed = InputSchema.safeParse(args)
+    if (!parsed.success) throw new McpError(MCP_ERROR.INVALID_PARAMS, 'Invalid params', parsed.error.flatten())
+    const { name, kind } = parsed.data
+    const tokens = tokenize(name, kind)
+    const matched: any[] = []
+    const invalidTokens: string[] = []
+
+    for (const token of tokens) {
+      const std = await prisma.tbStdWord.findFirst({
+        where: { engAbbrNm: { equals: token, mode: 'insensitive' } },
+      })
+      if (std) {
+        matched.push({ token, wordNm: std.stdWordNm, source: 'standard' })
+        continue
+      }
+      const custom = await prisma.tbTrmCustomWord.findFirst({
+        where: { wordEngAbbrNm: { equals: token, mode: 'insensitive' }, useYn: 'Y' },
+      })
+      if (custom) matched.push({ token, wordNm: custom.wordKrNm, source: 'custom' })
+      else invalidTokens.push(token)
+    }
+    return {
+      valid: invalidTokens.length === 0,
+      tokens, matched, invalidTokens,
+      suggestionMessage: invalidTokens.length === 0 ? undefined
+        : `${invalidTokens.join(', ')} 은(는) 표준 미등재. register_custom_word로 등록 후 사용 가능.`,
+    }
+  },
+}
+```
+
+Tests: all-match, partial-miss (custom fallback), all-miss, db_column 분리, java_field camelCase 분리. Commit: `feat(mcp): validate_identifier tool`.
+
+### 8.4 `suggest_naming`
+
+```typescript
+// features/mcp/tools/suggest-naming.ts
+import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
+import { McpError } from '../server'
+import { MCP_ERROR } from '../errors'
+import type { McpTool } from '../types'
+
+const InputSchema = z.object({
+  koreanDescription: z.string().min(1),
+  target: z.enum(['db_column', 'java_field', 'both']).default('both'),
+})
+
+export const suggestNamingTool: McpTool = {
+  name: 'suggest_naming',
+  description: '한글 설명으로부터 행안부 표준 약어를 조합한 DB 컬럼/Java 필드명을 제안합니다.',
+  permission: 'USER',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      koreanDescription: { type: 'string' },
+      target: { type: 'string', enum: ['db_column', 'java_field', 'both'] },
+    },
+    required: ['koreanDescription'],
+  },
+  async execute(args) {
+    const parsed = InputSchema.safeParse(args)
+    if (!parsed.success) throw new McpError(MCP_ERROR.INVALID_PARAMS, 'Invalid params')
+    const { koreanDescription, target } = parsed.data
+    const chunks = koreanDescription.replace(/\s+/g, '').match(/[가-힣]{2,4}/g) ?? []
+    const basedOn: Array<{ korean: string; abbr: string }> = []
+    for (const chunk of chunks) {
+      const w = await prisma.tbStdWord.findFirst({
+        where: { stdWordNm: { contains: chunk } }, orderBy: { stdWordNm: 'asc' },
+      })
+      if (w?.engAbbrNm) basedOn.push({ korean: w.stdWordNm, abbr: w.engAbbrNm.toUpperCase() })
+    }
+    const abbrs = basedOn.map((b) => b.abbr)
+    const dbColumn = abbrs.join('_')
+    const javaField = abbrs.length
+      ? abbrs[0].toLowerCase() + abbrs.slice(1).map((a) => a[0] + a.slice(1).toLowerCase()).join('')
+      : ''
+    const confidence = basedOn.length === 0 ? 'low' : basedOn.length >= 2 ? 'high' : 'medium'
+
+    const result: any = { confidence, basedOn }
+    if (target === 'db_column' || target === 'both') result.dbColumn = dbColumn
+    if (target === 'java_field' || target === 'both') result.javaField = javaField
+    return result
+  },
+}
+```
+
+Tests: all-match high, single medium, no-match low. Commit: `feat(mcp): suggest_naming tool`.
+
+### 8.5 `check_forbidden_in_text`
+
+```typescript
+// features/mcp/tools/check-forbidden-in-text.ts
+import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
+import { McpError } from '../server'
+import { MCP_ERROR } from '../errors'
+import type { McpTool } from '../types'
+
+const InputSchema = z.object({ text: z.string().min(1) })
+
+export const checkForbiddenInTextTool: McpTool = {
+  name: 'check_forbidden_in_text',
+  description: '입력 텍스트에서 금칙어 출현 위치를 모두 찾습니다.',
+  permission: 'USER',
+  inputSchema: {
+    type: 'object', properties: { text: { type: 'string' } }, required: ['text'],
+  },
+  async execute(args) {
+    const parsed = InputSchema.safeParse(args)
+    if (!parsed.success) throw new McpError(MCP_ERROR.INVALID_PARAMS, 'text required')
+    const { text } = parsed.data
+    const fws = await prisma.tbTrmForbiddenWord.findMany({ where: { useYn: 'Y' } })
+    const matches: any[] = []
+    const upper = text.toUpperCase()
+    for (const fw of fws) {
+      const needle = fw.word.toUpperCase()
+      let idx = upper.indexOf(needle)
+      while (idx !== -1) {
+        matches.push({ word: fw.word, position: idx, reason: fw.reason })
+        idx = upper.indexOf(needle, idx + 1)
+      }
+    }
+    return { hasForbidden: matches.length > 0, matches }
+  },
+}
+```
+
+Tests: no match, single, multi positions, case-insensitive. Commit: `feat(mcp): check_forbidden_in_text tool`.
+
+### 8.6 Tool index 등록
+
+```typescript
+// features/mcp/tools/index.ts
+import type { McpTool } from '../types'
+import { searchTermTool } from './search-term'
+import { getWordDetailTool } from './get-word-detail'
+import { validateIdentifierTool } from './validate-identifier'
+import { suggestNamingTool } from './suggest-naming'
+import { checkForbiddenInTextTool } from './check-forbidden-in-text'
+
+export const ALL_TOOLS: McpTool[] = [
+  searchTermTool, getWordDetailTool, validateIdentifierTool, suggestNamingTool, checkForbiddenInTextTool,
+]
+```
+
+### 8.7 전체 테스트 + 커밋
+
+```bash
+pnpm test features/mcp/tools
+pnpm typecheck
+git add features/mcp/tools
+git commit -m "feat(mcp): register 5 core tools in MCP server"
+```
+
+---
+
+## Task 9: 통합 테스트 12건
+
+**Files:**
+- Create: `features/mcp/__tests__/integration.test.ts`
+- Create: `features/mcp/__tests__/fixtures/seed.ts`
+
+### Step 1: 패키지 설치
+
+```bash
+pnpm add -D next-test-api-route-handler
+```
+
+### Step 2: 시드 헬퍼 작성
+
+```typescript
+// features/mcp/__tests__/fixtures/seed.ts
+import { prisma } from '@/lib/prisma'
+import { createHash, randomBytes } from 'crypto'
+
+export const USER_PAT = `trmdict_pat_${randomBytes(32).toString('hex')}`
+export const ADMIN_PAT = `trmdict_pat_${randomBytes(32).toString('hex')}`
+export const EXPIRED_PAT = `trmdict_pat_${randomBytes(32).toString('hex')}`
+export const REVOKED_PAT = `trmdict_pat_${randomBytes(32).toString('hex')}`
+
+const sha = (t: string) => createHash('sha256').update(t).digest('hex')
+
+export async function seedTestData() {
+  await prisma.tbTrmMcpToken.createMany({
+    data: [
+      { tokenHash: sha(USER_PAT), name: 'test-user-token', userId: 'user-uuid-1' },
+      { tokenHash: sha(ADMIN_PAT), name: 'test-admin-token', userId: 'admin-uuid-1' },
+      { tokenHash: sha(EXPIRED_PAT), name: 'expired', userId: 'user-uuid-1', expiresAt: new Date(Date.now() - 1000) },
+      { tokenHash: sha(REVOKED_PAT), name: 'revoked', userId: 'user-uuid-1', revokedAt: new Date() },
+    ],
+  })
+  await prisma.tbStdWord.upsert({
+    where: { engAbbrNm: 'USER' },
+    create: { stdWordNm: '사용자', engAbbrNm: 'USER', engNm: 'User' },
+    update: {},
+  })
+}
+
+export async function cleanTestData() {
+  await prisma.tbTrmMcpAuditLog.deleteMany()
+  await prisma.tbTrmMcpRateLimit.deleteMany()
+  await prisma.tbTrmMcpToken.deleteMany()
+}
+```
+
+### Step 3: 통합 테스트 12건
+
+```typescript
+// features/mcp/__tests__/integration.test.ts
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { testApiHandler } from 'next-test-api-route-handler'
+import * as appHandler from '@/app/api/mcp/route'
+import { seedTestData, cleanTestData, USER_PAT, EXPIRED_PAT, REVOKED_PAT } from './fixtures/seed'
+
+beforeAll(async () => { await seedTestData() })
+afterAll(async () => { await cleanTestData() })
+
+async function rpc(headers: Record<string, string>, body: any) {
+  let response: any
+  await testApiHandler({
+    appHandler,
+    test: async ({ fetch }) => {
+      response = await fetch({
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...headers },
+        body: JSON.stringify(body),
+      })
+    },
+  })
+  return { status: response.status, body: await response.json().catch(() => null) }
+}
+
+describe('MCP integration', () => {
+  it('#1 no auth header -> -32001 + 401', async () => {
+    const r = await rpc({}, { jsonrpc: '2.0', id: 1, method: 'tools/list' })
+    expect(r.status).toBe(401)
+    expect(r.body.error.code).toBe(-32001)
+  })
+  it('#2 invalid PAT -> -32002 + 401', async () => {
+    const r = await rpc({ authorization: 'Bearer trmdict_pat_invalid' }, { jsonrpc: '2.0', id: 1, method: 'tools/list' })
+    expect(r.status).toBe(401)
+    expect(r.body.error.code).toBe(-32002)
+  })
+  it('#3 revoked PAT -> -32002', async () => {
+    const r = await rpc({ authorization: `Bearer ${REVOKED_PAT}` }, { jsonrpc: '2.0', id: 1, method: 'tools/list' })
+    expect(r.body.error.code).toBe(-32002)
+  })
+  it('#4 expired PAT -> -32002', async () => {
+    const r = await rpc({ authorization: `Bearer ${EXPIRED_PAT}` }, { jsonrpc: '2.0', id: 1, method: 'tools/list' })
+    expect(r.body.error.code).toBe(-32002)
+  })
+  it('#5 initialize returns capabilities', async () => {
+    const r = await rpc({}, { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} })
+    expect(r.body.result.capabilities).toBeDefined()
+    expect(r.body.result.protocolVersion).toBe('2025-03-26')
+  })
+  it('#6 tools/list returns 5 tools', async () => {
+    const r = await rpc({ authorization: `Bearer ${USER_PAT}` }, { jsonrpc: '2.0', id: 1, method: 'tools/list' })
+    expect(r.body.result.tools).toHaveLength(5)
+  })
+  it('#7 tools/call search_term (USER) returns results', async () => {
+    const r = await rpc({ authorization: `Bearer ${USER_PAT}` }, {
+      jsonrpc: '2.0', id: 1, method: 'tools/call',
+      params: { name: 'search_term', arguments: { query: '사용자', type: 'word' } },
+    })
+    expect(r.body.result.content[0].type).toBe('text')
+    const parsed = JSON.parse(r.body.result.content[0].text)
+    expect(parsed.results).toBeDefined()
+  })
+  it('#8 USER calling unknown ADMIN tool -> -32005 (Phase 1 미구현)', async () => {
+    const r = await rpc({ authorization: `Bearer ${USER_PAT}` }, {
+      jsonrpc: '2.0', id: 1, method: 'tools/call',
+      params: { name: 'register_custom_word', arguments: {} },
+    })
+    expect(r.body.error.code).toBe(-32005)
+  })
+  it('#9 placeholder for ADMIN write tool (Phase 2)', async () => {
+    expect(true).toBe(true)
+  })
+  it('#10 rate limit exceeded -> -32003 + 429', async () => {
+    for (let i = 0; i < 60; i++) {
+      await rpc({ authorization: `Bearer ${USER_PAT}` }, { jsonrpc: '2.0', id: i, method: 'tools/list' })
+    }
+    const r = await rpc({ authorization: `Bearer ${USER_PAT}` }, { jsonrpc: '2.0', id: 999, method: 'tools/list' })
+    expect(r.status).toBe(429)
+    expect(r.body.error.code).toBe(-32003)
+    expect(r.body.error.data.retryAfter).toBeGreaterThan(0)
+  })
+  it('#11 unknown method -> -32601', async () => {
+    const r = await rpc({ authorization: `Bearer ${USER_PAT}` }, { jsonrpc: '2.0', id: 1, method: 'unknown/method' })
+    expect(r.body.error.code).toBe(-32601)
+  })
+  it('#12 invalid params -> -32602 with data.errors', async () => {
+    const r = await rpc({ authorization: `Bearer ${USER_PAT}` }, {
+      jsonrpc: '2.0', id: 1, method: 'tools/call',
+      params: { name: 'search_term', arguments: { query: '' } },
+    })
+    expect(r.body.error.code).toBe(-32602)
+  })
+})
+```
+
+> **주의:** 통합 테스트는 실제 Supabase test DB 필요. 로컬 `docker-compose.dev.yml`의 Supabase 또는 별도 test schema 사용 권장. CI는 Vercel Preview Branch DB 사용 가능.
+
+### Step 4: 실행 + 커버리지 + 커밋
+
+```bash
+pnpm test features/mcp/__tests__/integration.test.ts
+pnpm test:coverage
+```
+예상: 12/12 PASS, `features/mcp/**` 90%+ coverage.
+
+```bash
+git add features/mcp/__tests__ package.json pnpm-lock.yaml
+git commit -m "test(mcp): integration tests (12 scenarios — auth/rate-limit/tools)"
+```
+
+---
+
+## Task 10: Vercel 배포 + Claude Code E2E
+
+**Files:** 없음 (구성 변경 + 운영 검증 only)
+
+### Step 1: 환경변수 정리
+
+Vercel `Project Settings > Environment Variables`에 등록:
+- `DATABASE_URL` (Supabase Cloud PostgreSQL)
+- `DIRECT_URL` (Prisma migrate 용)
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+### Step 2: 로컬 빌드 검증
+
+```bash
+pnpm build
+```
+예상: 빌드 성공, `/api/mcp` route 생성 확인.
+
+### Step 3: Vercel 배포
+
+```bash
+vercel --prod
+```
+배포 URL 확인 (예: `https://trmdict.vercel.app`).
+
+### Step 4: 운영 DB migration 적용
+
+```bash
+pnpm prisma migrate deploy
+```
+
+### Step 5: Smoke test (curl)
+
+```bash
+# 1) 인증 없이 -> 401
+curl -sX POST https://trmdict.vercel.app/api/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+
+# 2) initialize -> 200
+curl -sX POST https://trmdict.vercel.app/api/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
+```
+예상: 1) `error.code: -32001`, 2) `result.protocolVersion: "2025-03-26"`
+
+### Step 6: PAT 발급 (운영)
+
+운영 환경 로그인 → `/admin/settings` → "MCP PAT 발급" → 발급된 토큰 복사.
+
+### Step 7: Claude Code 연결 설정
+
+`~/.claude/settings.json` 추가:
+
+```json
+{
+  "mcpServers": {
+    "trmdict": {
+      "url": "https://trmdict.vercel.app/api/mcp",
+      "type": "http",
+      "headers": {
+        "Authorization": "Bearer trmdict_pat_<발급된 토큰>"
+      }
+    }
+  }
+}
+```
+
+Claude Code 재시작.
+
+### Step 8: E2E 수동 검증 (3건)
+
+**E2E #1 — 서버 연결 확인**
+```
+/mcp
+```
+예상: `trmdict` 서버 노출, 5 tool 표시.
+
+**E2E #2 — 자연어 검증 워크플로우**
+```
+USER_NM 이 행안부 표준 컬럼명이야?
+```
+예상: LLM이 `validate_identifier` 자동 호출 → `valid: true` 응답.
+
+**E2E #3 — 비표준 토큰 워크플로우**
+```
+BLKCHAIN_ID 컬럼 검증해줘
+```
+예상: `validate_identifier` → `invalid + suggestionMessage` → LLM이 `register_custom_word` 제안.
+
+### Step 9: 다른 팀원 검증 (공용성 확인)
+
+다른 팀원 1명에게:
+1. Supabase Auth 계정 가입
+2. `/admin/settings` → 자기 PAT 발급
+3. 자기 Claude Code에 등록
+4. E2E #1~#3 재현
+
+예상: 동일하게 동작 → **사내 공용 동작 확인 완료**.
+
+### Step 10: 최종 worklog/handoff 갱신 + 커밋
+
+`docs/worklog.md` 맨 위에 "Phase 1 (MVP) 완료" 섹션 추가.
+`docs/handoff.md` "Current Goal"을 "Phase 2 진입 대기"로 갱신.
+
+```bash
+git add docs/worklog.md docs/handoff.md
+git commit -m "docs: Phase 1 MVP complete — MCP server deployed to Vercel"
+```
+
+---
+
+## Phase 1 검증 체크리스트 (Definition of Done)
+
+- [ ] `pnpm test` → 모든 단위 테스트 PASS (약 30건)
+- [ ] `pnpm test features/mcp/__tests__/integration.test.ts` → 12/12 PASS
+- [ ] `pnpm test:coverage` → `features/mcp/**` 분기 90%+
+- [ ] `pnpm typecheck` → 0 errors
+- [ ] `pnpm build` → 성공
+- [ ] Vercel production URL 유효 (HTTPS)
+- [ ] `/admin/settings`에서 PAT 발급/revoke 동작
+- [ ] Claude Code `/mcp` → trmdict 5 tool 노출
+- [ ] "USER_NM 표준이야?" → `validate_identifier` 자동 호출 + valid:true
+- [ ] "BLKCHAIN_ID 검증" → invalid + 제안 응답
+- [ ] 다른 팀원 1명이 자기 PAT로 동일 검증 (공용 동작 확인)
+
+---
+
+## Phase 2 진입 조건
+
+Phase 1 DoD 모두 통과 후 Phase 2 시작. Phase 2 항목 (설계 §10.2):
+1. Tool 4개 추가 — `get_domain_detail` / `list_forbidden_words` / `register_custom_word` / `propose_term`
+2. Inspection 모듈 연동 (`propose_term` → `TbTrmInspection`)
+3. PAT 관리 화면 강화
+4. MCP 호출 통계 대시보드
+5. 에러율 알람
+6. pg_cron cleanup 정착
+
+Phase 2 plan은 Phase 1 완료 후 별도 `superpowers:writing-plans` 호출로 작성.
+
+---
+
+## 리스크 / 의존성
+
+| 항목 | 확인 시점 | 차단 시 대응 |
+|---|---|---|
+| Supabase 표준 데이터 없음 | Task 2 `pnpm check:mcp-seed` | Tibero → Supabase 마이그레이션 또는 Import job 선행 |
+| `@modelcontextprotocol/sdk` Streamable HTTP 호환성 | Task 7 SDK 설치 | SSE fallback transport 구현 |
+| Supabase test DB 별도 인스턴스 | Task 9 통합 테스트 | 로컬 docker-compose Supabase + .env.test |
+| 운영 DB migration 권한 | Task 10 `prisma migrate deploy` | DBA 또는 운영자 수동 실행 |
+| 다른 팀원 검증 가용성 | Task 10 Step 9 | Slack/이메일로 협조 요청 |
+
+**Task 2의 시드 검증이 실패하면 Phase 1 진입 불가**. 가장 우선 해결.

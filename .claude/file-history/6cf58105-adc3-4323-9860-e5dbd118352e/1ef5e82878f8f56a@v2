@@ -1,0 +1,84 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
+import { DetailFields, DetailSection } from '@/shared/components/DetailView/DetailView';
+
+const chipStyle = (tone) => {
+    if (tone === 'success') return { color: '#059669', bg: '#d1fae5' };
+    if (tone === 'warning') return { color: '#b45309', bg: '#fef3c7' };
+    return { color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))' };
+};
+
+export const WordDetailDialog = ({ word, open, onOpenChange }) => {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className='max-w-3xl overflow-hidden p-0'>
+                <DialogHeader className='sr-only'>
+                    <DialogTitle>{word?.stdWordNm ? `${word.stdWordNm} 상세` : '단어 상세'}</DialogTitle>
+                </DialogHeader>
+
+                {word ? (
+                    <>
+                        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid hsl(var(--border))', background: 'hsl(var(--muted)/0.3)' }}>
+                            <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'hsl(var(--muted-foreground))', margin: '0 0 4px' }}>
+                                단어 상세
+                            </p>
+                            <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'hsl(var(--foreground))', margin: '0 0 12px' }}>
+                                {word.stdWordNm}
+                            </h2>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                {[
+                                    { label: '형식 단어', value: word.frmWordYn || '-' },
+                                    { label: '사용', value: word.useYn || '-', tone: word.useYn === 'Y' ? 'success' : 'warning' },
+                                    { label: '도메인', value: word.stdDmnClsfNm || '-' },
+                                ].map(({ label, value, tone }) => {
+                                    const { color, bg } = chipStyle(tone);
+                                    return (
+                                        <span key={label} style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '100px', color, background: bg, whiteSpace: 'nowrap' }}>
+                                            {label} · {value}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className='max-h-[60vh] space-y-4 overflow-auto p-4 text-sm text-muted-foreground'>
+
+                        <DetailSection title='기본 정보' description='현재 단어의 식별값과 명칭을 확인합니다.'>
+                            <DetailFields
+                                items={[
+                                    { label: 'ID', value: word.id },
+                                    { label: '단어명', value: word.stdWordNm },
+                                    { label: '영문약어명', value: word.stdWordEngAbbrNm || '-' },
+                                    { label: '영문명', value: word.stdWordEngNm || '-' },
+                                    { label: '설명', value: word.stdWordExpln || '-' },
+                                    { label: '형식단어여부', value: word.frmWordYn || '-' },
+                                    { label: '도메인분류명', value: word.stdDmnClsfNm || '-' },
+                                ]}
+                            />
+                        </DetailSection>
+
+                        <DetailSection title='확장 정보' description='동의어와 금칙어, 생성 주기 정보를 확인합니다.'>
+                            <DetailFields
+                                items={[
+                                    { label: '동의어 목록', value: word.synmListCn || '-' },
+                                    { label: '금칙어 목록', value: word.phwrdListCn || '-' },
+                                    { label: '생성주기수', value: word.enctCycl || '-' },
+                                ]}
+                            />
+                        </DetailSection>
+
+                        <DetailSection title='개정 정보' description='개정 사유와 사용 상태를 확인합니다.'>
+                            <DetailFields
+                                items={[
+                                    { label: '개정구분명', value: word.rvsnSeNm || '-' },
+                                    { label: '개정항목', value: word.rvsnArtclNm || '-' },
+                                    { label: '개정사유', value: word.rvsnRsn || '-' },
+                                    { label: '사용여부', value: word.useYn || '-' },
+                                ]}
+                            />
+                        </DetailSection>
+                        </div>
+                    </>
+                ) : null}
+            </DialogContent>
+        </Dialog>
+    );
+};

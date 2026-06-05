@@ -1,0 +1,11 @@
+import { axiosInstance, unwrapResponse } from '@/core/api/axiosInstance';
+
+export async function searchWords(payload) {
+    const response = await axiosInstance.post('/words/search', payload);
+    return unwrapResponse(response);
+}
+
+export async function getWordById(id) {
+    const response = await axiosInstance.get(`/words/${id}`);
+    return unwrapResponse(response);
+}

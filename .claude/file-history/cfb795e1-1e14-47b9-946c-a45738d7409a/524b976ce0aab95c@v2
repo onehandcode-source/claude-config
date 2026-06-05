@@ -1,0 +1,60 @@
+# 기술 스택 정의서
+
+## AS-IS (현재 스택)
+
+| 항목 | 선택 |
+|------|------|
+| Java | 1.8 |
+| SpringBoot | 2.7.18 |
+| Build | Maven (단일 모듈, pom.xml) |
+| DB | Tibero7 (`lib/tibero7-jdbc-18.jar`, system scope) |
+| ORM | MyBatis 2.3.x |
+| Security | Spring Security + jjwt 0.11.x |
+| Frontend | Angular 15.x + Angular Material |
+| Base Package | `com.devwogns.trmdict` |
+
+---
+
+## TO-BE (확정 스택 — 안 3: 레거시/제한 환경형)
+
+> **선택 이유**: 서버에서 Node.js를 실행할 수 없는 인프라 제약 환경 대응.
+> React SPA를 정적 리소스로 빌드하여 Spring Boot와 통합 배포.
+
+| 항목 | 선택 |
+|------|------|
+| Backend Language | **Java 1.8** |
+| Frontend Framework | **React 18+ (SPA)** |
+| Backend Framework | **Spring Boot 2.7.18** |
+| ORM | **MyBatis** (현행 유지) |
+| Security/Auth | **Spring Security (Session/JWT)** |
+| UI Library | **shadcn/ui** (Tailwind CSS 기반) |
+| Component Engine | Radix UI (Headless) |
+| MCP 서버 확장성 | 보통 (Java 연동 필요) |
+
+---
+
+## 필수 개발 라이브러리
+
+| 카테고리 | 라이브러리 | 용도 | 중요도 |
+|------|------|------|------|
+| **Lint/Format** | Prettier, ESLint | 코드 스타일 자동화 및 문법 오류 방지 | 상 |
+| **State (Global)** | Zustand | 전역 변수 및 클라이언트 상태 관리 | 상 |
+| **State (Server)** | React Query | 서버 데이터 캐싱 및 상태 관리 | 상 |
+| **Validation** | Zod | 런타임 데이터 검증 및 타입 안전성 확보 | 중 |
+| **Password Auth** | Argon2 | 최신 알고리즘 기반 비밀번호 해싱 | 중 |
+| **Git Hook** | Husky, lint-staged | 커밋 전 코드 품질 검증 강제 | 중 |
+| **UI Utility** | clsx, tailwind-merge | Tailwind CSS 클래스 조건부 병합 | 하 |
+| **Icons** | Lucide React | 현대적이고 일관된 아이콘 시스템 | 하 |
+| **Notification** | Sonner | 고성능 토스트 알림 (SweetAlert 대체) | 하 |
+| **Animation** | react-countup | 통계 및 수치 데이터 애니메이션 효과 | 하 |
+| **Date UI** | date-fns or Day.js | 날짜 형식 변환 및 연산 유틸리티 | 하 |
+
+---
+
+## 주요 특징 및 기대 효과
+
+- **React SPA + Spring Boot 통합 배포**: `npm run build` 결과물을 `src/main/resources/static/`에 포함하여 단일 JAR로 배포.
+- **shadcn/ui**: 컴포넌트 소유권을 프로젝트 내부에 두어 100% 디자인 자유도 확보.
+- **Zustand**: Redux 대비 극도로 단순한 설정으로 전역 상태(사용자 정보 등) 관리.
+- **React Query**: 서버 상태 캐싱·동기화로 API 호출 중복 제거 및 UX 개선.
+- **MyBatis 유지**: 기존 SQL 자산과 Tibero7 환경을 그대로 재사용.

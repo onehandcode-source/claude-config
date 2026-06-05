@@ -1,0 +1,73 @@
+package com.devwogns.trmdict.module.importjob.entity;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.SequenceGenerator;
+import javax.persistence.Table;
+import java.time.OffsetDateTime;
+
+@Entity
+@Table(name = "TB_TRM_IMPORT_HISTORY")
+@Getter
+@Setter
+@NoArgsConstructor
+public class ImportJobEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "importHistorySeq")
+    @SequenceGenerator(name = "importHistorySeq", sequenceName = "TB_TRM_IMPORT_HISTORY_SEQ", allocationSize = 1)
+    @Column(name = "IMPORT_HISTORY_SN")
+    private Long id;
+
+    @Column(name = "STTS_CD", nullable = false)
+    private String status;
+
+    @Column(name = "RQSTR_ID")
+    private String requestedBy;
+
+    @Column(name = "RQSTR_IP_ADDR")
+    private String requestedIp;
+
+    @Column(name = "RQSTR_DT")
+    private OffsetDateTime requestedAt;
+
+    @Column(name = "BGNG_DT")
+    private OffsetDateTime startedAt;
+
+    @Column(name = "END_DT")
+    private OffsetDateTime endedAt;
+
+    @Column(name = "TNOCS")
+    private Integer totalCount;
+
+    @Column(name = "SCS_NOCS")
+    private Integer successCount;
+
+    @Column(name = "FAIL_NOCS")
+    private Integer failCount;
+
+    @Column(name = "ERR_MSG_CN")
+    private String errorSummary;
+
+    @Column(name = "IMPORT_TYPE_CD")
+    private String type;
+
+    @Column(name = "FILE_NM")
+    private String fileName;
+
+    @Column(name = "FILE_SZ")
+    private Long fileSize;
+
+    @Column(name = "DPCN_NOCS")
+    private Integer duplicateCount;
+
+    @Column(name = "STAGING_NOCS")
+    private Integer stagingCount;
+}

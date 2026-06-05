@@ -1,0 +1,28 @@
+package com.devwogns.trmdict.module.forbidden.vo;
+
+import com.devwogns.trmdict.module.forbidden.entity.ForbiddenEntity;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Builder;
+import lombok.Getter;
+
+@Getter
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ForbiddenListVo {
+
+    private Long id;
+    private String phwrdNm;
+    private String useYn;
+    private String enctCycl;
+    private String rmrkCn;
+
+    public static ForbiddenListVo fromEntity(ForbiddenEntity entity) {
+        return ForbiddenListVo.builder()
+                .id(entity.getId())
+                .phwrdNm(entity.getPhwrdNm())
+                .useYn(entity.getUseYn())
+                .enctCycl(entity.getEnctCycl())
+                .rmrkCn(entity.getRmrkCn())
+                .build();
+    }
+}

@@ -1,0 +1,49 @@
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { ProtectedRoute } from './ProtectedRoute';
+import { MainLayout } from '@/layouts/MainLayout';
+import { BlankLayout } from '@/layouts/BlankLayout';
+import { LoginPage } from '@/features/auth/LoginPage';
+import { HomePage } from '@/features/home/HomePage';
+import { DomainListPage } from '@/features/domain/DomainListPage';
+import { WordListPage } from '@/features/word/WordListPage';
+import { ForbiddenListPage } from '@/features/forbidden/ForbiddenListPage';
+import { UploadPage } from '@/features/import/UploadPage';
+import { DetailPage } from '@/features/import/DetailPage';
+
+export const router = createBrowserRouter([
+    {
+        element: <BlankLayout />,
+        children: [{ path: '/login', element: <LoginPage />, handle: { breadcrumb: '\uB85C\uADF8\uC778' } }],
+    },
+    {
+        element: (
+            <ProtectedRoute>
+                <MainLayout />
+            </ProtectedRoute>
+        ),
+        children: [
+            { index: true, element: <Navigate to="/home" replace /> },
+            { path: '/home', element: <HomePage />, handle: { breadcrumb: '\uD648' } },
+            { path: '/domain', element: <DomainListPage />, handle: { breadcrumb: '\uB3C4\uBA54\uC778' } },
+            { path: '/word', element: <WordListPage />, handle: { breadcrumb: '\uB2E8\uC5B4' } },
+            { path: '/forbidden', element: <ForbiddenListPage />, handle: { breadcrumb: '\uAE08\uCE59\uC5B4' } },
+            {
+                path: '/import',
+                element: <UploadPage />,
+                handle: { breadcrumb: '\uB370\uC774\uD130 \uAC00\uC838\uC624\uAE30' },
+            },
+            {
+                path: '/import/:historyId',
+                element: <DetailPage />,
+                handle: {
+                    breadcrumb: ({ params }) =>
+                        params.historyId ? `\uC0C1\uC138 #${params.historyId}` : '\uC0C1\uC138',
+                },
+            },
+        ],
+    },
+    {
+        path: '*',
+        element: <Navigate to="/home" replace />,
+    },
+]);

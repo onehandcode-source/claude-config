@@ -1,0 +1,23 @@
+import { Button } from '../ui/button';
+
+export const SearchForm = ({
+    children,
+    submitLabel = '검색',
+    resetLabel = '초기화',
+    onSubmit,
+    onReset,
+}) => {
+    return (
+        <section className='flex flex-col gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground shadow-sm'>
+            <div className='flex flex-wrap items-center gap-3'>{children}</div>
+            <div className='flex justify-end gap-2'>
+                <Button type='button' variant='outline' onClick={onReset}>
+                    {resetLabel}
+                </Button>
+                <Button type='button' onClick={onSubmit}>
+                    {submitLabel}
+                </Button>
+            </div>
+        </section>
+    );
+}

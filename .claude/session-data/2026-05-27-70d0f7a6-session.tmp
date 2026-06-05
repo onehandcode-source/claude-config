@@ -1,0 +1,32 @@
+# Session: 2026-05-27
+**Date:** 2026-05-27
+**Started:** 09:05
+**Last Updated:** 09:05
+**Project:** TrmWordDict2
+**Branch:** yg_v0.2
+**Worktree:** D:\20. POC\TrmWordDict2
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- frontend와 backend 현 상태 스팩을 html로 만들어줘
+
+### Files Modified
+- D:\20. POC\TrmWordDict2\docs\spec-overview.html
+
+### Tools Used
+Read, Glob, Write, ToolSearch, mcp__plugin_playwright_playwright__browser_navigate, Grep
+
+### Stats
+- Total user messages: 1
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

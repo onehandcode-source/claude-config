@@ -1,0 +1,186 @@
+// @ts-ignore - android is available in @playwright/test at runtime but missing from type declarations
+import { android, type AndroidDevice } from "@playwright/test";
+import type { BrowserContext, Page } from "@playwright/test";
+import { normalizeLocator } from "./locator-utils.ts";
+import type { AndroidStep, AnyStep, StepResult, TiberoConfig } from "./types.js";
+
+interface ExecuteStepsOptions {
+  onStepStart?: (step: AnyStep, stepIndex: number) => void | Promise<void>;
+  onStepComplete?: (
+    result: StepResult,
+    stepIndex: number,
+    executedStepCount: number
+  ) => void | Promise<void>;
+}
+
+export class AndroidExecutor {
+  private device: AndroidDevice | null = null;
+  private context: BrowserContext | null = null;
+
+  async initialize() {
+    const devices = await android.devices();
+    if (devices.length === 0) {
+      throw new Error(
+        "연결된 Android 기기/에뮬레이터가 없습니다. ADB로 기기가 인식되는지 확인하세요."
+      );
+    }
+    this.device = devices[0]!;
+    this.context = await this.device!.launchBrowser();
+  }
+
+  async close() {
+    await this.context?.close();
+    await this.device?.close();
+  }
+
+  async executeSteps(
+    steps: AnyStep[],
+    dbConfig?: TiberoConfig,
+    options: ExecuteStepsOptions = {},
+    baseUrl?: string
+  ): Promise<StepResult[]> {
+    if (!this.context) {
+      throw new Error("AndroidExecutor가 초기화되지 않았습니다.");
+    }
+
+    const page = await this.context.newPage();
+    if (baseUrl) {
+      await page.goto(baseUrl, { waitUntil: "load" });
+    }
+
+    const results: StepResult[] = [];
+
+    try {
+      for (const [stepIndex, step] of (steps as AndroidStep[]).entries()) {
+        await options.onStepStart?.(step, stepIndex);
+        const result = await this.executeStep(step, page);
+        results.push(result);
+        await options.onStepComplete?.(result, stepIndex, results.length);
+
+        if (result.status === "error") {
+          break;
+        }
+      }
+    } finally {
+      await page.close();
+    }
+
+    return results;
+  }
+
+  private async executeStep(step: AndroidStep, page: Page): Promise<StepResult> {
+    try {
+      let output: unknown;
+
+      switch (step.type) {
+        case "navigate":
+          await page.goto(step.url, { waitUntil: "load" });
+          output = `Navigated to ${step.url}`;
+          break;
+
+        case "tap": {
+          const locator = resolveLocator(page, step.locator, step.selector);
+          await locator.tap();
+          output = `Tapped: ${describeLocator(step.locator, step.selector)}`;
+          break;
+        }
+
+        case "fill": {
+          const locator = resolveLocator(page, step.locator, step.selector);
+          await locator.fill(step.text);
+          output = `Filled: ${describeLocator(step.locator, step.selector)}`;
+          break;
+        }
+
+        case "select": {
+          const locator = resolveLocator(page, step.locator, step.selector);
+          await locator.selectOption(step.text);
+          output = `Selected: ${step.text}`;
+          break;
+        }
+
+        case "swipe": {
+          const { direction, distance = 300 } = step;
+          const scrollMap: Record<string, { x: number; y: number }> = {
+            up: { x: 0, y: -distance },
+            down: { x: 0, y: distance },
+            left: { x: -distance, y: 0 },
+            right: { x: distance, y: 0 },
+          };
+          const { x, y } = scrollMap[direction];
+          await page.evaluate(({ dx, dy }) => window.scrollBy(dx, dy), { dx: x, dy: y });
+          output = `Swiped ${direction} ${distance}px`;
+          break;
+        }
+
+        case "pressBack":
+          await page.goBack({ waitUntil: "load" });
+          output = "뒤로가기";
+          break;
+
+        case "wait":
+          await page.waitForTimeout(step.milliseconds);
+          output = `Waited ${step.milliseconds}ms`;
+          break;
+
+        case "screenshot": {
+          const buffer = await page.screenshot({ fullPage: true });
+          const screenshot = buffer.toString("base64");
+          return { step, status: "passed", output: screenshot, screenshot };
+        }
+
+        case "switchTab":
+          output = `switchTab은 Android Chrome에서 지원되지 않습니다.`;
+          break;
+
+        default:
+          throw new Error(`Unknown Android step type: ${(step as { type: string }).type}`);
+      }
+
+      return { step, status: "passed", output };
+    } catch (error) {
+      return {
+        step,
+        status: "error",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+}
+
+function resolveLocator(page: Page, locator?: import("./types.js").StepLocator, legacySelector?: string) {
+  const normalized = normalizeLocator(locator, legacySelector);
+
+  if (!normalized) {
+    throw new Error("Locator information is required for this step");
+  }
+
+  const scope = normalized.frame ? page.frameLocator(normalized.frame) : page;
+
+  if (normalized.role) {
+    return normalized.name
+      ? scope.getByRole(normalized.role as Parameters<Page["getByRole"]>[0], {
+          name: normalized.name,
+          exact: true,
+        })
+      : scope.getByRole(normalized.role as Parameters<Page["getByRole"]>[0]);
+  }
+  if (normalized.label) return scope.getByLabel(normalized.label);
+  if (normalized.placeholder) return scope.getByPlaceholder(normalized.placeholder);
+  if (normalized.text) return scope.getByText(normalized.text);
+  if (normalized.testId) return scope.getByTestId(normalized.testId);
+  if (normalized.selector) return scope.locator(normalized.selector);
+
+  throw new Error("Unable to resolve locator");
+}
+
+function describeLocator(locator?: import("./types.js").StepLocator, legacySelector?: string): string {
+  const normalized = normalizeLocator(locator, legacySelector);
+  if (!normalized) return "locator 없음";
+  if (normalized.role) return normalized.name ? `role=${normalized.role}, name=${normalized.name}` : `role=${normalized.role}`;
+  if (normalized.label) return `label=${normalized.label}`;
+  if (normalized.placeholder) return `placeholder=${normalized.placeholder}`;
+  if (normalized.text) return `text=${normalized.text}`;
+  if (normalized.testId) return `testId=${normalized.testId}`;
+  return `legacy selector=${normalized.selector}`;
+}

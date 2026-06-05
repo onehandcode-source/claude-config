@@ -1,0 +1,2159 @@
+# C2. 공통 프론트 코어 — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** C2 사이클(3/17) — 후속 모든 프론트 사이클(I1·M-*-R/W·N2)의 화면 골격(login + home placeholder), 인증 흐름(axios interceptors / ProtectedRoute / useAuthStore), 5종 공통 컴포넌트(SearchForm / DataGrid+TanStack Table / FileUpload / DetailPanel / EditDrawer), 글로벌 useLoadingStore를 일체로 박는다. Playwright 자동 E2E 4 시나리오로 검증.
+
+**Architecture:** React 18 SPA (Vite 5.x) + shadcn/ui (Radix UI + Tailwind CSS) + Zustand 4.x (전역 상태) + TanStack React Query v5 (서버 상태) + Vitest + @testing-library/react 단위 + Playwright(chromium 단일) E2E. 구조: `app/ core/ shared/ store/ features/ styles/` 6분할. 토큰은 `localStorage['trmdict_token']`. 401(`AUTH_1002`) → logout + `/login` (state.returnUrl), 403(`COMMON_0003`) → toast + 화면 유지. CI 미도입 — 운영자 로컬 `npx vitest run` + `npx playwright test` 수동 실행. **JavaScript 전용 (TypeScript 미사용, 파일 확장자 `.js`/`.jsx`).**
+
+**Tech Stack:** React 18.x, Vite 5.x, shadcn/ui (Radix UI + Tailwind CSS 3.x), Zustand 4.x, TanStack React Query v5, TanStack Table v8, axios 1.x, React Router v6, React Hook Form + Zod + @hookform/resolvers, Sonner (toast), Lucide React (icons), Vitest + @testing-library/react + jsdom, Playwright (`@playwright/test`), ESLint (Flat Config) + Prettier + Husky + lint-staged, npm.
+
+**입력 자료:** `docs/cycles/03-c2-frontend-core/spec.md` (commit `bb74e30` master, 본 plan의 단일 출처). 스택 확정: `docs/superpowers/ygKim/01. system.md` (TO-BE React 18 SPA). 코딩 컨벤션: `docs/dev-guide/conventions-frontend.md`.
+
+**Stage 구성:** 9 Stage / 23 Task.
+- Stage 0 — 선행 문서 갱신 + 브랜치 분기 (2 Task)
+- Stage 1 — Frontend 골격 부트 (1 Task)
+- Stage 2 — core models + utils + store (4 Task)
+- Stage 3 — interceptors + loading + routing guard (3 Task)
+- Stage 4 — shared 컴포넌트 5종 + shadcn 설치 (6 Task)
+- Stage 5 — layouts + auth + home + app wiring (3 Task)
+- Stage 6 — Playwright E2E 4 시나리오 (1 Task)
+- Stage 7 — G2-d 검증 게이트 (1 Task)
+- Stage 8 — 사이클 마감 + master 머지 (2 Task)
+
+**브랜치:** `cycles/03-c2-frontend-core` (Stage 0 T02에서 master `bb74e30`에서 분기).
+
+**테스트 카운트 추적:**
+- 시작(master 시점): backend 52/52 그린.
+- C2는 frontend만 추가. backend 테스트 변동 없음.
+- frontend 단위 테스트는 파일당 2~5 케이스. 총 ~35~45 spec.
+- 검증 게이트(Stage 7)에서 `npx vitest run` 그린 + Playwright 4 시나리오 통과.
+
+---
+
+## Stage 0 — 선행 문서 갱신 + 브랜치 분기
+
+### Task 1: master working tree `application.yml` 1줄 변경 처리 (사용자 의도 확인)
+
+> handoff.md §"Working Tree" 명시: `backend/src/main/resources/application.yml`에 `spring.profiles.active: local` 1줄 unstaged 변경. C2 코드 진입 전 의도 확인 후 commit 또는 revert.
+
+**Files:**
+- Modify or Restore: `backend/src/main/resources/application.yml`
+
+- [ ] **Step 1: 변경 내용 확인**
+
+```bash
+git diff backend/src/main/resources/application.yml
+```
+Expected: `+ spring.profiles.active: local` 1줄 추가만 보임 (또는 동등한 1줄 차이).
+
+- [ ] **Step 2: 사용자 의도 확인 (Hard Stop)**
+
+> **Hard Stop**: diff 결과를 사용자에게 보여주고 "commit할까요 아니면 revert할까요?" 확인 후 진행.
+
+- [ ] **Step 3a (commit 선택 시): 커밋**
+
+```bash
+git add backend/src/main/resources/application.yml
+git commit -m "chore: application.yml spring.profiles.active local 추가"
+```
+
+- [ ] **Step 3b (revert 선택 시): 복원**
+
+```bash
+git checkout -- backend/src/main/resources/application.yml
+```
+
+**Verification:**
+```bash
+git status
+```
+Expected: `nothing to commit, working tree clean` (application.yml 관련 항목 없음).
+
+---
+
+### Task 2: decisions.md 3건 추가 + 브랜치 분기
+
+**Files:**
+- Append: `docs/decisions.md`
+- Create branch: `cycles/03-c2-frontend-core`
+
+- [ ] **Step 1: decisions.md에 3건 추가**
+
+`docs/decisions.md` 파일 끝에 아래 3개 항목을 append한다.
+
+```markdown
+## D-C2-01: axios interceptor 인증 흐름
+**결정일:** 2026-05-15
+**결정:** axios request interceptor에서 localStorage `trmdict_token` → `Authorization: Bearer` 헤더 주입. response interceptor에서 HTTP 401 또는 `code === 'AUTH_1002'` 시 useAuthStore.logout() + removeToken() + navigate('/login', state.returnUrl). HTTP 403 시 toast.error() + 화면 유지.
+**이유:** React Query + axios 조합에서 Angular HTTP_INTERCEPTORS 역할을 axios interceptors로 대체. 단일 axiosInstance에서 일괄 처리.
+
+## D-C2-02: Playwright E2E baseURL
+**결정일:** 2026-05-15
+**결정:** Playwright baseURL = `http://localhost:5173` (Vite 개발 서버 기본 포트). `playwright.config.js`에 고정.
+**이유:** Angular CLI 기본 포트 4200에서 Vite 기본 포트 5173으로 변경. Spring Boot 8080 프록시는 vite.config.js에서 처리.
+
+## D-C2-03: shadcn/ui 컴포넌트 전략
+**결정일:** 2026-05-15
+**결정:** shadcn CLI(`npx shadcn@latest add`)로 필요 컴포넌트만 선택적 설치. 설치된 컴포넌트는 `frontend/src/shared/components/ui/`에 소스로 포함되어 완전한 커스터마이징 가능. Angular Material 전면 대체.
+**이유:** Angular Material 15 → shadcn/ui (Radix UI + Tailwind CSS). 서버 Node.js 없이 정적 빌드만으로 배포 가능한 인프라 제약 환경에 최적.
+```
+
+- [ ] **Step 2: 브랜치 분기**
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b cycles/03-c2-frontend-core
+```
+
+- [ ] **Step 3: decisions.md 커밋**
+
+```bash
+git add docs/decisions.md
+git commit -m "docs(C2): decisions 3건 추가 — axios interceptor/Playwright/shadcn"
+```
+
+**Verification:**
+```bash
+git branch --show-current
+```
+Expected: `cycles/03-c2-frontend-core`
+
+---
+
+## Stage 1 — Frontend 골격 부트
+
+### Task 3: Vite + React 18 프로젝트 초기화 + 도구 체인 설정
+
+> 기존 `frontend/` 디렉터리가 Angular 15 프로젝트라면 삭제 후 재생성. 없다면 바로 생성.
+
+**Files:**
+- Create: `frontend/` (전체 React 프로젝트)
+- Create: `frontend/vite.config.js`
+- Create: `frontend/.prettierrc`
+- Create: `frontend/eslint.config.js`
+- Create: `frontend/.husky/pre-commit`
+- Create: `frontend/playwright.config.js`
+- Create: `frontend/src/test-setup.js`
+
+- [ ] **Step 1: 기존 frontend 정리**
+
+```bash
+# 기존 Angular 프로젝트 존재 시 삭제
+rm -rf frontend
+```
+
+- [ ] **Step 2: Vite React 프로젝트 생성**
+
+```bash
+npm create vite@latest frontend -- --template react
+cd frontend
+npm install
+```
+
+- [ ] **Step 3: Tailwind CSS 설치**
+
+```bash
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+```
+
+`tailwind.config.js`:
+```js
+/** @type {import('tailwindcss').Config} */
+export default {
+    darkMode: ['class'],
+    content: ['./index.html', './src/**/*.{js,jsx}'],
+    theme: {
+        extend: {
+            borderRadius: {
+                lg: 'var(--radius)',
+                md: 'calc(var(--radius) - 2px)',
+                sm: 'calc(var(--radius) - 4px)',
+            },
+        },
+    },
+    plugins: [],
+};
+```
+
+`src/styles/index.css` (전역 CSS):
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --radius: 0.5rem;
+        --background: 0 0% 100%;
+        --foreground: 222.2 84% 4.9%;
+        --primary: 222.2 47.4% 11.2%;
+        --primary-foreground: 210 40% 98%;
+        --muted: 210 40% 96.1%;
+        --muted-foreground: 215.4 16.3% 46.9%;
+        --border: 214.3 31.8% 91.4%;
+        --input: 214.3 31.8% 91.4%;
+        --ring: 222.2 84% 4.9%;
+    }
+}
+```
+
+- [ ] **Step 4: shadcn/ui 초기화**
+
+```bash
+npx shadcn@latest init
+```
+
+프롬프트 응답:
+- Style: `Default`
+- Base color: `Slate`
+- CSS variables: `Yes`
+
+`components.json` 생성 확인.
+
+- [ ] **Step 5: 추가 패키지 설치**
+
+```bash
+# 서버 상태 + 전역 상태
+npm install @tanstack/react-query @tanstack/react-table zustand
+
+# 라우팅
+npm install react-router-dom
+
+# HTTP 클라이언트
+npm install axios
+
+# 폼 + 유효성
+npm install react-hook-form zod @hookform/resolvers
+
+# UI 유틸
+npm install clsx tailwind-merge lucide-react sonner date-fns
+
+# 개발 도구
+npm install -D vitest @vitest/coverage-v8 @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom
+
+# E2E
+npm install -D @playwright/test
+npx playwright install chromium
+
+# Lint/Format
+npm install -D eslint eslint-plugin-react eslint-plugin-react-hooks eslint-plugin-prettier eslint-config-prettier prettier
+
+# Git Hook
+npm install -D husky lint-staged
+npx husky init
+```
+
+- [ ] **Step 6: vite.config.js 작성**
+
+`frontend/vite.config.js`:
+```js
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+    plugins: [react()],
+    resolve: {
+        alias: { '@': path.resolve(__dirname, './src') },
+    },
+    server: {
+        port: 5173,
+        proxy: {
+            '/api': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+            },
+        },
+    },
+    build: {
+        outDir: '../backend/src/main/resources/static',
+        emptyOutDir: true,
+    },
+    test: {
+        globals: true,
+        environment: 'jsdom',
+        setupFiles: './src/test-setup.js',
+    },
+});
+```
+
+- [ ] **Step 7: Prettier 설정**
+
+`frontend/.prettierrc`:
+```json
+{
+    "semi": true,
+    "singleQuote": true,
+    "jsxSingleQuote": false,
+    "trailingComma": "es5",
+    "printWidth": 100,
+    "tabWidth": 4,
+    "useTabs": false,
+    "bracketSpacing": true,
+    "bracketSameLine": false,
+    "arrowParens": "always"
+}
+```
+
+- [ ] **Step 8: ESLint Flat Config 작성**
+
+`frontend/eslint.config.js`:
+```js
+import js from '@eslint/js';
+import reactPlugin from 'eslint-plugin-react';
+import reactHooksPlugin from 'eslint-plugin-react-hooks';
+import prettierPlugin from 'eslint-plugin-prettier';
+import prettierConfig from 'eslint-config-prettier';
+
+export default [
+    js.configs.recommended,
+    {
+        plugins: {
+            react: reactPlugin,
+            'react-hooks': reactHooksPlugin,
+            prettier: prettierPlugin,
+        },
+        rules: {
+            'react/prop-types': 'off',
+            'react/react-in-jsx-scope': 'off',
+            'react/self-closing-comp': 'warn',
+            'react-hooks/rules-of-hooks': 'error',
+            'react-hooks/exhaustive-deps': 'warn',
+            'no-unused-vars': 'warn',
+            'no-console': 'warn',
+            'eqeqeq': ['error', 'always'],
+            'prettier/prettier': 'error',
+        },
+        settings: {
+            react: { version: 'detect' },
+        },
+    },
+    prettierConfig,
+];
+```
+
+- [ ] **Step 9: Husky + lint-staged 설정**
+
+`.husky/pre-commit`:
+```sh
+npx lint-staged
+```
+
+`package.json`에 lint-staged 추가:
+```json
+{
+    "lint-staged": {
+        "src/**/*.{js,jsx}": [
+            "eslint --fix",
+            "prettier --write"
+        ]
+    }
+}
+```
+
+- [ ] **Step 10: Playwright 설정**
+
+`frontend/playwright.config.js`:
+```js
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+    testDir: './e2e',
+    fullyParallel: false,
+    retries: 0,
+    use: {
+        baseURL: 'http://localhost:5173',
+        trace: 'on-first-retry',
+    },
+    projects: [
+        {
+            name: 'chromium',
+            use: { ...devices['Desktop Chrome'] },
+        },
+    ],
+    webServer: {
+        command: 'npm run dev',
+        url: 'http://localhost:5173',
+        reuseExistingServer: !process.env.CI,
+    },
+});
+```
+
+- [ ] **Step 11: Vitest setup 파일**
+
+`frontend/src/test-setup.js`:
+```js
+import '@testing-library/jest-dom';
+```
+
+- [ ] **Step 12: 디렉터리 구조 생성**
+
+```bash
+mkdir -p src/app src/core/api src/core/auth src/shared/components/ui src/shared/hooks src/shared/utils src/store src/features/auth src/styles e2e
+```
+
+- [ ] **Step 13: cn 유틸 작성**
+
+`frontend/src/shared/utils/cn.js`:
+```js
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs) {
+    return twMerge(clsx(inputs));
+}
+```
+
+- [ ] **Step 14: package.json scripts 추가**
+
+`frontend/package.json` scripts 섹션:
+```json
+{
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
+        "e2e": "playwright test",
+        "lint": "eslint src --ext .js,.jsx",
+        "format": "prettier --write src/**/*.{js,jsx}"
+    }
+}
+```
+
+- [ ] **Step 15: 커밋**
+
+```bash
+git add frontend/
+git commit -m "feat(C2): React 18 + Vite 5 프로젝트 초기화 — shadcn/Zustand/React Query/Vitest/Playwright"
+```
+
+**Verification:**
+```bash
+cd frontend && npm run dev
+```
+Expected: `http://localhost:5173` 에서 Vite 기본 페이지 렌더링 확인.
+
+---
+
+## Stage 2 — core models + utils + store
+
+### Task 4: models.js — 공통 데이터 모델 JSDoc 정의
+
+**Files:**
+- Create: `frontend/src/core/models.js`
+
+- [ ] **Step 1: models.js 작성**
+
+`frontend/src/core/models.js`:
+```js
+/**
+ * @typedef {Object} ApiResponse
+ * @property {boolean} success
+ * @property {*} data
+ * @property {string|null} message
+ * @property {string|null} code
+ */
+
+/**
+ * @typedef {Object} PageResponse
+ * @property {Array} items
+ * @property {number} totalCount
+ * @property {number} page
+ * @property {number} size
+ */
+
+/**
+ * @typedef {Object} AuthUser
+ * @property {number} id
+ * @property {string} loginId
+ * @property {string} userName
+ * @property {string} role
+ */
+
+/**
+ * @typedef {Object} LoginRequest
+ * @property {string} loginId
+ * @property {string} password
+ */
+
+/**
+ * @typedef {Object} LoginResponse
+ * @property {string} token
+ * @property {AuthUser} user
+ */
+```
+
+- [ ] **Step 2: 커밋**
+
+```bash
+git add frontend/src/core/models.js
+git commit -m "feat(C2): core/models.js — JSDoc 공통 데이터 모델 정의"
+```
+
+**Verification:** 파일 존재 확인.
+
+---
+
+### Task 5: axiosInstance.js — 기본 인스턴스 (interceptor 제외)
+
+**Files:**
+- Create: `frontend/src/core/api/axiosInstance.js`
+
+- [ ] **Step 1: axiosInstance.js 작성 (기본 설정만)**
+
+`frontend/src/core/api/axiosInstance.js`:
+```js
+import axios from 'axios';
+
+export const axiosInstance = axios.create({
+    baseURL: '/api/v1',
+    timeout: 30000,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+```
+
+> **Note:** interceptors는 Stage 3 Task 8에서 추가. 현재는 base 설정만.
+
+- [ ] **Step 2: 커밋**
+
+```bash
+git add frontend/src/core/api/axiosInstance.js
+git commit -m "feat(C2): core/api/axiosInstance.js — axios base 인스턴스 (interceptors 제외)"
+```
+
+**Verification:** 파일 존재 확인.
+
+---
+
+### Task 6: authUtils.js — 토큰 저장/파싱 유틸 (TDD)
+
+**Files:**
+- Create: `frontend/src/core/auth/authUtils.js`
+- Create: `frontend/src/core/auth/authUtils.test.js`
+
+- [ ] **Step 1: 테스트 작성 (Red)**
+
+`frontend/src/core/auth/authUtils.test.js`:
+```js
+import { describe, it, expect, beforeEach } from 'vitest';
+import { getToken, setToken, removeToken, parseToken } from './authUtils';
+
+const TOKEN_KEY = 'trmdict_token';
+
+describe('authUtils', () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    it('setToken — localStorage에 저장', () => {
+        setToken('test-token');
+        expect(localStorage.getItem(TOKEN_KEY)).toBe('test-token');
+    });
+
+    it('getToken — 저장된 토큰 반환', () => {
+        localStorage.setItem(TOKEN_KEY, 'my-token');
+        expect(getToken()).toBe('my-token');
+    });
+
+    it('removeToken — 토큰 삭제', () => {
+        localStorage.setItem(TOKEN_KEY, 'my-token');
+        removeToken();
+        expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+    });
+
+    it('parseToken — 유효한 JWT payload 파싱', () => {
+        // payload: { sub: '1', loginId: 'admin', role: 'ADMIN' }
+        const payload = btoa(JSON.stringify({ sub: '1', loginId: 'admin', role: 'ADMIN' }));
+        const fakeJwt = `header.${payload}.signature`;
+        const result = parseToken(fakeJwt);
+        expect(result.loginId).toBe('admin');
+        expect(result.role).toBe('ADMIN');
+    });
+});
+```
+
+- [ ] **Step 2: 구현 (Green)**
+
+`frontend/src/core/auth/authUtils.js`:
+```js
+const TOKEN_KEY = 'trmdict_token';
+
+export function getToken() {
+    return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token) {
+    localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function removeToken() {
+    localStorage.removeItem(TOKEN_KEY);
+}
+
+export function parseToken(token) {
+    try {
+        const payload = token.split('.')[1];
+        return JSON.parse(atob(payload));
+    } catch {
+        return null;
+    }
+}
+```
+
+- [ ] **Step 3: 테스트 통과 확인**
+
+```bash
+npx vitest run src/core/auth/authUtils.test.js
+```
+Expected: 4/4 passed.
+
+- [ ] **Step 4: 커밋**
+
+```bash
+git add frontend/src/core/auth/
+git commit -m "feat(C2): authUtils — 토큰 CRUD + JWT payload 파싱 (TDD 4케이스)"
+```
+
+---
+
+### Task 7: useAuthStore.js — Zustand 인증 전역 스토어 (TDD)
+
+**Files:**
+- Create: `frontend/src/store/useAuthStore.js`
+- Create: `frontend/src/store/useAuthStore.test.js`
+
+- [ ] **Step 1: 테스트 작성 (Red)**
+
+`frontend/src/store/useAuthStore.test.js`:
+```js
+import { describe, it, expect, beforeEach } from 'vitest';
+import { act } from '@testing-library/react';
+import { useAuthStore } from './useAuthStore';
+
+describe('useAuthStore', () => {
+    beforeEach(() => {
+        act(() => {
+            useAuthStore.getState().logout();
+        });
+    });
+
+    it('초기 상태 — user null, isAuthenticated false', () => {
+        const { user, isAuthenticated } = useAuthStore.getState();
+        expect(user).toBeNull();
+        expect(isAuthenticated).toBe(false);
+    });
+
+    it('setUser — user 설정 시 isAuthenticated true', () => {
+        act(() => {
+            useAuthStore.getState().setUser({ id: 1, loginId: 'admin', role: 'ADMIN' });
+        });
+        const { user, isAuthenticated } = useAuthStore.getState();
+        expect(user.loginId).toBe('admin');
+        expect(isAuthenticated).toBe(true);
+    });
+
+    it('logout — 상태 초기화', () => {
+        act(() => {
+            useAuthStore.getState().setUser({ id: 1, loginId: 'admin' });
+            useAuthStore.getState().logout();
+        });
+        const { user, isAuthenticated } = useAuthStore.getState();
+        expect(user).toBeNull();
+        expect(isAuthenticated).toBe(false);
+    });
+});
+```
+
+- [ ] **Step 2: 구현 (Green)**
+
+`frontend/src/store/useAuthStore.js`:
+```js
+import { create } from 'zustand';
+
+export const useAuthStore = create((set) => ({
+    user: null,
+    isAuthenticated: false,
+    setUser: (user) => set({ user, isAuthenticated: !!user }),
+    logout: () => set({ user: null, isAuthenticated: false }),
+}));
+```
+
+- [ ] **Step 3: 테스트 통과 확인**
+
+```bash
+npx vitest run src/store/useAuthStore.test.js
+```
+Expected: 3/3 passed.
+
+- [ ] **Step 4: 커밋**
+
+```bash
+git add frontend/src/store/useAuthStore.js frontend/src/store/useAuthStore.test.js
+git commit -m "feat(C2): useAuthStore — Zustand 인증 스토어 (TDD 3케이스)"
+```
+
+---
+
+## Stage 3 — interceptors + loading + routing guard
+
+### Task 8: axios interceptors — 인증 헤더 주입 + 에러 처리 (TDD)
+
+**Files:**
+- Modify: `frontend/src/core/api/axiosInstance.js`
+- Create: `frontend/src/core/api/axiosInstance.test.js`
+
+- [ ] **Step 1: 테스트 작성 (Red)**
+
+`frontend/src/core/api/axiosInstance.test.js`:
+```js
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import MockAdapter from 'axios-mock-adapter';
+import { axiosInstance } from './axiosInstance';
+import * as authUtils from '../auth/authUtils';
+import { useAuthStore } from '../../store/useAuthStore';
+
+// npm install -D axios-mock-adapter
+const mock = new MockAdapter(axiosInstance);
+
+describe('axiosInstance interceptors', () => {
+    beforeEach(() => {
+        mock.reset();
+        vi.restoreAllMocks();
+        useAuthStore.getState().logout();
+        authUtils.removeToken();
+    });
+
+    it('request — 토큰 있으면 Authorization 헤더 주입', async () => {
+        authUtils.setToken('test-token');
+        mock.onGet('/test').reply(200, {});
+        const res = await axiosInstance.get('/test');
+        expect(res.config.headers['Authorization']).toBe('Bearer test-token');
+    });
+
+    it('request — 토큰 없으면 Authorization 헤더 없음', async () => {
+        mock.onGet('/test').reply(200, {});
+        const res = await axiosInstance.get('/test');
+        expect(res.config.headers['Authorization']).toBeUndefined();
+    });
+
+    it('response 401 — logout + token 제거', async () => {
+        authUtils.setToken('expired-token');
+        useAuthStore.getState().setUser({ id: 1, loginId: 'admin' });
+        mock.onGet('/protected').reply(401, { code: 'AUTH_1002' });
+        try {
+            await axiosInstance.get('/protected');
+        } catch {
+            // expected
+        }
+        expect(authUtils.getToken()).toBeNull();
+        expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    });
+
+    it('response 403 — reject (toast는 컴포넌트 레이어에서 처리)', async () => {
+        mock.onGet('/admin').reply(403, { code: 'COMMON_0003' });
+        await expect(axiosInstance.get('/admin')).rejects.toThrow();
+    });
+});
+```
+
+- [ ] **Step 2: axios-mock-adapter 설치**
+
+```bash
+npm install -D axios-mock-adapter
+```
+
+- [ ] **Step 3: axiosInstance.js에 interceptors 추가**
+
+`frontend/src/core/api/axiosInstance.js`:
+```js
+import axios from 'axios';
+import { getToken, removeToken } from '../auth/authUtils';
+import { useAuthStore } from '../../store/useAuthStore';
+
+export const axiosInstance = axios.create({
+    baseURL: '/api/v1',
+    timeout: 30000,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+axiosInstance.interceptors.request.use((config) => {
+    const token = getToken();
+    if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+});
+
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const status = error.response?.status;
+        const code = error.response?.data?.code;
+
+        if (status === 401 || code === 'AUTH_1002') {
+            useAuthStore.getState().logout();
+            removeToken();
+        }
+
+        return Promise.reject(error);
+    }
+);
+```
+
+> **Note:** 403 toast는 컴포넌트/QueryClient 레이어에서 처리 (interceptor는 reject만).
+
+- [ ] **Step 4: 테스트 통과 확인**
+
+```bash
+npx vitest run src/core/api/axiosInstance.test.js
+```
+Expected: 4/4 passed.
+
+- [ ] **Step 5: 커밋**
+
+```bash
+git add frontend/src/core/api/
+git commit -m "feat(C2): axiosInstance interceptors — JWT 헤더/401 자동 logout (TDD 4케이스)"
+```
+
+---
+
+### Task 9: useLoadingStore.js — 글로벌 로딩 상태 (TDD)
+
+**Files:**
+- Create: `frontend/src/store/useLoadingStore.js`
+- Create: `frontend/src/store/useLoadingStore.test.js`
+
+- [ ] **Step 1: 테스트 작성 (Red)**
+
+`frontend/src/store/useLoadingStore.test.js`:
+```js
+import { describe, it, expect, beforeEach } from 'vitest';
+import { act } from '@testing-library/react';
+import { useLoadingStore } from './useLoadingStore';
+
+describe('useLoadingStore', () => {
+    beforeEach(() => {
+        act(() => {
+            // 상태 초기화
+            const { keys } = useLoadingStore.getState();
+            keys.forEach((k) => useLoadingStore.getState().end(k));
+        });
+    });
+
+    it('초기 상태 — isLoading false', () => {
+        expect(useLoadingStore.getState().isLoading).toBe(false);
+    });
+
+    it('start — isLoading true', () => {
+        act(() => useLoadingStore.getState().start('test'));
+        expect(useLoadingStore.getState().isLoading).toBe(true);
+    });
+
+    it('end — 해당 키 제거 후 isLoading false', () => {
+        act(() => {
+            useLoadingStore.getState().start('test');
+            useLoadingStore.getState().end('test');
+        });
+        expect(useLoadingStore.getState().isLoading).toBe(false);
+    });
+
+    it('복수 키 — 하나라도 남으면 isLoading true', () => {
+        act(() => {
+            useLoadingStore.getState().start('a');
+            useLoadingStore.getState().start('b');
+            useLoadingStore.getState().end('a');
+        });
+        expect(useLoadingStore.getState().isLoading).toBe(true);
+    });
+
+    it('복수 키 — 모두 end 시 isLoading false', () => {
+        act(() => {
+            useLoadingStore.getState().start('a');
+            useLoadingStore.getState().start('b');
+            useLoadingStore.getState().end('a');
+            useLoadingStore.getState().end('b');
+        });
+        expect(useLoadingStore.getState().isLoading).toBe(false);
+    });
+});
+```
+
+- [ ] **Step 2: 구현 (Green)**
+
+`frontend/src/store/useLoadingStore.js`:
+```js
+import { create } from 'zustand';
+
+export const useLoadingStore = create((set) => ({
+    keys: new Set(),
+    isLoading: false,
+    start: (key) =>
+        set((state) => {
+            const next = new Set(state.keys);
+            next.add(key);
+            return { keys: next, isLoading: next.size > 0 };
+        }),
+    end: (key) =>
+        set((state) => {
+            const next = new Set(state.keys);
+            next.delete(key);
+            return { keys: next, isLoading: next.size > 0 };
+        }),
+}));
+```
+
+- [ ] **Step 3: 테스트 통과 확인**
+
+```bash
+npx vitest run src/store/useLoadingStore.test.js
+```
+Expected: 5/5 passed.
+
+- [ ] **Step 4: 커밋**
+
+```bash
+git add frontend/src/store/
+git commit -m "feat(C2): useLoadingStore — 키 기반 글로벌 로딩 스토어 (TDD 5케이스)"
+```
+
+---
+
+### Task 10: ProtectedRoute.jsx — 인증 라우트 가드 (TDD)
+
+**Files:**
+- Create: `frontend/src/app/ProtectedRoute.jsx`
+- Create: `frontend/src/app/ProtectedRoute.test.jsx`
+
+- [ ] **Step 1: 테스트 작성 (Red)**
+
+`frontend/src/app/ProtectedRoute.test.jsx`:
+```jsx
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { act } from '@testing-library/react';
+import { ProtectedRoute } from './ProtectedRoute';
+import { useAuthStore } from '../store/useAuthStore';
+
+function setup(isAuthenticated) {
+    act(() => {
+        if (isAuthenticated) {
+            useAuthStore.getState().setUser({ id: 1, loginId: 'admin' });
+        } else {
+            useAuthStore.getState().logout();
+        }
+    });
+}
+
+describe('ProtectedRoute', () => {
+    it('미인증 — /login으로 리다이렉트', () => {
+        setup(false);
+        render(
+            <MemoryRouter initialEntries={['/home']}>
+                <Routes>
+                    <Route path="/login" element={<div>Login Page</div>} />
+                    <Route
+                        path="/home"
+                        element={
+                            <ProtectedRoute>
+                                <div>Protected Content</div>
+                            </ProtectedRoute>
+                        }
+                    />
+                </Routes>
+            </MemoryRouter>
+        );
+        expect(screen.getByText('Login Page')).toBeInTheDocument();
+        expect(screen.queryByText('Protected Content')).toBeNull();
+    });
+
+    it('인증됨 — children 렌더링', () => {
+        setup(true);
+        render(
+            <MemoryRouter initialEntries={['/home']}>
+                <Routes>
+                    <Route path="/login" element={<div>Login Page</div>} />
+                    <Route
+                        path="/home"
+                        element={
+                            <ProtectedRoute>
+                                <div>Protected Content</div>
+                            </ProtectedRoute>
+                        }
+                    />
+                </Routes>
+            </MemoryRouter>
+        );
+        expect(screen.getByText('Protected Content')).toBeInTheDocument();
+    });
+});
+```
+
+- [ ] **Step 2: 구현 (Green)**
+
+`frontend/src/app/ProtectedRoute.jsx`:
+```jsx
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../store/useAuthStore';
+
+export function ProtectedRoute({ children }) {
+    const { isAuthenticated } = useAuthStore();
+    const location = useLocation();
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" state={{ returnUrl: location.pathname }} replace />;
+    }
+
+    return children;
+}
+```
+
+- [ ] **Step 3: 테스트 통과 확인**
+
+```bash
+npx vitest run src/app/ProtectedRoute.test.jsx
+```
+Expected: 2/2 passed.
+
+- [ ] **Step 4: 커밋**
+
+```bash
+git add frontend/src/app/ProtectedRoute.jsx frontend/src/app/ProtectedRoute.test.jsx
+git commit -m "feat(C2): ProtectedRoute — 미인증 /login 리다이렉트 (TDD 2케이스)"
+```
+
+---
+
+## Stage 4 — shared 컴포넌트 5종 + shadcn 설치
+
+### Task 11: shadcn 컴포넌트 설치
+
+**Files:**
+- Create: `frontend/src/shared/components/ui/` (shadcn 컴포넌트들)
+
+- [ ] **Step 1: 필요 shadcn 컴포넌트 설치**
+
+```bash
+npx shadcn@latest add button input label select checkbox badge table card dialog sheet drawer
+```
+
+- [ ] **Step 2: 커밋**
+
+```bash
+git add frontend/src/shared/components/ui/
+git commit -m "feat(C2): shadcn/ui 컴포넌트 설치 — button/input/label/select/table/card/dialog/sheet 등"
+```
+
+**Verification:** `frontend/src/shared/components/ui/` 하위 컴포넌트 파일 존재 확인.
+
+---
+
+### Task 12: SearchForm 공통 컴포넌트 (TDD)
+
+**Files:**
+- Create: `frontend/src/shared/components/SearchForm/SearchForm.jsx`
+- Create: `frontend/src/shared/components/SearchForm/SearchForm.test.jsx`
+
+- [ ] **Step 1: 테스트 작성 (Red)**
+
+`frontend/src/shared/components/SearchForm/SearchForm.test.jsx`:
+```jsx
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { SearchForm } from './SearchForm';
+
+const fields = [
+    { name: 'keyword', label: '검색어', type: 'text', placeholder: '검색어 입력' },
+    {
+        name: 'useYn',
+        label: '사용여부',
+        type: 'select',
+        options: [
+            { label: '전체', value: '' },
+            { label: '사용', value: 'Y' },
+        ],
+    },
+];
+
+describe('SearchForm', () => {
+    it('필드 렌더링 확인', () => {
+        render(<SearchForm fields={fields} onSearch={vi.fn()} />);
+        expect(screen.getByPlaceholderText('검색어 입력')).toBeInTheDocument();
+        expect(screen.getByText('사용여부')).toBeInTheDocument();
+    });
+
+    it('검색 버튼 클릭 — onSearch 콜백 호출', () => {
+        const onSearch = vi.fn();
+        render(<SearchForm fields={fields} onSearch={onSearch} />);
+        fireEvent.click(screen.getByRole('button', { name: /검색/ }));
+        expect(onSearch).toHaveBeenCalledTimes(1);
+    });
+
+    it('초기화 버튼 클릭 — 폼 초기화 후 onSearch 호출', () => {
+        const onSearch = vi.fn();
+        render(<SearchForm fields={fields} onSearch={onSearch} />);
+        const input = screen.getByPlaceholderText('검색어 입력');
+        fireEvent.change(input, { target: { value: '테스트' } });
+        fireEvent.click(screen.getByRole('button', { name: /초기화/ }));
+        expect(input.value).toBe('');
+        expect(onSearch).toHaveBeenCalled();
+    });
+});
+```
+
+- [ ] **Step 2: 구현 (Green)**
+
+`frontend/src/shared/components/SearchForm/SearchForm.jsx`:
+```jsx
+import { useForm } from 'react-hook-form';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+
+export function SearchForm({ fields, onSearch, defaultValues = {} }) {
+    const { register, handleSubmit, reset, setValue, watch } = useForm({ defaultValues });
+
+    const handleReset = () => {
+        reset(defaultValues);
+        onSearch(defaultValues);
+    };
+
+    return (
+        <form
+            onSubmit={handleSubmit(onSearch)}
+            className="flex flex-wrap items-end gap-4 rounded-lg border bg-card p-4"
+        >
+            {fields.map((field) => (
+                <div key={field.name} className="flex flex-col gap-1">
+                    <Label htmlFor={field.name}>{field.label}</Label>
+                    {field.type === 'select' ? (
+                        <Select
+                            onValueChange={(v) => setValue(field.name, v)}
+                            defaultValue={defaultValues[field.name] ?? ''}
+                        >
+                            <SelectTrigger className="w-32">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {field.options?.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    ) : (
+                        <Input
+                            id={field.name}
+                            placeholder={field.placeholder}
+                            {...register(field.name)}
+                            className="w-48"
+                        />
+                    )}
+                </div>
+            ))}
+            <div className="flex gap-2">
+                <Button type="submit">검색</Button>
+                <Button type="button" variant="outline" onClick={handleReset}>
+                    초기화
+                </Button>
+            </div>
+        </form>
+    );
+}
+```
+
+- [ ] **Step 3: 테스트 통과 확인**
+
+```bash
+npx vitest run src/shared/components/SearchForm/SearchForm.test.jsx
+```
+Expected: 3/3 passed.
+
+- [ ] **Step 4: 커밋**
+
+```bash
+git add frontend/src/shared/components/SearchForm/
+git commit -m "feat(C2): SearchForm 공통 컴포넌트 (TDD 3케이스)"
+```
+
+---
+
+### Task 13: DataGrid 공통 컴포넌트 — TanStack Table (TDD)
+
+**Files:**
+- Create: `frontend/src/shared/components/DataGrid/DataGrid.jsx`
+- Create: `frontend/src/shared/components/DataGrid/DataGrid.test.jsx`
+
+- [ ] **Step 1: 테스트 작성 (Red)**
+
+`frontend/src/shared/components/DataGrid/DataGrid.test.jsx`:
+```jsx
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { DataGrid } from './DataGrid';
+
+const columns = [
+    { accessorKey: 'id', header: 'ID' },
+    { accessorKey: 'name', header: '이름' },
+];
+
+const data = [
+    { id: 1, name: '테스트1' },
+    { id: 2, name: '테스트2' },
+];
+
+describe('DataGrid', () => {
+    it('컬럼 헤더 렌더링', () => {
+        render(<DataGrid columns={columns} data={data} />);
+        expect(screen.getByText('ID')).toBeInTheDocument();
+        expect(screen.getByText('이름')).toBeInTheDocument();
+    });
+
+    it('데이터 행 렌더링', () => {
+        render(<DataGrid columns={columns} data={data} />);
+        expect(screen.getByText('테스트1')).toBeInTheDocument();
+        expect(screen.getByText('테스트2')).toBeInTheDocument();
+    });
+
+    it('빈 데이터 — 빈 목록 메시지 표시', () => {
+        render(<DataGrid columns={columns} data={[]} />);
+        expect(screen.getByText(/데이터가 없습니다/)).toBeInTheDocument();
+    });
+});
+```
+
+- [ ] **Step 2: 구현 (Green)**
+
+`frontend/src/shared/components/DataGrid/DataGrid.jsx`:
+```jsx
+import {
+    useReactTable,
+    getCoreRowModel,
+    flexRender,
+} from '@tanstack/react-table';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '../ui/table';
+
+export function DataGrid({ columns, data, onRowClick }) {
+    const table = useReactTable({
+        data,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+    });
+
+    return (
+        <div className="rounded-md border">
+            <Table>
+                <TableHeader>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id}>
+                            {headerGroup.headers.map((header) => (
+                                <TableHead key={header.id}>
+                                    {header.isPlaceholder
+                                        ? null
+                                        : flexRender(header.column.columnDef.header, header.getContext())}
+                                </TableHead>
+                            ))}
+                        </TableRow>
+                    ))}
+                </TableHeader>
+                <TableBody>
+                    {table.getRowModel().rows.length > 0 ? (
+                        table.getRowModel().rows.map((row) => (
+                            <TableRow
+                                key={row.id}
+                                onClick={() => onRowClick?.(row.original)}
+                                className={onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
+                            >
+                                {row.getVisibleCells().map((cell) => (
+                                    <TableCell key={cell.id}>
+                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        ))
+                    ) : (
+                        <TableRow>
+                            <TableCell colSpan={columns.length} className="h-24 text-center">
+                                데이터가 없습니다.
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+        </div>
+    );
+}
+```
+
+- [ ] **Step 3: 테스트 통과 확인**
+
+```bash
+npx vitest run src/shared/components/DataGrid/DataGrid.test.jsx
+```
+Expected: 3/3 passed.
+
+- [ ] **Step 4: 커밋**
+
+```bash
+git add frontend/src/shared/components/DataGrid/
+git commit -m "feat(C2): DataGrid — TanStack Table 기반 공통 그리드 (TDD 3케이스)"
+```
+
+---
+
+### Task 14: FileUpload 공통 컴포넌트 (TDD)
+
+**Files:**
+- Create: `frontend/src/shared/components/FileUpload/FileUpload.jsx`
+- Create: `frontend/src/shared/components/FileUpload/FileUpload.test.jsx`
+
+- [ ] **Step 1: 테스트 작성 (Red)**
+
+`frontend/src/shared/components/FileUpload/FileUpload.test.jsx`:
+```jsx
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { FileUpload } from './FileUpload';
+
+describe('FileUpload', () => {
+    it('파일 선택 영역 렌더링', () => {
+        render(<FileUpload onFileSelect={vi.fn()} />);
+        expect(screen.getByText(/파일을 선택하거나 드래그/)).toBeInTheDocument();
+    });
+
+    it('파일 선택 시 onFileSelect 콜백 호출', () => {
+        const onFileSelect = vi.fn();
+        render(<FileUpload onFileSelect={onFileSelect} accept=".xlsx,.csv" />);
+        const input = document.querySelector('input[type="file"]');
+        const file = new File(['content'], 'test.xlsx', { type: 'application/vnd.ms-excel' });
+        fireEvent.change(input, { target: { files: [file] } });
+        expect(onFileSelect).toHaveBeenCalledWith(file);
+    });
+
+    it('accept 속성 전달', () => {
+        render(<FileUpload onFileSelect={vi.fn()} accept=".xlsx,.csv" />);
+        const input = document.querySelector('input[type="file"]');
+        expect(input.getAttribute('accept')).toBe('.xlsx,.csv');
+    });
+});
+```
+
+- [ ] **Step 2: 구현 (Green)**
+
+`frontend/src/shared/components/FileUpload/FileUpload.jsx`:
+```jsx
+import { useRef, useState } from 'react';
+import { Upload } from 'lucide-react';
+import { cn } from '../../utils/cn';
+
+export function FileUpload({ onFileSelect, accept, className }) {
+    const inputRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) onFileSelect(file);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) onFileSelect(file);
+    };
+
+    return (
+        <div
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            className={cn(
+                'flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 text-muted-foreground transition-colors hover:border-primary hover:text-primary',
+                isDragging && 'border-primary bg-primary/5',
+                className
+            )}
+        >
+            <Upload className="mb-2 h-8 w-8" />
+            <p className="text-sm">파일을 선택하거나 드래그하여 업로드</p>
+            {accept && <p className="mt-1 text-xs">{accept} 형식 지원</p>}
+            <input
+                ref={inputRef}
+                type="file"
+                accept={accept}
+                className="hidden"
+                onChange={handleChange}
+            />
+        </div>
+    );
+}
+```
+
+- [ ] **Step 3: 테스트 통과 확인**
+
+```bash
+npx vitest run src/shared/components/FileUpload/FileUpload.test.jsx
+```
+Expected: 3/3 passed.
+
+- [ ] **Step 4: 커밋**
+
+```bash
+git add frontend/src/shared/components/FileUpload/
+git commit -m "feat(C2): FileUpload — 드래그앤드롭 파일 업로드 공통 컴포넌트 (TDD 3케이스)"
+```
+
+---
+
+### Task 15: DetailPanel 공통 컴포넌트 (TDD)
+
+**Files:**
+- Create: `frontend/src/shared/components/DetailPanel/DetailPanel.jsx`
+- Create: `frontend/src/shared/components/DetailPanel/DetailPanel.test.jsx`
+
+- [ ] **Step 1: 테스트 작성 (Red)**
+
+`frontend/src/shared/components/DetailPanel/DetailPanel.test.jsx`:
+```jsx
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { DetailPanel } from './DetailPanel';
+
+const fields = [
+    { key: 'wordNm', label: '단어명' },
+    { key: 'wordEngNm', label: '영문명' },
+];
+
+const data = { wordNm: '계획', wordEngNm: 'plan' };
+
+describe('DetailPanel', () => {
+    it('필드 레이블과 값 렌더링', () => {
+        render(<DetailPanel fields={fields} data={data} />);
+        expect(screen.getByText('단어명')).toBeInTheDocument();
+        expect(screen.getByText('계획')).toBeInTheDocument();
+        expect(screen.getByText('plan')).toBeInTheDocument();
+    });
+
+    it('수정 버튼 클릭 — onEdit 콜백 호출', () => {
+        const onEdit = vi.fn();
+        render(<DetailPanel fields={fields} data={data} onEdit={onEdit} />);
+        fireEvent.click(screen.getByRole('button', { name: /수정/ }));
+        expect(onEdit).toHaveBeenCalledWith(data);
+    });
+});
+```
+
+- [ ] **Step 2: 구현 (Green)**
+
+`frontend/src/shared/components/DetailPanel/DetailPanel.jsx`:
+```jsx
+import { Button } from '../ui/button';
+
+export function DetailPanel({ fields, data, onEdit }) {
+    if (!data) return null;
+
+    return (
+        <div className="rounded-lg border bg-card p-4">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                {fields.map((field) => (
+                    <div key={field.key}>
+                        <dt className="text-xs font-medium text-muted-foreground">{field.label}</dt>
+                        <dd className="mt-0.5 text-sm">{data[field.key] ?? '-'}</dd>
+                    </div>
+                ))}
+            </dl>
+            {onEdit && (
+                <div className="mt-4 flex justify-end">
+                    <Button size="sm" onClick={() => onEdit(data)}>
+                        수정
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+}
+```
+
+- [ ] **Step 3: 테스트 통과 확인**
+
+```bash
+npx vitest run src/shared/components/DetailPanel/DetailPanel.test.jsx
+```
+Expected: 2/2 passed.
+
+- [ ] **Step 4: 커밋**
+
+```bash
+git add frontend/src/shared/components/DetailPanel/
+git commit -m "feat(C2): DetailPanel — 상세보기 공통 패널 (TDD 2케이스)"
+```
+
+---
+
+### Task 16: EditDrawer 공통 컴포넌트 — shadcn Sheet (TDD)
+
+**Files:**
+- Create: `frontend/src/shared/components/EditDrawer/EditDrawer.jsx`
+- Create: `frontend/src/shared/components/EditDrawer/EditDrawer.test.jsx`
+
+- [ ] **Step 1: 테스트 작성 (Red)**
+
+`frontend/src/shared/components/EditDrawer/EditDrawer.test.jsx`:
+```jsx
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { EditDrawer } from './EditDrawer';
+
+describe('EditDrawer', () => {
+    it('open=false — 내용 미표시', () => {
+        render(
+            <EditDrawer open={false} onClose={vi.fn()} title="수정">
+                <div>드로어 내용</div>
+            </EditDrawer>
+        );
+        expect(screen.queryByText('드로어 내용')).toBeNull();
+    });
+
+    it('open=true — 제목과 내용 표시', () => {
+        render(
+            <EditDrawer open={true} onClose={vi.fn()} title="수정">
+                <div>드로어 내용</div>
+            </EditDrawer>
+        );
+        expect(screen.getByText('수정')).toBeInTheDocument();
+        expect(screen.getByText('드로어 내용')).toBeInTheDocument();
+    });
+
+    it('닫기 버튼 — onClose 호출', () => {
+        const onClose = vi.fn();
+        render(
+            <EditDrawer open={true} onClose={onClose} title="수정">
+                <div>내용</div>
+            </EditDrawer>
+        );
+        fireEvent.click(screen.getByRole('button', { name: /닫기|close/i }));
+        expect(onClose).toHaveBeenCalled();
+    });
+});
+```
+
+- [ ] **Step 2: 구현 (Green)**
+
+`frontend/src/shared/components/EditDrawer/EditDrawer.jsx`:
+```jsx
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetClose,
+} from '../ui/sheet';
+import { Button } from '../ui/button';
+import { X } from 'lucide-react';
+
+export function EditDrawer({ open, onClose, title, children, side = 'right' }) {
+    return (
+        <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+            <SheetContent side={side} className="w-[480px] sm:w-[600px]">
+                <SheetHeader className="flex flex-row items-center justify-between">
+                    <SheetTitle>{title}</SheetTitle>
+                    <SheetClose asChild>
+                        <Button variant="ghost" size="icon" aria-label="닫기" onClick={onClose}>
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </SheetClose>
+                </SheetHeader>
+                <div className="mt-4">{children}</div>
+            </SheetContent>
+        </Sheet>
+    );
+}
+```
+
+- [ ] **Step 3: 테스트 통과 확인**
+
+```bash
+npx vitest run src/shared/components/EditDrawer/EditDrawer.test.jsx
+```
+Expected: 3/3 passed.
+
+- [ ] **Step 4: 커밋**
+
+```bash
+git add frontend/src/shared/components/EditDrawer/
+git commit -m "feat(C2): EditDrawer — shadcn Sheet 기반 공통 편집 드로어 (TDD 3케이스)"
+```
+
+---
+
+## Stage 5 — layouts + auth + home + app wiring
+
+### Task 17: layouts — MainLayout + BlankLayout
+
+**Files:**
+- Create: `frontend/src/shared/components/layouts/MainLayout.jsx`
+- Create: `frontend/src/shared/components/layouts/BlankLayout.jsx`
+
+- [ ] **Step 1: BlankLayout 작성**
+
+`frontend/src/shared/components/layouts/BlankLayout.jsx`:
+```jsx
+import { Toaster } from 'sonner';
+
+export function BlankLayout({ children }) {
+    return (
+        <div className="flex min-h-screen items-center justify-center bg-muted/40">
+            {children}
+            <Toaster richColors position="top-right" />
+        </div>
+    );
+}
+```
+
+- [ ] **Step 2: MainLayout 작성**
+
+`frontend/src/shared/components/layouts/MainLayout.jsx`:
+```jsx
+import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import { useAuthStore } from '../../../store/useAuthStore';
+import { removeToken } from '../../../core/auth/authUtils';
+import { Button } from '../ui/button';
+
+export function MainLayout() {
+    const { user, logout } = useAuthStore();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        removeToken();
+        navigate('/login');
+    };
+
+    return (
+        <div className="flex min-h-screen flex-col">
+            <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+                <div className="container flex h-14 items-center justify-between">
+                    <Link to="/" className="font-semibold">
+                        용어사전
+                    </Link>
+                    <nav className="flex items-center gap-4">
+                        <span className="text-sm text-muted-foreground">{user?.userName}</span>
+                        <Button variant="outline" size="sm" onClick={handleLogout}>
+                            로그아웃
+                        </Button>
+                    </nav>
+                </div>
+            </header>
+            <main className="container flex-1 py-6">
+                <Outlet />
+            </main>
+            <Toaster richColors position="top-right" />
+        </div>
+    );
+}
+```
+
+- [ ] **Step 3: 커밋**
+
+```bash
+git add frontend/src/shared/components/layouts/
+git commit -m "feat(C2): MainLayout + BlankLayout — 공통 레이아웃"
+```
+
+---
+
+### Task 18: auth feature — LoginPage + useLogin + authApi
+
+**Files:**
+- Create: `frontend/src/features/auth/LoginPage.jsx`
+- Create: `frontend/src/features/auth/useLogin.js`
+- Create: `frontend/src/features/auth/authApi.js`
+- Create: `frontend/src/features/auth/auth.schema.js`
+
+- [ ] **Step 1: authApi.js 작성**
+
+`frontend/src/features/auth/authApi.js`:
+```js
+import { axiosInstance } from '../../core/api/axiosInstance';
+
+export const authApi = {
+    login: (data) => axiosInstance.post('/auth/login', data),
+    logout: () => axiosInstance.post('/auth/logout'),
+};
+```
+
+- [ ] **Step 2: auth.schema.js 작성**
+
+`frontend/src/features/auth/auth.schema.js`:
+```js
+import { z } from 'zod';
+
+export const loginSchema = z.object({
+    loginId: z.string().min(1, '아이디를 입력하세요.'),
+    password: z.string().min(1, '비밀번호를 입력하세요.'),
+});
+```
+
+- [ ] **Step 3: useLogin.js 작성**
+
+`frontend/src/features/auth/useLogin.js`:
+```js
+import { useMutation } from '@tanstack/react-query';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'sonner';
+import { authApi } from './authApi';
+import { useAuthStore } from '../../store/useAuthStore';
+import { setToken } from '../../core/auth/authUtils';
+
+export function useLogin() {
+    const { setUser } = useAuthStore();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    return useMutation({
+        mutationFn: (data) => authApi.login(data),
+        onSuccess: (res) => {
+            const { token, user } = res.data.data;
+            setToken(token);
+            setUser(user);
+            const returnUrl = location.state?.returnUrl ?? '/';
+            navigate(returnUrl, { replace: true });
+        },
+        onError: () => {
+            toast.error('아이디 또는 비밀번호가 올바르지 않습니다.');
+        },
+    });
+}
+```
+
+- [ ] **Step 4: LoginPage.jsx 작성**
+
+`frontend/src/features/auth/LoginPage.jsx`:
+```jsx
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { loginSchema } from './auth.schema';
+import { useLogin } from './useLogin';
+import { Button } from '../../shared/components/ui/button';
+import { Input } from '../../shared/components/ui/input';
+import { Label } from '../../shared/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '../../shared/components/ui/card';
+
+export function LoginPage() {
+    const { mutate: login, isPending } = useLogin();
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm({ resolver: zodResolver(loginSchema) });
+
+    return (
+        <Card className="w-full max-w-sm">
+            <CardHeader>
+                <CardTitle className="text-center">용어사전 시스템</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit(login)} className="space-y-4">
+                    <div className="space-y-1">
+                        <Label htmlFor="loginId">아이디</Label>
+                        <Input id="loginId" {...register('loginId')} autoComplete="username" />
+                        {errors.loginId && (
+                            <p className="text-xs text-destructive">{errors.loginId.message}</p>
+                        )}
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="password">비밀번호</Label>
+                        <Input
+                            id="password"
+                            type="password"
+                            {...register('password')}
+                            autoComplete="current-password"
+                        />
+                        {errors.password && (
+                            <p className="text-xs text-destructive">{errors.password.message}</p>
+                        )}
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isPending}>
+                        {isPending ? '로그인 중...' : '로그인'}
+                    </Button>
+                </form>
+            </CardContent>
+        </Card>
+    );
+}
+```
+
+- [ ] **Step 5: 커밋**
+
+```bash
+git add frontend/src/features/auth/
+git commit -m "feat(C2): auth feature — LoginPage + useLogin + authApi + loginSchema"
+```
+
+---
+
+### Task 19: app wiring — providers.jsx + router.jsx + main.jsx
+
+**Files:**
+- Create: `frontend/src/app/providers.jsx`
+- Create: `frontend/src/app/router.jsx`
+- Modify: `frontend/src/main.jsx`
+
+- [ ] **Step 1: providers.jsx 작성**
+
+`frontend/src/app/providers.jsx`:
+```jsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Suspense } from 'react';
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            retry: 1,
+            staleTime: 1000 * 60 * 5,
+        },
+    },
+});
+
+export function Providers({ children }) {
+    return (
+        <QueryClientProvider client={queryClient}>
+            <Suspense fallback={<div className="flex h-screen items-center justify-center">로딩 중...</div>}>
+                {children}
+            </Suspense>
+        </QueryClientProvider>
+    );
+}
+```
+
+- [ ] **Step 2: router.jsx 작성**
+
+`frontend/src/app/router.jsx`:
+```jsx
+import { createBrowserRouter } from 'react-router-dom';
+import { ProtectedRoute } from './ProtectedRoute';
+import { MainLayout } from '../shared/components/layouts/MainLayout';
+import { BlankLayout } from '../shared/components/layouts/BlankLayout';
+import { LoginPage } from '../features/auth/LoginPage';
+
+function HomePage() {
+    return <div className="text-lg font-semibold">홈 (placeholder)</div>;
+}
+
+export const router = createBrowserRouter([
+    {
+        element: <BlankLayout />,
+        children: [
+            { path: '/login', element: <LoginPage /> },
+        ],
+    },
+    {
+        element: (
+            <ProtectedRoute>
+                <MainLayout />
+            </ProtectedRoute>
+        ),
+        children: [
+            { path: '/', element: <HomePage /> },
+        ],
+    },
+]);
+```
+
+- [ ] **Step 3: main.jsx 작성**
+
+`frontend/src/main.jsx`:
+```jsx
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { RouterProvider } from 'react-router-dom';
+import { Providers } from './app/providers';
+import { router } from './app/router';
+import './styles/index.css';
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+        <Providers>
+            <RouterProvider router={router} />
+        </Providers>
+    </React.StrictMode>
+);
+```
+
+- [ ] **Step 4: 커밋**
+
+```bash
+git add frontend/src/app/providers.jsx frontend/src/app/router.jsx frontend/src/main.jsx
+git commit -m "feat(C2): app wiring — providers/router/main.jsx 연결 완료"
+```
+
+**Verification:**
+```bash
+cd frontend && npm run dev
+```
+Expected: `http://localhost:5173` → `/login` 리다이렉트, LoginPage 렌더링 확인.
+
+---
+
+## Stage 6 — Playwright E2E 4 시나리오
+
+### Task 20: Playwright E2E — auth.spec.js 4 시나리오
+
+**Files:**
+- Create: `frontend/e2e/auth.spec.js`
+
+> **전제 조건:** 백엔드 서버 (`localhost:8080`) 및 프론트 개발 서버 (`localhost:5173`) 모두 실행 중이어야 함.
+
+- [ ] **Step 1: auth.spec.js 작성**
+
+`frontend/e2e/auth.spec.js`:
+```js
+import { test, expect } from '@playwright/test';
+
+test.describe('인증 흐름 E2E', () => {
+    test('1. 미인증 상태로 / 접근 → /login 리다이렉트', async ({ page }) => {
+        await page.goto('/');
+        await expect(page).toHaveURL(/\/login/);
+        await expect(page.getByRole('button', { name: '로그인' })).toBeVisible();
+    });
+
+    test('2. 잘못된 credentials → 에러 토스트 표시', async ({ page }) => {
+        await page.goto('/login');
+        await page.getByLabel('아이디').fill('wrong_user');
+        await page.getByLabel('비밀번호').fill('wrong_pass');
+        await page.getByRole('button', { name: '로그인' }).click();
+        await expect(page.getByText(/올바르지 않습니다/)).toBeVisible({ timeout: 5000 });
+    });
+
+    test('3. 정상 로그인 → / 이동 + 홈 화면 표시', async ({ page }) => {
+        await page.goto('/login');
+        await page.getByLabel('아이디').fill('admin');
+        await page.getByLabel('비밀번호').fill('admin123!');
+        await page.getByRole('button', { name: '로그인' }).click();
+        await expect(page).toHaveURL('/');
+        await expect(page.getByText('홈 (placeholder)')).toBeVisible({ timeout: 5000 });
+    });
+
+    test('4. 로그인 후 로그아웃 → /login 이동', async ({ page }) => {
+        // 로그인
+        await page.goto('/login');
+        await page.getByLabel('아이디').fill('admin');
+        await page.getByLabel('비밀번호').fill('admin123!');
+        await page.getByRole('button', { name: '로그인' }).click();
+        await expect(page).toHaveURL('/');
+
+        // 로그아웃
+        await page.getByRole('button', { name: '로그아웃' }).click();
+        await expect(page).toHaveURL(/\/login/);
+    });
+});
+```
+
+- [ ] **Step 2: 커밋**
+
+```bash
+git add frontend/e2e/auth.spec.js
+git commit -m "test(C2): Playwright E2E — 인증 흐름 4 시나리오 (baseURL localhost:5173)"
+```
+
+---
+
+## Stage 7 — G2-d 검증 게이트
+
+### Task 21: G2-d 검증 게이트 — Vitest + Playwright 전체 통과
+
+> 모든 단위 테스트와 E2E 테스트가 통과해야 이 게이트를 통과한다.
+
+**Verification Sequence:**
+
+- [ ] **Step 1: Vitest 단위 테스트 전체 실행**
+
+```bash
+cd frontend && npx vitest run
+```
+
+Expected:
+```
+✓ src/core/auth/authUtils.test.js (4)
+✓ src/store/useAuthStore.test.js (3)
+✓ src/store/useLoadingStore.test.js (5)
+✓ src/core/api/axiosInstance.test.js (4)
+✓ src/app/ProtectedRoute.test.jsx (2)
+✓ src/shared/components/SearchForm/SearchForm.test.jsx (3)
+✓ src/shared/components/DataGrid/DataGrid.test.jsx (3)
+✓ src/shared/components/FileUpload/FileUpload.test.jsx (3)
+✓ src/shared/components/DetailPanel/DetailPanel.test.jsx (2)
+✓ src/shared/components/EditDrawer/EditDrawer.test.jsx (3)
+
+Test Files  10 passed (10)
+Tests       32 passed (32)
+```
+
+**게이트 조건**: 모든 테스트 PASS, 0 failed.
+
+- [ ] **Step 2: Playwright E2E 실행**
+
+```bash
+cd frontend && npx playwright test
+```
+
+Expected:
+```
+  ✓ e2e/auth.spec.js:4:5 › 인증 흐름 E2E › 1. 미인증 상태로 / 접근 → /login 리다이렉트
+  ✓ e2e/auth.spec.js:10:5 › 인증 흐름 E2E › 2. 잘못된 credentials → 에러 토스트 표시
+  ✓ e2e/auth.spec.js:19:5 › 인증 흐름 E2E › 3. 정상 로그인 → / 이동 + 홈 화면 표시
+  ✓ e2e/auth.spec.js:30:5 › 인증 흐름 E2E › 4. 로그인 후 로그아웃 → /login 이동
+
+  4 passed (20s)
+```
+
+**게이트 조건**: 4/4 시나리오 PASS.
+
+- [ ] **Step 3: backend 테스트 변동 없음 확인**
+
+```bash
+cd .. && JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 C:\Dev\dev_codeDaemon\bin\apache-maven-3.3.9\bin\mvn.cmd test -pl backend
+```
+
+Expected: 기존 52/52 그린 유지.
+
+---
+
+## Stage 8 — 사이클 마감 + master 머지
+
+### Task 22: 사이클 마감 문서 갱신
+
+**Files:**
+- Modify: `docs/cycles/03-c2-frontend-core/status.md`
+- Modify: `docs/handoff.md`
+- Modify: `docs/worklog.md`
+
+- [ ] **Step 1: status.md 완료 상태로 갱신**
+
+`docs/cycles/03-c2-frontend-core/status.md`:
+```markdown
+# C2 공통 프론트 코어 — 작업 진행 상태
+
+## 현재 단계: [완료] G2-d 검증 게이트 통과
+**완료 일시**: YYYY-MM-DD HH:MM
+
+### ✅ 완료된 작업 내용
+* [Stage 0] 선행 문서 갱신 + 브랜치 분기
+  - decisions.md 3건 추가 (axios interceptor/Playwright/shadcn)
+  - cycles/03-c2-frontend-core 브랜치 분기
+* [Stage 1] React 18 + Vite 5 프로젝트 초기화
+  - shadcn/ui, Zustand, React Query, Vitest, Playwright 설치
+* [Stage 2] core models + utils + store
+  - models.js, axiosInstance(base), authUtils(TDD 4), useAuthStore(TDD 3)
+* [Stage 3] interceptors + loading + routing guard
+  - axiosInstance interceptors(TDD 4), useLoadingStore(TDD 5), ProtectedRoute(TDD 2)
+* [Stage 4] shared 컴포넌트 5종
+  - SearchForm(TDD 3), DataGrid/TanStack Table(TDD 3), FileUpload(TDD 3), DetailPanel(TDD 2), EditDrawer(TDD 3)
+* [Stage 5] layouts + auth + home + app wiring
+  - MainLayout, BlankLayout, LoginPage, useLogin, authApi, providers/router/main
+* [Stage 6] Playwright E2E 4 시나리오
+* [Stage 7] G2-d 검증 게이트 통과
+  - Vitest 32/32 PASS, Playwright 4/4 PASS
+
+### 📋 완료된 파일/코드
+* frontend/src/core/models.js
+* frontend/src/core/api/axiosInstance.js
+* frontend/src/core/auth/authUtils.js
+* frontend/src/store/useAuthStore.js
+* frontend/src/store/useLoadingStore.js
+* frontend/src/app/ProtectedRoute.jsx
+* frontend/src/shared/components/SearchForm/SearchForm.jsx
+* frontend/src/shared/components/DataGrid/DataGrid.jsx
+* frontend/src/shared/components/FileUpload/FileUpload.jsx
+* frontend/src/shared/components/DetailPanel/DetailPanel.jsx
+* frontend/src/shared/components/EditDrawer/EditDrawer.jsx
+* frontend/src/shared/components/layouts/MainLayout.jsx
+* frontend/src/shared/components/layouts/BlankLayout.jsx
+* frontend/src/features/auth/LoginPage.jsx
+* frontend/src/features/auth/useLogin.js
+* frontend/src/features/auth/authApi.js
+* frontend/src/app/providers.jsx
+* frontend/src/app/router.jsx
+* frontend/src/main.jsx
+* frontend/e2e/auth.spec.js
+
+### ⏭️ 다음 단계
+**다음 작업**: C3 또는 I1 사이클
+**예상 소요 시간**: -
+**필수 입력사항**: master 머지 완료 후 다음 사이클 진입
+```
+
+- [ ] **Step 2: handoff.md + worklog.md 갱신**
+
+handoff.md를 C2 완료 상태로 업데이트:
+- 현재 브랜치: `cycles/03-c2-frontend-core`
+- 완료된 사항: React 18 SPA 코어 — Vitest 32/32, Playwright 4/4
+- 다음 액션: master 머지 (Task 23)
+
+- [ ] **Step 3: 커밋**
+
+```bash
+git add docs/cycles/03-c2-frontend-core/status.md docs/handoff.md docs/worklog.md
+git commit -m "docs(C2): 사이클 마감 — status 완료 + handoff/worklog 갱신"
+```
+
+---
+
+### Task 23: master 머지
+
+- [ ] **Step 1: master로 이동 후 머지**
+
+```bash
+git checkout master
+git merge --no-ff cycles/03-c2-frontend-core -m "Merge branch 'cycles/03-c2-frontend-core' — C2 공통 프론트 코어 완료"
+```
+
+- [ ] **Step 2: 머지 커밋 해시 기록**
+
+```bash
+git log --oneline -1
+```
+
+`docs/handoff.md`의 master 머지 commit hash 항목 업데이트:
+```bash
+git add docs/handoff.md
+git commit -m "docs(C2): handoff master 머지 commit hash 반영"
+```
+
+- [ ] **Step 3: 최종 상태 확인**
+
+```bash
+git log --oneline -8
+git status
+```
+
+Expected:
+- 최상단 커밋: `docs(C2): handoff master 머지 commit hash 반영`
+- `nothing to commit, working tree clean`
+
+**Verification:**
+```bash
+cd frontend && npx vitest run
+```
+Expected: master에서도 32/32 그린 유지.

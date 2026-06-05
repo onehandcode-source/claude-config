@@ -1,0 +1,46 @@
+package com.devwogns.trmdict.module.importjob.entity;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.SequenceGenerator;
+import javax.persistence.Table;
+import java.time.OffsetDateTime;
+
+@Entity
+@Table(name = "TB_TRM_IMPORT_ERROR")
+@Getter
+@Setter
+@NoArgsConstructor
+public class ImportErrorEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "importErrorSeq")
+    @SequenceGenerator(name = "importErrorSeq", sequenceName = "TB_TRM_IMPORT_ERROR_SEQ", allocationSize = 1)
+    @Column(name = "IMPORT_ERROR_SN")
+    private Long id;
+
+    @Column(name = "IMPORT_HISTORY_SN", nullable = false)
+    private Long historyId;
+
+    @Column(name = "ROW_SN", nullable = false)
+    private Integer rowNo;
+
+    @Column(name = "ERR_CD", nullable = false)
+    private String errorCode;
+
+    @Column(name = "ERR_MSG_CN")
+    private String errorMessage;
+
+    @Column(name = "RAW_LINE_CN")
+    private String rawRow;
+
+    @Column(name = "REG_DT")
+    private OffsetDateTime createdAt;
+}

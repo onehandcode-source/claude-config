@@ -1,0 +1,23 @@
+package com.devwogns.trmdict.module.importjob.vo;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.OffsetDateTime;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ImportErrorVo {
+
+    private Long id;
+    private Long historyId;
+    private Integer rowNo;
+    private String errorCode;
+    private String errorMessage;
+    private String rawRow;
+    private OffsetDateTime createdAt;
+}

@@ -1,0 +1,183 @@
+# Handoff
+
+## 다음 세션 시작 가이드
+
+1. **첫 작업**: `CLAUDE.md` → `docs/handoff.md`(이 파일) → `docs/worklog.md` → `docs/decisions.md` 순으로 읽기.
+2. **완료된 사이클 결과 참조** (모두 master 머지 완료):
+   - C0 머지: `1b7d233` — backend core
+   - C1 머지: `5d471c4` — async infra
+   - C2 머지: `2486c6b` (원본) + **React 18 재구현 2026-05-18** — frontend core
+   - I0 머지: `2194fff` — import backend
+   - Cycle05 머지: `f424402` — DB naming alignment
+   - I1 머지: `f947ff8` — import frontend (React)
+   - M-D-R 머지: `1538e94` (`--no-ff`, 2026-05-08, 29 files / +5015 / -44)
+   - 사이클 spec/plan/status: `docs/cycles/{01~07-*}/`
+3. **세 핵심 spec 입력**:
+   - `docs/superpowers/specs/2026-05-03-cycle-decomposition-design.md` (사이클 분해 방법론)
+   - `docs/superpowers/specs/2026-05-03-code-structure-design.md` (코드 구조 표준)
+   - `docs/superpowers/specs/2026-05-06-naming-standards-alignment-design.md` (DB 명명 표준)
+4. **`docs/decisions.md` 누적 결정 모두 적용 상태**:
+   - 2026-05-02 1차 설계 (상태값 5종 등)
+   - 2026-05-03 메타 결정: 사이클 분해 / 코드 구조
+   - 2026-05-03 C1 결정: **비동기 작업 인프라 정책** / **`TRM_*_HISTORY` 공통 컬럼 컨벤션** / **운영 환경 비밀 외부화 정책**
+   - 2026-05-03 C2 결정: **Frontend 인증 흐름 정책** (localStorage `trmdict_token` + Axios interceptor, 401→logout, 403→toast) / **자동 E2E 도구 — Playwright (chromium 단일)**
+   - 2026-05-05 I0 결정: Import 백엔드 사이클 — staging + master DDL + normalization 모두 책임 (단일 endpoint + type query, temp 파일 + @Async, MERGE 화이트리스트, 5 SQL 분리, raw text 컬럼)
+   - 2026-05-06 I0 결정: **Tibero MyBatis null 바인딩 — `jdbcTypeForNull=NULL` 강제** (JDBC-590704 우회)
+   - 2026-05-06 Cycle05 결정 3건: **DB 명명 표준 정렬** (TB_TRM_*/TB_STD_* prefix + 행정안전부 공통표준 약어) / **VO 필드명 풀네임 유지 + Mapper SELECT alias 패턴** / **Drop & Re-create 마이그레이션**
+   - 2026-05-06 I1 결정 5건: **Import 단건 추적 정책** / **폴링 정책** (2s + terminal/unmount 자동 stop) / **ProtectedRoute + ADMIN check 신설** / **Import 권한 ADMIN 한정** / **multipart 50MB 표준**
+   - 2026-05-08 M-D-R hotfix 정책 4건: **Tibero LIKE — MyBatis `<bind>` 강제** / **DataGrid sortChange — `toSnakeCase` 변환** / **SearchForm 데이터타입 — 행정안전부 논리 4종** / **Domain 통합 테스트 부재 부채**
+5. **다음 액션 — M-D-W 사이클 진입** (Domain 보강 풀스택, 08/18):
+   - `git checkout master && git checkout -b cycles/08-m-d-w-domain-write`
+   - brainstorming → spec → plan → Task 단위 진행 → master 머지.
+   - 입력 자료: M-D-R spec/plan + I0 spec(TB_TRM_DOMAIN 운영 보강 메타) + decisions.md M-D-R hotfix 4건.
+   - 인용 강제: Tibero LIKE → `<bind>` / DataGrid → `toSnakeCase` / `@AuthenticationPrincipal AuthPrincipal` + `getUsername()` / `@SpringBootTest` 통합 테스트 1건 강제 / M-D-W 권한 ADMIN 차등.
+6. **알려진 부채 (보강 사이클 후보)**:
+   - **Domain 통합 테스트 부재**: backend mapper SQL 단위 mock만 검증 → M-* 후속 `@SpringBootTest` + `@Sql` 1건 강제 (I0 ImportJobIntegrationTest 패턴).
+   - **Plan/spec 데이터 적재 가정 결함**: "I0/Cycle05가 적재한 표준 도메인 12K행"은 부정확 — I0는 import 기능 빌드만. M-* spec/plan 작성 시 데이터 시드 책임 명시.
+   - **Import history 목록 endpoint**: backend `GET /api/v1/imports?page=N&size=N` + frontend 목록 페이지 — 풀스택 보강 사이클 신설 후보.
+   - **`@AuthenticationPrincipal` 패턴**: 후속 M-*-W가 인증 사용자 정보 INSERT 시 필수.
+   - **`src/lib/utils.js` vs `src/shared/utils/cn.js` 중복**: shadcn init 시 생성된 중복 — 정리 필요.
+
+---
+
+## Current Goal (2026-05-20)
+
+- **DataGrid AG Grid v35 전환 완료**: `@tanstack/react-table` → `ag-grid-react` v35.3.0 + `xlsx`. 컬럼 freeze/resize/hide, Excel/CSV 내보내기, 밀도 조절 등 추가. 외부 props API 유지 — 소비 페이지 4개 수정 0건.
+- **MCP 서버 설계+계획 완료**: `docs/plans/2026-05-20-mcp-server-design.md` + `docs/plans/2026-05-20-mcp-server-plan.md` (커밋 `df39e23`).
+- **다음 액션**: MCP 구현 계획서 Task 1부터 순차 실행.
+  - `docs/plans/2026-05-20-mcp-server-plan.md` 기준 Task 1: `TB_TRM_CUSTOM_WORD` DDL(DB 수동 실행 필요) + Entity/Repository/Service/Vo.
+  - 이후 Task 2~7 순차 진행 → `SecurityConfig` `/api/v1/mcp/**` permitAll + 통합 테스트 → Claude Code MCP 연결 확인.
+
+---
+
+## 핵심 결정 한눈에
+
+| 영역 | 결정 |
+|---|---|
+| 사이클 모델 | 18개 사이클 (C0/C1/C2 → I0/Cycle05/I1 → M-{D,W,T,F}-{R,W} 8개 → N0/N1/N2 → Z0), 직렬 진행 |
+| 분할 축 | B-4 혼합 (공통기반/Import/Inspection 백→프론트 분리) |
+| 모듈 분할 | D-2 (모듈당 조회 + 보강 2개 사이클) |
+| 절차 정렬 | C-2 (api-dev-rule [1][2] → 사이클 spec/plan으로 흡수) |
+| 빌드 | Maven, `pom.xml` |
+| 패키지 | `com.devwogns.trmdict` |
+| 프로파일 | `local` (`application-local.yml`) |
+| Backend 객체 | E3 — `dto`/`vo` 2분리, entity 없음 |
+| Mapper XML | M1 — `src/main/resources/mapper/{module}/` |
+| Frontend 골격 | React 18 + Vite 5 + shadcn/ui — `src/{app,features,shared,store,layouts}` |
+| 모듈명 | 영문 풀네임 (Backend: `import` → `importjob`) |
+| API URL | `/api/v1/{module}` |
+| DDL | `db-ddl/{NN}_{module}.sql` 누적식 |
+| Frontend 그리드 | shadcn DataGrid (TanStack Table v8) |
+| 산출물 생성 시점 | 모두 사이클 시점 생성 (사전 골격 생성 안 함) |
+| 비동기 풀(C1) | 단일 `taskExecutor` (core 2 / max 4 / queue 20·local·50·prod / Abort / shutdown 30s) |
+| 작업 상태(C1) | `JobStatus` 5종(`PENDING`/`RUNNING`/`COMPLETED`/`PARTIAL_SUCCESS`/`FAILED`) at `common/async/` |
+| 운영 비밀(C1) | env-var `TRMDICT_*` 4종 강제(prod), local은 fallback 허용 |
+| 이력 테이블(C1) | `TRM_*_HISTORY` 공통 11컬럼 베이스 (실 SQL은 I0/N1) |
+| 재시작 stale(C1) | 모듈 자율 — `ApplicationReadyEvent` 리스너로 `RUNNING`/`PENDING` → `FAILED` |
+| 응답 직렬화(C1) | `@JsonInclude(NON_NULL)` + nested 정적 inner class + `Map<String,Object>` 응답 금지 |
+| Frontend 인증(C2) | `localStorage['trmdict_token']` + Axios interceptor (401→logout+redirect, 403→toast) |
+| 자동 E2E(C2) | Playwright (chromium 단일), 로컬 수동 실행 |
+| Import API(I0) | 단일 endpoint + type query, multipart temp 파일 + @Async, MERGE 화이트리스트 |
+| Tibero null 바인딩(I0) | MyBatisConfig.ConfigurationCustomizer로 jdbcTypeForNull=NULL 강제 |
+| DB 명명 표준(Cycle05) | TB_TRM_*/TB_STD_* prefix, 행정안전부 공통표준 약어, VO 필드명 풀네임 + Mapper SELECT alias |
+| Import 프론트(I1) | 단건 추적(`/import/{historyId}`) + 폴링 2s(terminal/unmount auto stop) + ADMIN check + 50MB |
+| 인증 사용자 INSERT(I1 hotfix) | `@AuthenticationPrincipal AuthPrincipal` 주입 후 `getUsername()` 추출. 후속 M-*-W 필수 |
+| 모듈 폴더 패턴(M-D-R) | Backend `module/{name}/{controller,service,mapper,dto,vo}` + Frontend `features/{name}/` |
+| VO 분리(M-D-R) | `*ListVo`(그리드 set) + `*DtlVo`(전 필드 flat). 둘 다 `@JsonInclude(NON_NULL)` |
+| DetailPanel(M-D-R) | 단일 ListPage(SearchForm+DataGrid+DetailPanel 우측 슬라이드 통합). 별도 detail URL 미생성 |
+| read 모듈 권한(M-D-R) | `ProtectedRoute` only / 메뉴 requiredRole 미지정 / SecurityConfig 분기 0 |
+| Mapper alias 최소화(M-D-R) | underscore-to-camel 자동 변환 우선. PK(`*_SN` → `id`) 1개만 명시 alias |
+| Tibero LIKE 검색(M-D-R hotfix) | MyBatis `<bind>`로 `'%'+x+'%'` 패턴 완성 + `LIKE #{xLike}`. `\|\|` / CONCAT() 모두 거부 |
+| DataGrid sortChange(M-D-R hotfix) | ColumnDef.key(camelCase)를 `toSnakeCase()` 1줄 변환 후 backend `sortBy`로 전송 |
+| SearchForm 데이터타입(M-D-R hotfix) | 행정안전부 표준 논리 타입 4종(VARCHAR/CHAR/NUMERIC/DATETIME) |
+
+---
+
+## Done (2026-05-03 ~ 2026-05-18)
+
+- `docs/superpowers/specs/` 3종 작성 (사이클 분해 방법론 / 코드 구조 표준 / DB 명명 표준).
+- `docs/decisions.md` 누적 28건+ 등재.
+- C0 사이클 완료 — backend core (SecurityConfig + JwtTokenProvider + GlobalExceptionHandler + ErrorCode + ApiResponse + PageResponse). master 머지 `1b7d233`.
+- C1 사이클 완료 — async infra (JobStatus + taskExecutor + ApplicationReadyEvent stale 정책). master 머지 `5d471c4`.
+- C2 사이클 완료 — **Frontend React 18** (React Router v6 + Zustand + TanStack Query v5 + Vitest + Playwright). 인증 흐름(localStorage `trmdict_token` + Axios interceptor). shared 5종 컴포넌트(SearchForm + DataGrid + FileUpload + DetailPanel + EditDrawer). 2026-05-18 React 재구현 완료.
+- I0 사이클 완료 — Import 백엔드 (3 endpoint, OpenCSV 5.9, ImportJobRecoveryListener). MyBatisConfig `jdbcTypeForNull=NULL`. master 머지 `2194fff`.
+- Cycle05 사이클 완료 — DB 명명 표준 정렬 (TB_TRM_*/TB_STD_* + 행안부 약어). master 머지 `f424402`.
+- I1 사이클 완료 — Import 프론트 React (UploadPage + DetailPage 폴링). backend hotfix 1건(`@AuthenticationPrincipal`). master 머지 `f947ff8`.
+- **M-D-R 사이클 완료** — Domain 조회 React (DomainListPage + SearchForm 5필드 + DataGrid 8컬럼 + DetailPanel 24필드). backend 85/85. hotfix 4건 흡수. master 머지 `1538e94`.
+- **2026-05-18**: React 마이그레이션 완료 + providers/router 버그 수정.
+- **2026-05-20**: DataGrid `@tanstack/react-table` → AG Grid v35 전환 (Excel/CSV 내보내기, 컬럼 hide/freeze, 밀도 조절). MCP 서버 설계 + 7-Task 구현 계획 완료 (`docs/plans/2026-05-20-mcp-server-design.md`, `docs/plans/2026-05-20-mcp-server-plan.md`, 커밋 `df39e23`).
+
+---
+
+## In Progress
+
+- **MCP 서버 구현** — `docs/plans/2026-05-20-mcp-server-plan.md` Task 1 진입 대기.
+  - DB 담당자가 `backend/src/main/resources/db-ddl/06_custom_word.sql` Tibero 로컬 수동 실행 선행 필요.
+
+---
+
+## Next Steps
+
+1. **MCP 서버 구현 Task 1**: `TB_TRM_CUSTOM_WORD` DDL(DB 실행) → `module/mcp/entity/CustomWord.java` + Repository + Service + Vo → `CustomWordServiceTest` PASS → 커밋.
+2. **MCP Task 2~7**: 계획서 순서대로 — WordRepository 확장 → MCP 인프라(SessionManager+Dispatcher+컨트롤러) → Tool 5종 → SecurityConfig + 통합 테스트.
+3. **Claude Code 연결 확인**: `~/.claude/settings.json`에 `"trmdict": { "url": "http://localhost:8080/api/v1/mcp/sse", "type": "sse" }` 추가 후 `/mcp`로 6개 tool 확인.
+4. **M-D-W 사이클** (MCP 완료 후, Domain 보강 풀스택, 08/18):
+   - `git checkout master && git checkout -b cycles/08-m-d-w-domain-write`
+   - brainstorming → spec → plan → Task 단위 진행 → master 머지.
+5. 이후 사이클 순서: M-D-R(완료) → **M-D-W(08)** → M-W-R(09) → M-W-W(10) → M-T-R(11) → M-T-W(12) → M-F-R(13) → M-F-W(14) → N0(15) → N1(16) → N2(17) → Z0(18).
+6. (참고) 원격 push: 모든 cycle 브랜치 로컬 only. master push는 사용자 결정.
+
+---
+
+## Key Files
+
+- [docs/plan.md](docs/plan.md) — 1차 확정 설계 (2026-05-02)
+- [docs/superpowers/specs/2026-05-03-cycle-decomposition-design.md](docs/superpowers/specs/2026-05-03-cycle-decomposition-design.md)
+- [docs/superpowers/specs/2026-05-03-code-structure-design.md](docs/superpowers/specs/2026-05-03-code-structure-design.md)
+- [docs/superpowers/specs/2026-05-06-naming-standards-alignment-design.md](docs/superpowers/specs/2026-05-06-naming-standards-alignment-design.md)
+- [docs/decisions.md](docs/decisions.md) — 누적 결정 기록
+- [docs/worklog.md](docs/worklog.md) — 현재 상태 snapshot
+- [docs/cycles/07-m-d-r-domain-read/spec.md](docs/cycles/07-m-d-r-domain-read/spec.md) — M-D-R spec
+- [docs/cycles/07-m-d-r-domain-read/plan.md](docs/cycles/07-m-d-r-domain-read/plan.md) — M-D-R plan
+
+---
+
+## Commands
+
+- backend test: `JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 C:\Dev\dev_codeDaemon\bin\apache-maven-3.3.9\bin\mvn.cmd -f backend/pom.xml test`
+- backend package: `JAVA_HOME=C:\Bin\Java\jdk1.8.0_202 C:\Dev\dev_codeDaemon\bin\apache-maven-3.3.9\bin\mvn.cmd -f backend/pom.xml package -DskipTests`
+- backend 부트: `java -jar backend/target/trmdict-1.0.0-SNAPSHOT.jar --spring.profiles.active=local`
+- frontend dev: `cd frontend && npm start` (<http://localhost:5173>, /api → 8080 proxy)
+- frontend test: `cd frontend && npx vitest run`
+- frontend build: `cd frontend && npm run build`
+- frontend E2E (backend+frontend 실행 필요): `cd frontend && npx playwright test`
+
+---
+
+## Issues / Risks
+
+- **Domain 통합 테스트 부재 (M-D-R 발견)**: backend mapper SQL 단위 mock 검증만 보유. M-* 후속은 `@SpringBootTest` + `@Sql`로 mapper 1건 실 DB 실증 필수 (I0 `ImportJobIntegrationTest` 패턴).
+- **Plan/spec 데이터 적재 가정 결함 (M-D-R 발견)**: I0는 import 기능 빌드만, 실 데이터는 운영자/사용자 import 책임. M-* spec/plan 작성 시 데이터 시드 책임 명시 필수.
+- **인증 사용자 INSERT 패턴 (I1 hotfix)**: `req.getUserPrincipal().getName()` 금지 → `@AuthenticationPrincipal AuthPrincipal` + `getUsername()`. 후속 M-*-W 필수.
+- **Tibero JDBC LIKE 호환성 (M-D-R 발견)**: `||` concat과 CONCAT() 모두 LIKE 우변에서 JDBC-8007 거부. 후속 모듈 LIKE 검색 mapper는 MyBatis `<bind>` + `LIKE #{}` 강제.
+- **`src/lib/utils.js` vs `src/shared/utils/cn.js` 중복 (2026-05-18 발견)**: shadcn init 시 자동 생성된 `lib/utils.js`와 기존 `shared/utils/cn.js` 동일 내용 중복 — 향후 정리.
+
+---
+
+## Working Tree (2026-05-20 현재)
+
+- 활성 브랜치: **`master`** (HEAD = `df39e23` MCP 구현 계획서 커밋).
+- frontend: `DataGrid.jsx` AG Grid v35 전환 완료. `npm start` → <http://localhost:5173>.
+- backend: `master` 기준 정상. MCP 구현 전 (`module/mcp/` 패키지 미존재).
+- 설계/계획 파일: `docs/plans/2026-05-20-mcp-server-design.md`, `docs/plans/2026-05-20-mcp-server-plan.md` 완료.
+- 보존 사이클 브랜치: `cycles/01-c0-backend-core` ~ `cycles/07-m-d-r-domain-read`.
+- 다음 세션 첫 명령: `docs/plans/2026-05-20-mcp-server-plan.md` 열기 → Task 1 진입 (`06_custom_word.sql` DB 실행 확인 후 Entity 작성).
+
+---
+
+## Notes
+
+- `docs/cycles/` 신규 폴더는 사이클 진입 시점에 생성 (미리 만들지 않음).
+- C1 컨벤션: `TRM_*_HISTORY` 11컬럼 / 응답 직렬화 §11 / 운영 비밀 외부화 정책 모두 후속 사이클 인용.
+- C2 컨벤션: localStorage 키명 `trmdict_token`, Axios interceptor 401/403 분기, `ProtectedRoute`, `MENU_ITEMS` 패턴, shared 5종 컴포넌트 시그니처 — 후속 사이클 직접 인용.
+- 모듈 간 진행은 직렬(병렬 불허). M-D-R 패턴(DomainListPage + SearchForm + DataGrid + DetailPanel)을 후속 모듈이 그대로 따름.

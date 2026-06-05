@@ -1,0 +1,38 @@
+<div className="grid gap-2 md:grid-cols-2">
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Role 예: button, checkbox, textbox"
+              value={getEditorLocator(step).role ?? ""}
+              onChange={(event) => updateLocator({ role: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Accessible Name 예: 로그인"
+              value={getEditorLocator(step).name ?? ""}
+              onChange={(event) => updateLocator({ name: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Label 텍스트"
+              value={getEditorLocator(step).label ?? ""}
+              onChange={(event) => updateLocator({ label: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="Placeholder 텍스트"
+              value={getEditorLocator(step).placeholder ?? ""}
+              onChange={(event) => updateLocator({ placeholder: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="화면 텍스트"
+              value={getEditorLocator(step).text ?? ""}
+              onChange={(event) => updateLocator({ text: event.target.value })}
+            />
+            <input
+              className="rounded border px-2 py-1 text-sm"
+              placeholder="data-testid 값"
+              value={getEditorLocator(step).testId ?? ""}
+              onChange={(event) => updateLocator({ testId: event.target.value })}
+            />
+          </div>

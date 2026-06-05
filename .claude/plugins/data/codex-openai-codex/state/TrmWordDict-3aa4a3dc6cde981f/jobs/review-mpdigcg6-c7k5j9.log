@@ -1,0 +1,59 @@
+[2026-05-20T03:37:04.893Z] Starting Codex Adversarial Review.
+[2026-05-20T03:37:16.536Z] Starting Codex task thread.
+[2026-05-20T03:37:19.010Z] Thread ready (019e4375-90fc-7a30-9e76-0779bddec0e2).
+[2026-05-20T03:37:20.736Z] Turn started (019e4375-9849-7fa1-9828-297fa69c1f74).
+[2026-05-20T03:37:39.035Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content 'C:/Us...
+[2026-05-20T03:37:41.186Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff --stat --...
+[2026-05-20T03:37:41.186Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff -- backen...
+[2026-05-20T03:37:41.188Z] Command completed: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff --stat --... (exit 0)
+[2026-05-20T03:37:41.188Z] Command completed: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff -- backen... (exit 0)
+[2026-05-20T03:37:41.189Z] Command completed: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content 'C:/Us... (exit 0)
+[2026-05-20T03:38:34.577Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$i=1; Get-Content ...
+[2026-05-20T03:38:34.578Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$i=1; Get-Content ...
+[2026-05-20T03:38:34.579Z] Command declined: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$i=1; Get-Content ... (exit -1)
+[2026-05-20T03:38:34.579Z] Command declined: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$i=1; Get-Content ... (exit -1)
+[2026-05-20T03:38:34.680Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$i=1; Get-Content ...
+[2026-05-20T03:38:34.681Z] Command declined: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$i=1; Get-Content ... (exit -1)
+[2026-05-20T03:38:34.682Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$i=1; Get-Content ...
+[2026-05-20T03:38:34.683Z] Command declined: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$i=1; Get-Content ... (exit -1)
+[2026-05-20T03:38:42.124Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" fronten...
+[2026-05-20T03:38:42.126Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" fronten...
+[2026-05-20T03:38:42.127Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" backend...
+[2026-05-20T03:38:42.260Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" backend...
+[2026-05-20T03:38:43.255Z] Command completed: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" fronten... (exit 0)
+[2026-05-20T03:38:43.339Z] Command completed: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" fronten... (exit 0)
+[2026-05-20T03:38:43.365Z] Command completed: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" backend... (exit 0)
+[2026-05-20T03:38:43.366Z] Command completed: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" backend... (exit 0)
+[2026-05-20T03:38:50.665Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" backend...
+[2026-05-20T03:38:50.665Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" backend...
+[2026-05-20T03:38:50.802Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" backend...
+[2026-05-20T03:38:53.000Z] Running command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" backend...
+[2026-05-20T03:38:54.457Z] Command completed: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" backend... (exit 0)
+[2026-05-20T03:38:54.457Z] Command completed: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" backend... (exit 0)
+[2026-05-20T03:38:54.458Z] Command completed: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" backend... (exit 0)
+[2026-05-20T03:38:54.459Z] Command completed: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg -n ".*" backend... (exit 0)
+[2026-05-20T03:39:42.750Z] Assistant message captured: {"verdict":"needs-attention","summary":"No-ship: the cookie/JWT migration has a real auth reg...
+
+[2026-05-20T03:39:42.750Z] Assistant message
+{"verdict":"needs-attention","summary":"No-ship: the cookie/JWT migration has a real auth regression on refresh and still trusts stale JWT claims after account changes.","findings":[{"severity":"high","title":"Protected routes redirect before the cookie session can be rehydrated","body":"This guard makes its decision from in-memory Zustand state only. On a hard refresh or deep link to a protected page, `isAuthenticated` starts as `false`, so the user is redirected to `/login` immediately. Session recovery happens later in `AuthBootstrap` via `/auth/me`, and that bootstrap is skipped once the app is on `/login`, so a valid HttpOnly JWT cookie can no longer restore the session. The result is a user-visible login regression: valid sessions get stranded on refresh/navigation instead of resuming.","file":"frontend/src/app/ProtectedRoute.jsx","line_start":5,"line_end":9,"confidence":0.98,"recommendation":"Add an explicit auth-hydration state and block protected-route redirects until the initial `/auth/me` probe has succeeded or failed. Do not permanently skip bootstrap logic just because the current path is `/login`."},{"severity":"high","title":"JWT cookies remain authoritative after user disablement or role changes","body":"The filter promotes `uid` and `role` claims from the cookie JWT directly into Spring Security without reloading the current user record. That means post-login account changes are ignored for the lifetime of the token: a user disabled in the database or demoted from `ADMIN` can keep accessing protected endpoints with the stale cookie until expiry. Because this diff moved auth fully onto the cookie path and does not add any revocation/version check, the trust boundary is still the old token, not current account state.","file":"backend/src/main/java/com/devwogns/trmdict/common/security/JwtAuthenticationFilter.java","line_start":31,"line_end":41,"confidence":0.93,"recommendation":"Revalidate the principal against current server-side user state before populating the security context, or add a revocation/token-version mechanism that invalidates outstanding JWTs when `useYn` or role changes."}],"next_steps":["Add bootstrap gating for protected routes and cover refresh/deep-link cases with frontend tests.","Add server-side revocation/state revalidation for JWT-authenticated requests, then test disablement and role-downgrade scenarios against existing cookies."]}
+[2026-05-20T03:39:46.244Z] Turn completion inferred after the main thread finished and subagent work drained.
+
+[2026-05-20T03:39:48.305Z] Final output
+# Codex Adversarial Review
+
+Target: working tree diff
+Verdict: needs-attention
+
+No-ship: the cookie/JWT migration has a real auth regression on refresh and still trusts stale JWT claims after account changes.
+
+Findings:
+- [high] Protected routes redirect before the cookie session can be rehydrated (frontend/src/app/ProtectedRoute.jsx:5-9)
+  This guard makes its decision from in-memory Zustand state only. On a hard refresh or deep link to a protected page, `isAuthenticated` starts as `false`, so the user is redirected to `/login` immediately. Session recovery happens later in `AuthBootstrap` via `/auth/me`, and that bootstrap is skipped once the app is on `/login`, so a valid HttpOnly JWT cookie can no longer restore the session. The result is a user-visible login regression: valid sessions get stranded on refresh/navigation instead of resuming.
+  Recommendation: Add an explicit auth-hydration state and block protected-route redirects until the initial `/auth/me` probe has succeeded or failed. Do not permanently skip bootstrap logic just because the current path is `/login`.
+- [high] JWT cookies remain authoritative after user disablement or role changes (backend/src/main/java/com/devwogns/trmdict/common/security/JwtAuthenticationFilter.java:31-41)
+  The filter promotes `uid` and `role` claims from the cookie JWT directly into Spring Security without reloading the current user record. That means post-login account changes are ignored for the lifetime of the token: a user disabled in the database or demoted from `ADMIN` can keep accessing protected endpoints with the stale cookie until expiry. Because this diff moved auth fully onto the cookie path and does not add any revocation/version check, the trust boundary is still the old token, not current account state.
+  Recommendation: Revalidate the principal against current server-side user state before populating the security context, or add a revocation/token-version mechanism that invalidates outstanding JWTs when `useYn` or role changes.
+
+Next steps:
+- Add bootstrap gating for protected routes and cover refresh/deep-link cases with frontend tests.
+- Add server-side revocation/state revalidation for JWT-authenticated requests, then test disablement and role-downgrade scenarios against existing cookies.

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "config": {
+    "stopReviewGate": false
+  },
+  "jobs": [
+    {
+      "createdAt": "2026-05-18T05:17:08.451Z",
+      "updatedAt": "2026-05-18T05:21:09.845Z",
+      "id": "review-mpar5bs3-gbaiwp",
+      "kind": "review",
+      "kindLabel": "review",
+      "title": "Codex Review",
+      "workspaceRoot": "D:/16. 자동화 도구/safeAutoTest",
+      "jobClass": "review",
+      "summary": "The current changes have functional issues in execution and comparison: failed runs are reported as successful, added test cases are omitted from comparisons, and the required `baseUrl` is ignored during execution. These issues can produce incorrect baselines and misleading compare results.",
+      "write": false,
+      "sessionId": "111648a5-cecf-41e5-8d4c-b1414307bce6",
+      "status": "completed",
+      "startedAt": "2026-05-18T05:17:08.969Z",
+      "phase": "done",
+      "pid": null,
+      "logFile": "C:\\Users\\ygkim\\.claude\\plugins\\data\\codex-openai-codex\\state\\safeAutoTest-129366e3e9d596a2\\jobs\\review-mpar5bs3-gbaiwp.log",
+      "threadId": "019e3984-6893-7aa1-a317-29f21e8c1488",
+      "turnId": "019e3984-7831-7843-8e21-1f813986ef17",
+      "completedAt": "2026-05-18T05:21:08.871Z"
+    }
+  ]
+}

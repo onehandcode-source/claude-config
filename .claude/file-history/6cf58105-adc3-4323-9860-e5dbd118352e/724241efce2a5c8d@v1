@@ -1,0 +1,56 @@
+import { LogOut, Menu } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/shared/components/ui/sheet';
+import { ThemeToggle } from '@/shared/components/ThemeToggle/ThemeToggle';
+import { Breadcrumbs } from '../Breadcrumbs';
+import { SidebarSurface } from './SidebarSurface';
+
+export const LayoutHeader = ({ mobileMenuOpen, onMobileMenuOpenChange, onLogout, user }) => (
+    <>
+        <Sheet open={mobileMenuOpen} onOpenChange={onMobileMenuOpenChange}>
+            <SheetContent side='left' className='w-72 max-w-[85vw] p-0'>
+                <SheetHeader className='px-4 py-3'>
+                    <SheetTitle className='text-sm font-semibold text-foreground'>TrmWordDict</SheetTitle>
+                </SheetHeader>
+                <div className='flex flex-1 flex-col gap-0 overflow-auto'>
+                    <SidebarSurface user={user} onNavigate={() => onMobileMenuOpenChange(false)} showBrand={false} />
+                </div>
+            </SheetContent>
+        </Sheet>
+
+        <header className='flex h-14 flex-shrink-0 items-center justify-between border-b border-border bg-card px-6'>
+            <div className='flex min-w-0 flex-1 items-center gap-2 pr-4'>
+                <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    className='lg:hidden'
+                    aria-label='메뉴 열기'
+                    onClick={() => {
+                        onMobileMenuOpenChange(true);
+                    }}
+                >
+                    <Menu aria-hidden='true' className='h-4 w-4' />
+                </Button>
+                <Breadcrumbs />
+            </div>
+            <div className='flex items-center gap-1'>
+                <ThemeToggle />
+                <Button
+                    variant='ghost'
+                    size='sm'
+                    className='gap-2 text-muted-foreground'
+                    onClick={() => {
+                        void onLogout();
+                    }}
+                >
+                    <LogOut aria-hidden='true' className='h-4 w-4' />
+                    <span aria-hidden='true' className='hidden sm:inline'>
+                        로그아웃
+                    </span>
+                    <span className='sr-only'>로그아웃</span>
+                </Button>
+            </div>
+        </header>
+    </>
+);

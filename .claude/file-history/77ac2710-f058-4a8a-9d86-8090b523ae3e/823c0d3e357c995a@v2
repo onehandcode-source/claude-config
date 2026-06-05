@@ -1,0 +1,51 @@
+# Frontend — TrmWordDict
+
+React 18 + Vite 5 + shadcn/ui 기반 프론트엔드
+
+## 기술 스택
+
+| 항목 | 기술 |
+|------|------|
+| Framework | React 18 |
+| Build | Vite 5 |
+| UI | shadcn/ui (Radix UI + Tailwind CSS) |
+| 전역 상태 | Zustand |
+| 서버 상태 | TanStack Query v5 |
+| 라우터 | React Router v6 |
+| 테스트 | Vitest + @testing-library/react |
+| E2E | Playwright (chromium) |
+
+## 개발 서버
+
+```bash
+npm start
+# http://localhost:5173 → /api 요청은 http://localhost:8080 으로 프록시
+```
+
+## 빌드
+
+```bash
+npm run build
+# 결과물: ../backend/src/main/resources/static/
+```
+
+## 테스트
+
+```bash
+npm test             # 단위 테스트 (Vitest)
+npx playwright test  # E2E 테스트 (백엔드 + 프론트 실행 필요)
+```
+
+## 디렉터리 구조
+
+```
+src/
+├── app/          # 라우터, Provider 설정
+├── core/         # axios 인스턴스, 인증 유틸
+├── features/     # 도메인 기능 모듈 (auth, domain, import, word, ...)
+├── layouts/      # MainLayout, BlankLayout
+├── router/       # ProtectedRoute
+├── shared/       # 공통 컴포넌트, 유틸, 훅
+├── store/        # Zustand 스토어
+└── styles/       # 전역 CSS (Tailwind base)
+```

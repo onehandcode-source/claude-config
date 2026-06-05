@@ -1,0 +1,64 @@
+# Session: 2026-05-18
+**Date:** 2026-05-18
+**Started:** 15:04
+**Last Updated:** 18:05
+**Project:** TrmWordDict
+**Branch:** master
+**Worktree:** D:\20. POC\TrmWordDict\frontend
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- 라우터 기능 확인해 지금 leftmenu 눌렀을때 도메인 주소 안바뀜,
+- This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.  Summary: 1. Primary Request and Intent:    - Us
+- anguler 관련 내용은 이제 없어도 될거같은데 삭제해
+- 남은 작업 계속 수행하고  질문  컴포넌트에 함수들을 function으로 선언되어 있는것을 확인함. arrow로 선언하는게 더 좋아보이는데  1. @..\docs\dev-guide\conventions-frontend.md 에 arrow기반으로 선언하고 사용한다는 내용이 있으면 될거같음. 다른 설계문서도 확인. 2. 만약 arrow로 수정하는게 맞으면 현재
+- 질문  지금 UI는 컴포넌트 사용한거야? 문서상에는 shadcn 사용하게 되어있는데 package.json에는 해당 라이브러리는 없고 tailwind로만 구현된것 같은데
+- 2번으로 진행
+- 1. 문서상에서는 jsx만 사용하도록 되어있느니 typeScript관련 옵션과 설정은 삭제 2. anguler 관련 디렉토리 및 파일도 삭제
+- @jsconfig.json 이거 꼭 필요해?
+- App.jsx 시작으로 해서 구조가 어떻게 되어있는지 html파일로 하나 만들어줘
+- This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.  Summary: 1. Primary Request and Intent:    - Co
+
+### Files Modified
+- D:\20. POC\TrmWordDict\frontend\components.json
+- D:\20. POC\TrmWordDict\frontend\tailwind.config.js
+- D:\20. POC\TrmWordDict\frontend\src\styles\globals.css
+- D:\20. POC\TrmWordDict\frontend\src\lib\utils.js
+- D:\20. POC\TrmWordDict\frontend\src\shared\components\FileUpload\FileUpload.jsx
+- D:\20. POC\TrmWordDict\frontend\src\shared\components\SearchForm\SearchForm.jsx
+- D:\20. POC\TrmWordDict\frontend\src\app\providers.jsx
+- D:\20. POC\TrmWordDict\frontend\src\app\router.jsx
+- D:\20. POC\TrmWordDict\docs\worklog.md
+- D:\20. POC\TrmWordDict\docs\handoff.md
+- D:\20. POC\TrmWordDict\docs\dev-guide\conventions-frontend.md
+- D:\20. POC\TrmWordDict\frontend\src\shared\components\ui\button.jsx
+- D:\20. POC\TrmWordDict\frontend\src\shared\components\ui\input.jsx
+- D:\20. POC\TrmWordDict\frontend\src\shared\components\ui\table.jsx
+- D:\20. POC\TrmWordDict\frontend\src\shared\components\ui\sheet.jsx
+- D:\20. POC\TrmWordDict\frontend\playwright.config.js
+- D:\20. POC\TrmWordDict\frontend\README.md
+- D:\20. POC\TrmWordDict\docs\component-structure.html
+
+### Tools Used
+Glob, Read, Write, Edit, Grep, Agent, Bash, PowerShell
+
+### Stats
+- Total user messages: 23
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```
+
+---
+**[Compaction occurred at 16:51]** - Context was summarized
+
+---
+**[Compaction occurred at 17:55]** - Context was summarized

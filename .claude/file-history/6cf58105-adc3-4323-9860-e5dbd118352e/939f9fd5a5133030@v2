@@ -1,0 +1,53 @@
+import { useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
+import { logout as logoutApi } from '@/features/auth/authApi';
+import { useAuthStore } from '@/store/useAuthStore';
+import { LayoutHeader } from './components/LayoutHeader';
+import { SidebarSurface } from './components/SidebarSurface';
+
+export const MainLayout = () => {
+    const navigate = useNavigate();
+    const user = useAuthStore((state) => state.user);
+    const logout = useAuthStore((state) => state.logout);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    const handleLogout = async () => {
+        try {
+            await logoutApi();
+        } finally {
+            logout();
+            navigate('/login');
+        }
+    };
+
+    return (
+        <div className='min-h-screen bg-background text-foreground'>
+            <LayoutHeader
+                mobileMenuOpen={mobileMenuOpen}
+                onMobileMenuOpenChange={setMobileMenuOpen}
+                onLogout={handleLogout}
+                user={user}
+            />
+            <div
+                className='flex'
+                style={{ marginTop: 'var(--nav-h)', minHeight: 'calc(100vh - var(--nav-h))' }}
+            >
+                <aside
+                    className='hidden lg:flex flex-col flex-shrink-0 bg-card border-r border-border'
+                    style={{
+                        width: 'var(--sidebar-w)',
+                        position: 'sticky',
+                        top: 'var(--nav-h)',
+                        height: 'calc(100vh - var(--nav-h))',
+                        overflowY: 'auto',
+                    }}
+                >
+                    <SidebarSurface user={user} />
+                </aside>
+                <main className='flex-1 min-w-0' style={{ padding: '24px 28px' }}>
+                    <Outlet />
+                </main>
+            </div>
+        </div>
+    );
+};

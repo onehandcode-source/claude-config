@@ -1,0 +1,62 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { RouterProvider } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import { router } from './router';
+import { getMe } from '@/features/auth/authApi';
+import { useAuthStore } from '@/store/useAuthStore';
+
+const AuthBootstrap = () => {
+    const setUser = useAuthStore((state) => state.setUser);
+    const logout = useAuthStore((state) => state.logout);
+
+    useEffect(() => {
+        if (window.location.pathname === '/login') {
+            return;
+        }
+
+        localStorage.removeItem('trmdict_token');
+
+        let cancelled = false;
+
+        getMe()
+            .then((user) => {
+                if (!cancelled) {
+                    setUser(user);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    logout();
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [logout, setUser]);
+
+    return null;
+};
+
+export const Providers = () => {
+    const [queryClient] = useState(
+        () =>
+            new QueryClient({
+                defaultOptions: {
+                    queries: {
+                        retry: 1,
+                        staleTime: 1000 * 60 * 5,
+                    },
+                },
+            }),
+    );
+
+    return (
+        <QueryClientProvider client={queryClient}>
+            <AuthBootstrap />
+            <RouterProvider router={router} />
+            <Toaster richColors position="top-right" />
+        </QueryClientProvider>
+    );
+}

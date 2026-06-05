@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_everything-claude-code_playwright__browser_navigate",
+      "Bash(curl -s \"http://localhost:8080/\")",
+      "mcp__plugin_everything-claude-code_playwright__browser_snapshot",
+      "mcp__plugin_everything-claude-code_playwright__browser_fill_form",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('mcpServers', {}\\), indent=2, ensure_ascii=False\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); keys=[k for k in d.keys\\(\\) if 'mcp' in k.lower\\(\\) or 'playwright' in k.lower\\(\\) or 'server' in k.lower\\(\\)]; print\\(keys\\)\")",
+      "Bash(xargs grep -l \"playwright\")",
+      "mcp__playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_select_option",
+      "mcp__plugin_playwright_playwright__browser_handle_dialog",
+      "mcp__plugin_playwright_playwright__browser_fill_form",
+      "mcp__plugin_playwright_playwright__browser_tabs",
+      "Bash(npx tsc *)",
+      "Bash(New-Item *)",
+      "Bash(dir /b /s *.json)",
+      "Bash(findstr -v node_modules)",
+      "Bash(findstr -v .next)",
+      "Bash(findstr -v tsconfig)",
+      "Bash(findstr -v package)",
+      "Bash(curl -s -o nul -w \"%{http_code}\" http://localhost:3001/api/scenarios)",
+      "Bash(curl -s -o nul -w \"%{http_code}\" http://localhost:8080)",
+      "Bash(curl -s -X POST http://localhost:3001/api/scenarios -H \"Content-Type: application/json\" -d \"{\\\\\"name\\\\\":\\\\\"신고 단일유형 테스트 \\(도로·시설물 파손\\)\\\\\",\\\\\"description\\\\\":\\\\\"도로 시설물 파손 신고 유형 1개 자동화 검증\\\\\",\\\\\"testCases\\\\\":[{\\\\\"id\\\\\":\\\\\"tc-singotest-001\\\\\",\\\\\"name\\\\\":\\\\\"안전신고 - 도로·시설물 파손 및 고장\\\\\",\\\\\"description\\\\\":\\\\\"신고유형 01 전체 흐름\\\\\",\\\\\"baseUrl\\\\\":\\\\\"http://localhost:8080/#main\\\\\",\\\\\"steps\\\\\":[{\\\\\"type\\\\\":\\\\\"navigate\\\\\",\\\\\"url\\\\\":\\\\\"http://localhost:8080/#/main/login/login\\\\\",\\\\\"description\\\\\":\\\\\"로그인 페이지\\\\\"},{\\\\\"type\\\\\":\\\\\"wait\\\\\",\\\\\"milliseconds\\\\\":500,\\\\\"description\\\\\":\\\\\"대기\\\\\"},{\\\\\"type\\\\\":\\\\\"fill\\\\\",\\\\\"locator\\\\\":{\\\\\"role\\\\\":\\\\\"textbox\\\\\",\\\\\"name\\\\\":\\\\\"아이디\\\\\"},\\\\\"text\\\\\":\\\\\"silver1875\\\\\",\\\\\"description\\\\\":\\\\\"아이디 입력\\\\\"},{\\\\\"type\\\\\":\\\\\"fill\\\\\",\\\\\"locator\\\\\":{\\\\\"role\\\\\":\\\\\"textbox\\\\\",\\\\\"name\\\\\":\\\\\"비밀번호\\\\\"},\\\\\"text\\\\\":\\\\\"younggun22@@\\\\\",\\\\\"description\\\\\":\\\\\"비밀번호 입력\\\\\"},{\\\\\"type\\\\\":\\\\\"click\\\\\",\\\\\"locator\\\\\":{\\\\\"selector\\\\\":\\\\\"button[onclick*='LoginUtil.login\\(1\\)']\\\\\"},\\\\\"description\\\\\":\\\\\"로그인\\\\\"},{\\\\\"type\\\\\":\\\\\"wait\\\\\",\\\\\"milliseconds\\\\\":1000,\\\\\"description\\\\\":\\\\\"로그인 대기\\\\\"},{\\\\\"type\\\\\":\\\\\"navigate\\\\\",\\\\\"url\\\\\":\\\\\"http://localhost:8080/#safereport/safereport\\\\\",\\\\\"description\\\\\":\\\\\"신고 페이지\\\\\"},{\\\\\"type\\\\\":\\\\\"wait\\\\\",\\\\\"milliseconds\\\\\":500,\\\\\"description\\\\\":\\\\\"대기\\\\\"},{\\\\\"type\\\\\":\\\\\"screenshot\\\\\",\\\\\"description\\\\\":\\\\\"신고 페이지 초기 상태\\\\\"}]}]}\")",
+      "Bash(curl -s -X POST http://localhost:3001/api/scenarios/42d90f3a-18f3-466a-9059-7910a169fad4/run)",
+      "Bash(npx playwright *)",
+      "Bash(curl -s -X DELETE http://localhost:3001/api/scenarios/42d90f3a-18f3-466a-9059-7910a169fad4)",
+      "Bash(curl -s http://localhost:3001/api/scenarios)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); results=d['data']['testCaseResults'][0]['stepResults']; [print\\(f'Step {i+1} [{r[\\\\\"status\\\\\"]}] {r[\\\\\"step\\\\\"][\\\\\"description\\\\\"]}: {r.get\\(\\\\\"error\\\\\",r.get\\(\\\\\"output\\\\\",\\\\\"\\\\\"\\)\\)[:120]}'\\) for i,r in enumerate\\(results\\)]\")",
+      "Bash(curl -s -X POST http://localhost:3001/api/scenarios/a9f1e230-0001-0000-0000-000000000001/run -H \"Content-Type: application/json\")",
+      "Bash(python -c ' *)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_type"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
+}

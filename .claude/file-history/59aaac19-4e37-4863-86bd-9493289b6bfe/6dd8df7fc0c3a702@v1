@@ -1,0 +1,232 @@
+import { chromium, type Browser, type Dialog, type Locator, type Page } from "@playwright/test";
+import { normalizeLocator } from "./locator-utils.ts";
+import type { Step, StepLocator, StepResult, TiberoConfig } from "./types.js";
+
+interface ExecuteStepsOptions {
+  onStepStart?: (step: Step, stepIndex: number) => void | Promise<void>;
+  onStepComplete?: (
+    result: StepResult,
+    stepIndex: number,
+    executedStepCount: number
+  ) => void | Promise<void>;
+}
+
+export class PlaywrightExecutor {
+  private browser: Browser | null = null;
+
+  async initialize() {
+    this.browser = await chromium.launch({ headless: true });
+  }
+
+  async close() {
+    await this.browser?.close();
+  }
+
+  async executeSteps(
+    steps: Step[],
+    dbConfig?: TiberoConfig,
+    options: ExecuteStepsOptions = {}
+  ): Promise<StepResult[]> {
+    const page = await this.browser?.newPage();
+
+    if (!page) {
+      throw new Error("Browser is not initialized");
+    }
+
+    const results: StepResult[] = [];
+    const dialogMessages: string[] = [];
+    const dialogListener = async (dialog: Dialog) => {
+      dialogMessages.push(`${dialog.type()}: ${dialog.message()}`);
+      await dialog.accept();
+    };
+
+    try {
+      page.on("dialog", dialogListener);
+
+      for (const [stepIndex, step] of steps.entries()) {
+        await options.onStepStart?.(step, stepIndex);
+        const result = await this.executeStep(step, page, dbConfig, dialogMessages);
+        results.push(result);
+        await options.onStepComplete?.(result, stepIndex, results.length);
+
+        if (result.status === "error") {
+          break;
+        }
+      }
+    } finally {
+      await page.close();
+    }
+
+    return results;
+  }
+
+  private async executeStep(
+    step: Step,
+    page: Page,
+    dbConfig?: TiberoConfig,
+    dialogMessages: string[] = []
+  ): Promise<StepResult> {
+    try {
+      let output: unknown;
+      const dialogStartIndex = dialogMessages.length;
+
+      switch (step.type) {
+        case "navigate":
+          await page.goto(step.url, { waitUntil: "networkidle" });
+          output = `Navigated to ${step.url}`;
+          break;
+        case "click": {
+          const locator = resolveLocator(page, step.locator, step.selector);
+          await locator.click();
+          output = `Clicked: ${describeLocator(step.locator, step.selector)}`;
+          break;
+        }
+        case "mapClick": {
+          const locator = resolveLocator(page, step.locator, step.selector).first();
+          const box = await locator.boundingBox();
+
+          if (!box) {
+            throw new Error(
+              `Map target not found: ${describeLocator(step.locator, step.selector)}`
+            );
+          }
+
+          await page.mouse.click(box.x + step.x, box.y + step.y);
+          output = `Map clicked: ${describeLocator(step.locator, step.selector)} @ (${step.x}, ${step.y})`;
+          break;
+        }
+        case "fill": {
+          const locator = resolveLocator(page, step.locator, step.selector);
+          await locator.fill(step.text);
+          output = `Filled: ${describeLocator(step.locator, step.selector)}`;
+          break;
+        }
+        case "select": {
+          const locator = resolveLocator(page, step.locator, step.selector);
+          await locator.selectOption(step.text);
+          output = `Selected: ${step.text}`;
+          break;
+        }
+        case "wait":
+          await page.waitForTimeout(step.milliseconds);
+          output = `Waited ${step.milliseconds}ms`;
+          break;
+        case "screenshot": {
+          const buffer = await page.screenshot({ fullPage: true });
+          const screenshot = buffer.toString("base64");
+          return { step, status: "passed", output: screenshot, screenshot };
+        }
+        case "evaluate":
+          output = await page.evaluate((script) => eval(script), step.script);
+          break;
+        case "dbQuery":
+          if (!dbConfig) {
+            throw new Error("dbQuery step requires dbConfig");
+          }
+
+          const { executeDbQuery } = await import("./tibero-executor");
+          output = await executeDbQuery(dbConfig, step.query);
+          break;
+        default:
+          throw new Error(`Unknown step type: ${(step as { type: string }).type}`);
+      }
+
+      return {
+        step,
+        status: "passed",
+        output: attachDialogMessages(output, dialogMessages.slice(dialogStartIndex)),
+      };
+    } catch (error) {
+      return {
+        step,
+        status: "error",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+}
+
+function resolveLocator(page: Page, locator?: StepLocator, legacySelector?: string): Locator {
+  const normalized = normalizeLocator(locator, legacySelector);
+
+  if (!normalized) {
+    throw new Error("Locator information is required for this step");
+  }
+
+  if (normalized.role) {
+    return normalized.name
+      ? page.getByRole(normalized.role as Parameters<Page["getByRole"]>[0], {
+          name: normalized.name,
+        })
+      : page.getByRole(normalized.role as Parameters<Page["getByRole"]>[0]);
+  }
+
+  if (normalized.label) {
+    return page.getByLabel(normalized.label);
+  }
+
+  if (normalized.placeholder) {
+    return page.getByPlaceholder(normalized.placeholder);
+  }
+
+  if (normalized.text) {
+    return page.getByText(normalized.text);
+  }
+
+  if (normalized.testId) {
+    return page.getByTestId(normalized.testId);
+  }
+
+  if (normalized.selector) {
+    return page.locator(normalized.selector);
+  }
+
+  throw new Error("Unable to resolve locator");
+}
+
+function describeLocator(locator?: StepLocator, legacySelector?: string): string {
+  const normalized = normalizeLocator(locator, legacySelector);
+
+  if (!normalized) {
+    return "locator 없음";
+  }
+
+  if (normalized.role) {
+    return normalized.name
+      ? `role=${normalized.role}, name=${normalized.name}`
+      : `role=${normalized.role}`;
+  }
+
+  if (normalized.label) {
+    return `label=${normalized.label}`;
+  }
+
+  if (normalized.placeholder) {
+    return `placeholder=${normalized.placeholder}`;
+  }
+
+  if (normalized.text) {
+    return `text=${normalized.text}`;
+  }
+
+  if (normalized.testId) {
+    return `testId=${normalized.testId}`;
+  }
+
+  return `legacy selector=${normalized.selector}`;
+}
+
+function attachDialogMessages(output: unknown, dialogMessages: string[]): unknown {
+  if (dialogMessages.length === 0) {
+    return output;
+  }
+
+  if (typeof output === "string") {
+    return `${output} | Dialog accepted: ${dialogMessages.join(", ")}`;
+  }
+
+  return {
+    output,
+    dialogs: dialogMessages,
+  };
+}

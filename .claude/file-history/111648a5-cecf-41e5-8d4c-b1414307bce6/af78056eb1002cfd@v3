@@ -1,0 +1,118 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import type { AnyStep, Macro, TestCase } from "@/lib/types";
+import { StepEditor } from "./StepEditor";
+
+interface TestCaseEditorProps {
+  testCase: TestCase;
+  platform?: "web" | "android";
+  onChange: (testCase: TestCase) => void;
+  onRemove: () => void;
+}
+
+export function TestCaseEditor({ testCase, platform = "web", onChange, onRemove }: TestCaseEditorProps) {
+  const [macros, setMacros] = useState<Macro[]>([]);
+
+  useEffect(() => {
+    fetch("/api/macros")
+      .then((r) => r.json())
+      .then((payload: { success: boolean; data?: Macro[] }) => {
+        if (payload.success && payload.data) setMacros(payload.data);
+      })
+      .catch(() => {});
+  }, []);
+
+  function insertMacro(macroId: string) {
+    const macro = macros.find((m) => m.id === macroId);
+    if (!macro) return;
+    onChange({ ...testCase, steps: [...testCase.steps, ...macro.steps] });
+  }
+
+  function updateStep(index: number, step: AnyStep) {
+    const next = [...testCase.steps];
+    next[index] = step;
+    onChange({ ...testCase, steps: next });
+  }
+
+  function removeStep(index: number) {
+    onChange({ ...testCase, steps: testCase.steps.filter((_, current) => current !== index) });
+  }
+
+  function addStep() {
+    const defaultStep: AnyStep =
+      platform === "android"
+        ? { type: "tap", locator: {}, description: "" }
+        : { type: "navigate", url: "", description: "" };
+    onChange({
+      ...testCase,
+      steps: [...testCase.steps, defaultStep],
+    });
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border bg-card p-4">
+      <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+        <input
+          className="rounded border px-2 py-1 text-sm"
+          placeholder="테스트 케이스 이름"
+          value={testCase.name}
+          onChange={(event) => onChange({ ...testCase, name: event.target.value })}
+        />
+        <input
+          className="rounded border px-2 py-1 text-sm"
+          placeholder="Base URL"
+          value={testCase.baseUrl}
+          onChange={(event) => onChange({ ...testCase, baseUrl: event.target.value })}
+        />
+        <Button type="button" variant="destructive" size="sm" onClick={onRemove}>
+          케이스 삭제
+        </Button>
+      </div>
+
+      <textarea
+        className="w-full rounded border px-2 py-1 text-sm"
+        rows={2}
+        placeholder="설명"
+        value={testCase.description ?? ""}
+        onChange={(event) => onChange({ ...testCase, description: event.target.value })}
+      />
+
+      <div className="space-y-2">
+        {testCase.steps.map((step, index) => (
+          <StepEditor
+            key={`${testCase.id}-${index}`}
+            step={step}
+            platform={platform}
+            onChange={(next) => updateStep(index, next)}
+            onRemove={() => removeStep(index)}
+          />
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" variant="outline" onClick={addStep}>
+          + Step 추가
+        </Button>
+        {macros.length > 0 && (
+          <select
+            className="rounded border px-2 py-1 text-sm"
+            value=""
+            onChange={(e) => {
+              if (e.target.value) insertMacro(e.target.value);
+              e.target.value = "";
+            }}
+          >
+            <option value="">매크로 삽입 ▾</option>
+            {macros.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name} ({m.steps.length} steps)
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+    </div>
+  );
+}

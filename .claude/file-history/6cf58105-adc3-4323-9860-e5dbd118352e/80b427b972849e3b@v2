@@ -1,0 +1,224 @@
+import { useState } from 'react';
+import { CardList } from '@/shared/components/CardList/CardList';
+import { SearchForm } from '@/shared/components/SearchForm/SearchForm';
+import { Input } from '@/shared/components/ui/input';
+import { emptyToNull } from '@/shared/query/queryHelpers';
+import { useListPage } from '@/shared/hooks/useListPage';
+import { WordDetailDialog } from './WordDetailDialog';
+
+const initialFilters = Object.freeze({
+    stdWordNm: '',
+    stdWordEngAbbrNm: '',
+    stdDmnClsfNm: '',
+    frmWordYn: '',
+    useYn: '',
+});
+
+const Badge = ({ children, color, bg }) => (
+    <span
+        style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            padding: '2px 8px',
+            borderRadius: '100px',
+            color,
+            background: bg,
+            whiteSpace: 'nowrap',
+        }}
+    >
+        {children}
+    </span>
+);
+
+const WordCard = ({ word, onClick }) => (
+    <button
+        type='button'
+        onClick={() => onClick(word)}
+        style={{
+            width: '100%',
+            textAlign: 'left',
+            background: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: '10px',
+            padding: '14px 16px',
+            cursor: 'pointer',
+            transition: 'border-color 0.12s, box-shadow 0.12s',
+        }}
+        onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'hsl(var(--primary))';
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(37,99,235,0.08)';
+        }}
+        onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'hsl(var(--border))';
+            e.currentTarget.style.boxShadow = 'none';
+        }}
+    >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '15px', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                        {word.stdWordNm}
+                    </span>
+                    {word.stdWordEngAbbrNm && (
+                        <span style={{ fontSize: '13px', color: 'hsl(var(--muted-foreground))' }}>
+                            {word.stdWordEngAbbrNm}
+                        </span>
+                    )}
+                </div>
+                <div
+                    style={{
+                        fontSize: '13px',
+                        color: 'hsl(var(--muted-foreground))',
+                        display: 'flex',
+                        gap: '16px',
+                        flexWrap: 'wrap',
+                    }}
+                >
+                    {word.stdWordEngNm && <span>{word.stdWordEngNm}</span>}
+                    {word.stdDmnClsfNm && <span>도메인 · {word.stdDmnClsfNm}</span>}
+                    {word.enctCycl && <span>제정 {word.enctCycl}차</span>}
+                </div>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {word.frmWordYn === 'Y' && (
+                    <Badge color='#7c3aed' bg='#ede9fe'>
+                        형식단어
+                    </Badge>
+                )}
+                <Badge
+                    color={word.useYn === 'Y' ? '#059669' : '#6b7280'}
+                    bg={word.useYn === 'Y' ? '#d1fae5' : '#f3f4f6'}
+                >
+                    {word.useYn === 'Y' ? '사용' : '미사용'}
+                </Badge>
+            </div>
+        </div>
+    </button>
+);
+
+export const WordListPage = () => {
+    const [filters, setFilters] = useState(initialFilters);
+    const { request, setRequest, setSelectedId, isDetailOpen, pageQuery, detailQuery } = useListPage({
+        listQueryKey: 'word-list',
+        listUrl: '/words/search',
+        detailQueryKey: 'word-detail',
+        detailUrl: '/words',
+        initialRequest: { page: 1, size: 20 },
+    });
+
+    return (
+        <div className='space-y-4'>
+            <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'hsl(var(--foreground))', margin: 0 }}>
+                단어 목록
+            </h1>
+
+            <SearchForm
+                onSubmit={() => {
+                    setRequest({
+                        page: 1,
+                        size: request.size,
+                        stdWordNm: emptyToNull(filters.stdWordNm),
+                        stdWordEngAbbrNm: emptyToNull(filters.stdWordEngAbbrNm),
+                        stdDmnClsfNm: emptyToNull(filters.stdDmnClsfNm),
+                        frmWordYn: emptyToNull(filters.frmWordYn),
+                        useYn: emptyToNull(filters.useYn),
+                    });
+                }}
+                onReset={() => {
+                    setFilters(initialFilters);
+                    setRequest({ page: 1, size: request.size });
+                }}
+            >
+                <div className='grid w-full gap-3 md:grid-cols-2 xl:grid-cols-5'>
+                    <div className='space-y-2'>
+                        <label className='text-sm font-medium text-foreground' htmlFor='stdWordNm'>
+                            단어명
+                        </label>
+                        <Input
+                            id='stdWordNm'
+                            value={filters.stdWordNm}
+                            onChange={(event) =>
+                                setFilters((current) => ({ ...current, stdWordNm: event.target.value }))
+                            }
+                        />
+                    </div>
+                    <div className='space-y-2'>
+                        <label className='text-sm font-medium text-foreground' htmlFor='stdWordEngAbbrNm'>
+                            영문약어명
+                        </label>
+                        <Input
+                            id='stdWordEngAbbrNm'
+                            value={filters.stdWordEngAbbrNm}
+                            onChange={(event) =>
+                                setFilters((current) => ({ ...current, stdWordEngAbbrNm: event.target.value }))
+                            }
+                        />
+                    </div>
+                    <div className='space-y-2'>
+                        <label className='text-sm font-medium text-foreground' htmlFor='stdDmnClsfNm'>
+                            도메인분류명
+                        </label>
+                        <Input
+                            id='stdDmnClsfNm'
+                            value={filters.stdDmnClsfNm}
+                            onChange={(event) =>
+                                setFilters((current) => ({ ...current, stdDmnClsfNm: event.target.value }))
+                            }
+                        />
+                    </div>
+                    <div className='space-y-2'>
+                        <label className='text-sm font-medium text-foreground' htmlFor='frmWordYn'>
+                            형식단어여부
+                        </label>
+                        <select
+                            id='frmWordYn'
+                            className='flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground'
+                            value={filters.frmWordYn}
+                            onChange={(event) =>
+                                setFilters((current) => ({ ...current, frmWordYn: event.target.value }))
+                            }
+                        >
+                            <option value=''>전체</option>
+                            <option value='Y'>예</option>
+                            <option value='N'>아니오</option>
+                        </select>
+                    </div>
+                    <div className='space-y-2'>
+                        <label className='text-sm font-medium text-foreground' htmlFor='useYn'>
+                            사용여부
+                        </label>
+                        <select
+                            id='useYn'
+                            className='flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground'
+                            value={filters.useYn}
+                            onChange={(event) =>
+                                setFilters((current) => ({ ...current, useYn: event.target.value }))
+                            }
+                        >
+                            <option value=''>전체</option>
+                            <option value='Y'>사용</option>
+                            <option value='N'>미사용</option>
+                        </select>
+                    </div>
+                </div>
+            </SearchForm>
+
+            <CardList
+                pageData={pageQuery.data ?? null}
+                pageSizeOptions={[10, 20, 50, 100]}
+                onPageChange={({ page, size }) => setRequest((current) => ({ ...current, page, size }))}
+                renderItem={(word) => (
+                    <WordCard key={word.id} word={word} onClick={(w) => setSelectedId(w.id)} />
+                )}
+            />
+
+            <WordDetailDialog
+                word={detailQuery.data ?? null}
+                open={isDetailOpen}
+                onOpenChange={(open) => {
+                    if (!open) setSelectedId(null);
+                }}
+            />
+        </div>
+    );
+};

@@ -1,0 +1,186 @@
+{
+  "sessions": {
+    "02fb0004-79f5-4617-90c8-faa9d1167059": {
+      "tool_counts": {
+        "Skill": 2,
+        "Bash": 13,
+        "Read": 15,
+        "Glob": 4,
+        "Edit": 1,
+        "PowerShell": 16
+      },
+      "last_tool": "Bash",
+      "total_calls": 51,
+      "started_at": 1778811211,
+      "updated_at": 1778818998
+    },
+    "83d1ef05-1595-4b81-962b-89f4178b16d4": {
+      "tool_counts": {
+        "Glob": 1,
+        "Read": 14,
+        "Grep": 2,
+        "ToolSearch": 1,
+        "EnterWorktree": 1,
+        "Write": 1,
+        "Edit": 1
+      },
+      "last_tool": "Edit",
+      "total_calls": 21,
+      "started_at": 1778831188,
+      "updated_at": 1778833503
+    },
+    "572f16e8-cf72-45dc-8781-ab37de7ce221": {
+      "tool_counts": {
+        "Read": 12,
+        "Glob": 1,
+        "ToolSearch": 2,
+        "EnterWorktree": 1,
+        "Write": 1,
+        "Bash": 3,
+        "ExitWorktree": 1
+      },
+      "last_tool": "ExitWorktree",
+      "total_calls": 21,
+      "started_at": 1778831622,
+      "updated_at": 1778834250
+    },
+    "4e307d26-4fd8-4273-b497-15b43adfb08b": {
+      "tool_counts": {
+        "Glob": 1,
+        "Read": 13,
+        "ToolSearch": 1,
+        "EnterWorktree": 1,
+        "Edit": 14,
+        "Grep": 1,
+        "Bash": 3
+      },
+      "last_tool": "Read",
+      "total_calls": 34,
+      "started_at": 1778831683,
+      "updated_at": 1778833135
+    },
+    "685255ec-75a8-4f4c-9eda-b496b632d1e0": {
+      "tool_counts": {
+        "Read": 5,
+        "Bash": 1
+      },
+      "last_tool": "Bash",
+      "total_calls": 6,
+      "started_at": 1778833659,
+      "updated_at": 1778833758
+    },
+    "58199c03-11b4-4a84-85b5-1ff4e4d599de": {
+      "tool_counts": {
+        "Read": 2
+      },
+      "last_tool": "Read",
+      "total_calls": 2,
+      "started_at": 1778835697,
+      "updated_at": 1778835704
+    },
+    "bae3f5f3-8986-4644-931a-92a615e320fe": {
+      "tool_counts": {
+        "Glob": 2,
+        "Read": 2,
+        "Grep": 1
+      },
+      "last_tool": "Read",
+      "total_calls": 5,
+      "started_at": 1778835814,
+      "updated_at": 1778835983
+    },
+    "93584330-4747-4132-a92e-46fc2f242d46": {
+      "tool_counts": {
+        "Read": 1
+      },
+      "last_tool": "Read",
+      "total_calls": 1,
+      "started_at": 1778836275,
+      "updated_at": 1778836275
+    },
+    "cfcb8994-65d3-4063-ae8a-ff2a9d40efa3": {
+      "tool_counts": {
+        "Read": 26,
+        "Grep": 5,
+        "Edit": 26,
+        "Agent": 6,
+        "ToolSearch": 1
+      },
+      "last_tool": "ToolSearch",
+      "total_calls": 64,
+      "started_at": 1779078319,
+      "updated_at": 1779083588
+    },
+    "111648a5-cecf-41e5-8d4c-b1414307bce6": {
+      "tool_counts": {
+        "Glob": 38,
+        "AskUserQuestion": 12,
+        "Bash": 37,
+        "Read": 103,
+        "Grep": 47,
+        "Agent": 20,
+        "Skill": 1,
+        "Edit": 87,
+        "PowerShell": 24,
+        "Write": 21,
+        "ToolSearch": 2,
+        "mcp__playwright__browser_navigate": 3,
+        "mcp__playwright__browser_snapshot": 4,
+        "mcp__playwright__browser_type": 2,
+        "mcp__playwright__browser_click": 1
+      },
+      "last_tool": "Edit",
+      "total_calls": 402,
+      "started_at": 1779080803,
+      "updated_at": 1779173361
+    },
+    "d5f1b03d-ebab-4702-8e37-897a3482639a": {
+      "tool_counts": {
+        "Read": 6,
+        "Write": 1,
+        "Glob": 2,
+        "Edit": 2
+      },
+      "last_tool": "Glob",
+      "total_calls": 11,
+      "started_at": 1779080976,
+      "updated_at": 1779085726
+    },
+    "77ac2710-f058-4a8a-9d86-8090b523ae3e": {
+      "tool_counts": {
+        "Glob": 61,
+        "Read": 353,
+        "Write": 34,
+        "Grep": 76,
+        "Edit": 92,
+        "Bash": 95,
+        "ToolSearch": 3,
+        "Agent": 18,
+        "PowerShell": 12,
+        "mcp__plugin_playwright_playwright__browser_navigate": 6,
+        "mcp__plugin_playwright_playwright__browser_snapshot": 6,
+        "mcp__plugin_playwright_playwright__browser_console_messages": 7,
+        "mcp__plugin_playwright_playwright__browser_evaluate": 26,
+        "mcp__plugin_playwright_playwright__browser_close": 1,
+        "AskUserQuestion": 7,
+        "TaskCreate": 2,
+        "TaskUpdate": 4,
+        "Skill": 1
+      },
+      "last_tool": "Read",
+      "total_calls": 804,
+      "started_at": 1779083971,
+      "updated_at": 1779322712
+    },
+    "244249f0-15f3-4c4c-a90d-cdce794c534d": {
+      "tool_counts": {
+        "Grep": 17,
+        "Read": 4
+      },
+      "last_tool": "Read",
+      "total_calls": 21,
+      "started_at": 1779261845,
+      "updated_at": 1779262247
+    }
+  }
+}

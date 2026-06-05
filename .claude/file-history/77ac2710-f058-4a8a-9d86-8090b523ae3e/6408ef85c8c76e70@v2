@@ -1,0 +1,11 @@
+import { axiosInstance, unwrapResponse } from '@/core/api/axiosInstance';
+
+export async function searchForbiddens(payload) {
+    const response = await axiosInstance.post('/forbiddens/search', payload);
+    return unwrapResponse(response);
+}
+
+export async function getForbiddenById(id) {
+    const response = await axiosInstance.get(`/forbiddens/${id}`);
+    return unwrapResponse(response);
+}

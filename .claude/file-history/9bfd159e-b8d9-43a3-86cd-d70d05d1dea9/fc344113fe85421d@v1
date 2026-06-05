@@ -1,0 +1,137 @@
+package kr.go.safepeople.deamon.filesync.config.rabbitMQ;
+
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.Optional;
+
+import static org.mockito.Mockito.*;
+
+class RMUpstreamHealthProbeTest {
+
+    private CircuitBreakerRegistry registry;
+    private CircuitBreaker mainCb;
+    private CircuitBreaker recoveryCb;
+    private StubProbe probe;
+
+    // executeProbe()를 stub으로 교체 — WebClient 없이 로직만 검증
+    static class StubProbe extends RMUpstreamHealthProbe {
+        private Optional<Integer> stubStatus = Optional.empty();
+
+        StubProbe(CircuitBreakerRegistry registry) {
+            super(registry, null); // WebClient 사용 안 함 — executeProbe 오버라이드됨
+        }
+
+        void setStatus(Optional<Integer> status) {
+            this.stubStatus = status;
+        }
+
+        @Override
+        Optional<Integer> executeProbe(String url) {
+            return stubStatus;
+        }
+    }
+
+    @BeforeEach
+    void setUp() {
+        registry = mock(CircuitBreakerRegistry.class);
+        mainCb = mock(CircuitBreaker.class);
+        recoveryCb = mock(CircuitBreaker.class);
+
+        when(registry.circuitBreaker("filesync-main")).thenReturn(mainCb);
+        when(registry.circuitBreaker("filesync-recovery")).thenReturn(recoveryCb);
+
+        probe = new StubProbe(registry);
+        org.springframework.test.util.ReflectionTestUtils.setField(probe, "iHost", "http://iwas1_LB");
+        org.springframework.test.util.ReflectionTestUtils.setField(probe, "eHost", "http://ewas1_LB");
+        org.springframework.test.util.ReflectionTestUtils.setField(probe, "iPath", "/iPath/api/request/file");
+        org.springframework.test.util.ReflectionTestUtils.setField(probe, "ePath", "/ePath/api/request/file");
+    }
+
+    @Test
+    void givenCbClosed_whenProbe_thenNoTransition() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.CLOSED);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.CLOSED);
+        probe.probe();
+        verify(mainCb, never()).transitionToHalfOpenState();
+        verify(recoveryCb, never()).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbHalfOpen_whenProbe_thenNoTransition() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.HALF_OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.HALF_OPEN);
+        probe.probe();
+        verify(mainCb, never()).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbOpen_andProbe503_thenNoTransition() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(503));
+        probe.probe();
+        verify(mainCb, never()).transitionToHalfOpenState();
+        verify(recoveryCb, never()).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbOpen_andProbe404_thenTransitionToHalfOpen() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(404));
+        probe.probe();
+        verify(mainCb).transitionToHalfOpenState();
+        verify(recoveryCb).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbOpen_andProbe200_thenTransitionToHalfOpen() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(200));
+        probe.probe();
+        verify(mainCb).transitionToHalfOpenState();
+        verify(recoveryCb).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbOpen_andProbe502_thenNoTransition() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(502));
+        probe.probe();
+        verify(mainCb, never()).transitionToHalfOpenState();
+        verify(recoveryCb, never()).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbOpen_andProbeNetworkError_thenNoTransition() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.empty());
+        probe.probe();
+        verify(mainCb, never()).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenCbOpen_andProbe500_thenNoTransition() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        probe.setStatus(Optional.of(500));
+        probe.probe();
+        verify(mainCb, never()).transitionToHalfOpenState();
+    }
+
+    @Test
+    void givenMainOpen_andRecoveryClosed_thenOnlyMainTransitions() {
+        when(mainCb.getState()).thenReturn(CircuitBreaker.State.OPEN);
+        when(recoveryCb.getState()).thenReturn(CircuitBreaker.State.CLOSED);
+        probe.setStatus(Optional.of(404));
+        probe.probe();
+        verify(mainCb).transitionToHalfOpenState();
+        verify(recoveryCb, never()).transitionToHalfOpenState();
+    }
+}

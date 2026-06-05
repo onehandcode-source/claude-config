@@ -1,0 +1,29 @@
+import { axiosInstance, unwrapResponse } from '@/core/api/axiosInstance';
+
+export async function uploadCsv(type, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await axiosInstance.post('/imports', formData, {
+        params: { type },
+    });
+
+    return unwrapResponse(response);
+}
+
+export async function getSummary(historyId) {
+    const response = await axiosInstance.get(`/imports/${historyId}`);
+    return unwrapResponse(response);
+}
+
+export async function getErrorPage(historyId, page, size, sort) {
+    const response = await axiosInstance.get(`/imports/${historyId}/errors`, {
+        params: {
+            page,
+            size,
+            sort,
+        },
+    });
+
+    return unwrapResponse(response);
+}

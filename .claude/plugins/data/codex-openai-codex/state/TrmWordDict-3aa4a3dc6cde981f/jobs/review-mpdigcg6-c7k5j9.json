@@ -1,0 +1,74 @@
+{
+  "id": "review-mpdigcg6-c7k5j9",
+  "kind": "adversarial-review",
+  "kindLabel": "adversarial-review",
+  "title": "Codex Adversarial Review",
+  "workspaceRoot": "D:/20. POC/TrmWordDict",
+  "jobClass": "review",
+  "summary": "Adversarial Review working tree diff",
+  "write": false,
+  "createdAt": "2026-05-20T03:37:04.518Z",
+  "sessionId": "77ac2710-f058-4a8a-9d86-8090b523ae3e",
+  "status": "completed",
+  "startedAt": "2026-05-20T03:37:04.894Z",
+  "phase": "done",
+  "pid": null,
+  "logFile": "C:\\Users\\ygkim\\.claude\\plugins\\data\\codex-openai-codex\\state\\TrmWordDict-3aa4a3dc6cde981f\\jobs\\review-mpdigcg6-c7k5j9.log",
+  "threadId": "019e4375-90fc-7a30-9e76-0779bddec0e2",
+  "turnId": "019e4375-9849-7fa1-9828-297fa69c1f74",
+  "completedAt": "2026-05-20T03:39:46.309Z",
+  "result": {
+    "review": "Adversarial Review",
+    "target": {
+      "mode": "working-tree",
+      "label": "working tree diff",
+      "explicit": false
+    },
+    "threadId": "019e4375-90fc-7a30-9e76-0779bddec0e2",
+    "context": {
+      "repoRoot": "D:/20. POC/TrmWordDict",
+      "branch": "master",
+      "summary": "Reviewing 0 staged, 146 unstaged, and 475 untracked file(s)."
+    },
+    "codex": {
+      "status": 0,
+      "stderr": "",
+      "stdout": "{\"verdict\":\"needs-attention\",\"summary\":\"No-ship: the cookie/JWT migration has a real auth regression on refresh and still trusts stale JWT claims after account changes.\",\"findings\":[{\"severity\":\"high\",\"title\":\"Protected routes redirect before the cookie session can be rehydrated\",\"body\":\"This guard makes its decision from in-memory Zustand state only. On a hard refresh or deep link to a protected page, `isAuthenticated` starts as `false`, so the user is redirected to `/login` immediately. Session recovery happens later in `AuthBootstrap` via `/auth/me`, and that bootstrap is skipped once the app is on `/login`, so a valid HttpOnly JWT cookie can no longer restore the session. The result is a user-visible login regression: valid sessions get stranded on refresh/navigation instead of resuming.\",\"file\":\"frontend/src/app/ProtectedRoute.jsx\",\"line_start\":5,\"line_end\":9,\"confidence\":0.98,\"recommendation\":\"Add an explicit auth-hydration state and block protected-route redirects until the initial `/auth/me` probe has succeeded or failed. Do not permanently skip bootstrap logic just because the current path is `/login`.\"},{\"severity\":\"high\",\"title\":\"JWT cookies remain authoritative after user disablement or role changes\",\"body\":\"The filter promotes `uid` and `role` claims from the cookie JWT directly into Spring Security without reloading the current user record. That means post-login account changes are ignored for the lifetime of the token: a user disabled in the database or demoted from `ADMIN` can keep accessing protected endpoints with the stale cookie until expiry. Because this diff moved auth fully onto the cookie path and does not add any revocation/version check, the trust boundary is still the old token, not current account state.\",\"file\":\"backend/src/main/java/com/devwogns/trmdict/common/security/JwtAuthenticationFilter.java\",\"line_start\":31,\"line_end\":41,\"confidence\":0.93,\"recommendation\":\"Revalidate the principal against current server-side user state before populating the security context, or add a revocation/token-version mechanism that invalidates outstanding JWTs when `useYn` or role changes.\"}],\"next_steps\":[\"Add bootstrap gating for protected routes and cover refresh/deep-link cases with frontend tests.\",\"Add server-side revocation/state revalidation for JWT-authenticated requests, then test disablement and role-downgrade scenarios against existing cookies.\"]}",
+      "reasoning": []
+    },
+    "result": {
+      "verdict": "needs-attention",
+      "summary": "No-ship: the cookie/JWT migration has a real auth regression on refresh and still trusts stale JWT claims after account changes.",
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Protected routes redirect before the cookie session can be rehydrated",
+          "body": "This guard makes its decision from in-memory Zustand state only. On a hard refresh or deep link to a protected page, `isAuthenticated` starts as `false`, so the user is redirected to `/login` immediately. Session recovery happens later in `AuthBootstrap` via `/auth/me`, and that bootstrap is skipped once the app is on `/login`, so a valid HttpOnly JWT cookie can no longer restore the session. The result is a user-visible login regression: valid sessions get stranded on refresh/navigation instead of resuming.",
+          "file": "frontend/src/app/ProtectedRoute.jsx",
+          "line_start": 5,
+          "line_end": 9,
+          "confidence": 0.98,
+          "recommendation": "Add an explicit auth-hydration state and block protected-route redirects until the initial `/auth/me` probe has succeeded or failed. Do not permanently skip bootstrap logic just because the current path is `/login`."
+        },
+        {
+          "severity": "high",
+          "title": "JWT cookies remain authoritative after user disablement or role changes",
+          "body": "The filter promotes `uid` and `role` claims from the cookie JWT directly into Spring Security without reloading the current user record. That means post-login account changes are ignored for the lifetime of the token: a user disabled in the database or demoted from `ADMIN` can keep accessing protected endpoints with the stale cookie until expiry. Because this diff moved auth fully onto the cookie path and does not add any revocation/version check, the trust boundary is still the old token, not current account state.",
+          "file": "backend/src/main/java/com/devwogns/trmdict/common/security/JwtAuthenticationFilter.java",
+          "line_start": 31,
+          "line_end": 41,
+          "confidence": 0.93,
+          "recommendation": "Revalidate the principal against current server-side user state before populating the security context, or add a revocation/token-version mechanism that invalidates outstanding JWTs when `useYn` or role changes."
+        }
+      ],
+      "next_steps": [
+        "Add bootstrap gating for protected routes and cover refresh/deep-link cases with frontend tests.",
+        "Add server-side revocation/state revalidation for JWT-authenticated requests, then test disablement and role-downgrade scenarios against existing cookies."
+      ]
+    },
+    "rawOutput": "{\"verdict\":\"needs-attention\",\"summary\":\"No-ship: the cookie/JWT migration has a real auth regression on refresh and still trusts stale JWT claims after account changes.\",\"findings\":[{\"severity\":\"high\",\"title\":\"Protected routes redirect before the cookie session can be rehydrated\",\"body\":\"This guard makes its decision from in-memory Zustand state only. On a hard refresh or deep link to a protected page, `isAuthenticated` starts as `false`, so the user is redirected to `/login` immediately. Session recovery happens later in `AuthBootstrap` via `/auth/me`, and that bootstrap is skipped once the app is on `/login`, so a valid HttpOnly JWT cookie can no longer restore the session. The result is a user-visible login regression: valid sessions get stranded on refresh/navigation instead of resuming.\",\"file\":\"frontend/src/app/ProtectedRoute.jsx\",\"line_start\":5,\"line_end\":9,\"confidence\":0.98,\"recommendation\":\"Add an explicit auth-hydration state and block protected-route redirects until the initial `/auth/me` probe has succeeded or failed. Do not permanently skip bootstrap logic just because the current path is `/login`.\"},{\"severity\":\"high\",\"title\":\"JWT cookies remain authoritative after user disablement or role changes\",\"body\":\"The filter promotes `uid` and `role` claims from the cookie JWT directly into Spring Security without reloading the current user record. That means post-login account changes are ignored for the lifetime of the token: a user disabled in the database or demoted from `ADMIN` can keep accessing protected endpoints with the stale cookie until expiry. Because this diff moved auth fully onto the cookie path and does not add any revocation/version check, the trust boundary is still the old token, not current account state.\",\"file\":\"backend/src/main/java/com/devwogns/trmdict/common/security/JwtAuthenticationFilter.java\",\"line_start\":31,\"line_end\":41,\"confidence\":0.93,\"recommendation\":\"Revalidate the principal against current server-side user state before populating the security context, or add a revocation/token-version mechanism that invalidates outstanding JWTs when `useYn` or role changes.\"}],\"next_steps\":[\"Add bootstrap gating for protected routes and cover refresh/deep-link cases with frontend tests.\",\"Add server-side revocation/state revalidation for JWT-authenticated requests, then test disablement and role-downgrade scenarios against existing cookies.\"]}",
+    "parseError": null,
+    "reasoningSummary": []
+  },
+  "rendered": "# Codex Adversarial Review\n\nTarget: working tree diff\nVerdict: needs-attention\n\nNo-ship: the cookie/JWT migration has a real auth regression on refresh and still trusts stale JWT claims after account changes.\n\nFindings:\n- [high] Protected routes redirect before the cookie session can be rehydrated (frontend/src/app/ProtectedRoute.jsx:5-9)\n  This guard makes its decision from in-memory Zustand state only. On a hard refresh or deep link to a protected page, `isAuthenticated` starts as `false`, so the user is redirected to `/login` immediately. Session recovery happens later in `AuthBootstrap` via `/auth/me`, and that bootstrap is skipped once the app is on `/login`, so a valid HttpOnly JWT cookie can no longer restore the session. The result is a user-visible login regression: valid sessions get stranded on refresh/navigation instead of resuming.\n  Recommendation: Add an explicit auth-hydration state and block protected-route redirects until the initial `/auth/me` probe has succeeded or failed. Do not permanently skip bootstrap logic just because the current path is `/login`.\n- [high] JWT cookies remain authoritative after user disablement or role changes (backend/src/main/java/com/devwogns/trmdict/common/security/JwtAuthenticationFilter.java:31-41)\n  The filter promotes `uid` and `role` claims from the cookie JWT directly into Spring Security without reloading the current user record. That means post-login account changes are ignored for the lifetime of the token: a user disabled in the database or demoted from `ADMIN` can keep accessing protected endpoints with the stale cookie until expiry. Because this diff moved auth fully onto the cookie path and does not add any revocation/version check, the trust boundary is still the old token, not current account state.\n  Recommendation: Revalidate the principal against current server-side user state before populating the security context, or add a revocation/token-version mechanism that invalidates outstanding JWTs when `useYn` or role changes.\n\nNext steps:\n- Add bootstrap gating for protected routes and cover refresh/deep-link cases with frontend tests.\n- Add server-side revocation/state revalidation for JWT-authenticated requests, then test disablement and role-downgrade scenarios against existing cookies.\n"
+}

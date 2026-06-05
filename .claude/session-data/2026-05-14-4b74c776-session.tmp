@@ -1,0 +1,41 @@
+# Session: 2026-05-14
+**Date:** 2026-05-14
+**Started:** 16:19
+**Last Updated:** 16:39
+**Project:** test
+**Branch:** unknown
+**Worktree:** D:\21. harness\test
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- 제미나이에게 react19에서 추가된 문법 조사하여 정리
+- Base directory for this skill: C:\Users\ygkim\.claude\plugins\cache\superpowers-marketplace\superpowers\4.3.1\skills\dispatching-parallel-agents  # Dispatching Parallel Agents  ## Overview  When you h
+- [Request interrupted by user]
+- @workspace.md 내용 초기화 하고 제미나이에게 다시 리서치 요청
+- 제미나이에게 리서치 명령 후 보고 받아서 정리해
+- [Request interrupted by user for tool use]
+- <task-notification> <task-id>bcuxe1h3y</task-id> <tool-use-id>toolu_0173WVHkW5JZ2QXni7hV2raE</tool-use-id> <output-file>C:\Users\ygkim\AppData\Local\Temp\claude\D--21--harness-test\49e7f2b5-76a6-4cf2-
+- <task-notification> <task-id>bxyu9h8lf</task-id> <tool-use-id>toolu_018v8Ndprs7YKBqfTmVpwdWY</tool-use-id> <output-file>C:\Users\ygkim\AppData\Local\Temp\claude\D--21--harness-test\49e7f2b5-76a6-4cf2-
+- [Request interrupted by user]
+- 제미나이에게 task 확인하고 결과 보고 받아서 알려줘
+
+### Files Modified
+- D:\21. harness\test\workspace.md
+
+### Tools Used
+Skill, Read, Write, Bash, ToolSearch, WebSearch
+
+### Stats
+- Total user messages: 10
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

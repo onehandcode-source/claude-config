@@ -1,0 +1,501 @@
+import { AgGridReact } from 'ag-grid-react';
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import * as XLSX from 'xlsx';
+import { cn } from '@/lib/utils';
+import { Button } from '../ui/button';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+const gridTheme = themeQuartz.withParams({
+    backgroundColor: 'hsl(var(--card))',
+    foregroundColor: 'hsl(var(--foreground))',
+    borderColor: 'hsl(var(--border))',
+    headerBackgroundColor: 'hsl(var(--muted))',
+    headerTextColor: 'hsl(var(--muted-foreground))',
+    headerFontWeight: 600,
+    rowHoverColor: 'hsl(var(--accent))',
+    selectedRowBackgroundColor: 'hsl(var(--secondary))',
+    fontFamily: 'inherit',
+    fontSize: 13,
+    rowHeight: 40,
+    headerHeight: 40,
+});
+
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const DEFAULT_COLUMNS = [];
+const DEFAULT_DENSITIES = {
+    comfortable: { rowHeight: 40, headerHeight: 40 },
+    compact: { rowHeight: 32, headerHeight: 34 },
+    spacious: { rowHeight: 48, headerHeight: 44 },
+};
+
+const KOREAN_LOCALE_TEXT = {
+    pageSizeSelectorLabel: '페이지 크기',
+    ariaPageSizeSelectorLabel: '페이지 크기',
+    applyFilter: '적용',
+    clearFilter: '지우기',
+    resetFilter: '초기화',
+    cancelFilter: '취소',
+    textFilter: '텍스트 필터',
+    numberFilter: '숫자 필터',
+    bigintFilter: '숫자 필터',
+    dateFilter: '날짜 필터',
+    setFilter: '세트 필터',
+    filterOoo: '필터...',
+    empty: '빈 값',
+    equals: '같음',
+    notEqual: '같지 않음',
+    lessThan: '작음',
+    greaterThan: '큼',
+    inRange: '범위',
+    inRangeStart: '시작',
+    inRangeEnd: '종료',
+    lessThanOrEqual: '이하',
+    greaterThanOrEqual: '이상',
+    contains: '포함',
+    notContains: '포함 안 함',
+    startsWith: '시작 문자',
+    endsWith: '끝 문자',
+    blank: '빈값',
+    notBlank: '값 있음',
+    before: '전',
+    after: '후',
+    andCondition: '그리고',
+    orCondition: '또는',
+    dateFormatOoo: '날짜 형식',
+};
+
+const buildPageItems = (currentPage, totalPages) => {
+    if (totalPages <= 1) {
+        return [];
+    }
+
+    if (totalPages <= 7) {
+        return Array.from({ length: totalPages }, (_, index) => ({ type: 'page', value: index + 1 }));
+    }
+
+    const pages = new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+    const ordered = [...pages]
+        .filter((page) => page >= 1 && page <= totalPages)
+        .sort((a, b) => a - b);
+
+    const items = [];
+    let lastPage = 0;
+
+    ordered.forEach((page) => {
+        if (page - lastPage > 1) {
+            items.push({ type: 'ellipsis', key: `ellipsis-${lastPage}-${page}` });
+        }
+
+        items.push({ type: 'page', value: page });
+        lastPage = page;
+    });
+
+    return items;
+};
+
+const getCellStyle = (align) => {
+    if (align === 'center') return { textAlign: 'center' };
+    if (align === 'end') return { textAlign: 'right' };
+    return { textAlign: 'left' };
+};
+
+export const DataGrid = ({
+    columns = DEFAULT_COLUMNS,
+    pageData = null,
+    pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
+    exportFileName = 'export',
+    selectable = false,
+    onRefresh,
+    onPageChange,
+    onSortChange,
+    onSelectionChange,
+    onRowClick,
+}) => {
+    const gridRef = useRef(null);
+    const columnMenuTriggerRef = useRef(null);
+    const columnMenuPanelRef = useRef(null);
+    const rows = pageData?.items ?? [];
+    const [density, setDensity] = useState('comfortable');
+    const [selectedRows, setSelectedRows] = useState([]);
+    const [visibleColumns, setVisibleColumns] = useState(
+        () => new Set(columns.map((column) => column.key)),
+    );
+    const [isColumnMenuOpen, setIsColumnMenuOpen] = useState(false);
+    const [columnMenuStyle, setColumnMenuStyle] = useState(null);
+
+    const pageItems = useMemo(
+        () => buildPageItems(pageData?.page ?? 1, pageData?.totalPages ?? 1),
+        [pageData?.page, pageData?.totalPages],
+    );
+    const densityParams = DEFAULT_DENSITIES[density] ?? DEFAULT_DENSITIES.comfortable;
+
+    const columnDefs = useMemo(
+        () =>
+            columns.map((col) => ({
+                field: col.key,
+                headerName: col.header,
+                sortable: col.sortable ?? false,
+                filter: col.filter ?? 'agTextColumnFilter',
+                filterParams: col.filterParams,
+                width: col.width ?? 160,
+                minWidth: col.minWidth ?? 120,
+                pinned: col.pin ?? undefined,
+                hide: !visibleColumns.has(col.key),
+                cellStyle: getCellStyle(col.align),
+                cellRenderer: col.cell
+                    ? ({ value, data }) => col.cell({ value, row: data })
+                    : undefined,
+                suppressMovable: true,
+                resizable: true,
+            })),
+        [columns, visibleColumns],
+    );
+
+    const selectedCount = selectable ? selectedRows.length : 0;
+    const resolvedExportFileName = exportFileName || 'export';
+
+    const onSortChanged = useCallback(
+        (event) => {
+            const sorted = event.api.getColumnState().find((c) => c.sort);
+            if (sorted) {
+                onSortChange?.({ active: sorted.colId, direction: sorted.sort });
+            } else {
+                onSortChange?.({ active: null, direction: '' });
+            }
+        },
+        [onSortChange],
+    );
+
+    const onSelectionChanged = useCallback(
+        (event) => {
+            const nextRows = event.api.getSelectedRows();
+            setSelectedRows(nextRows);
+            onSelectionChange?.(nextRows);
+        },
+        [onSelectionChange],
+    );
+
+    const handleExcelExport = useCallback(() => {
+        const exportRows = selectedRows.length > 0 ? selectedRows : rows;
+        const activeColumns = columns.filter((column) => visibleColumns.has(column.key));
+        const headers = activeColumns.map((column) => column.header);
+        const data = exportRows.map((row) =>
+            activeColumns.map((column) => row[column.key] ?? ''),
+        );
+
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+        XLSX.writeFile(wb, `${resolvedExportFileName}.xlsx`);
+    }, [columns, resolvedExportFileName, rows, selectedRows, visibleColumns]);
+
+    const handleCsvExport = useCallback(() => {
+        const exportRows = selectedRows.length > 0 ? selectedRows : rows;
+        const activeColumns = columns.filter((column) => visibleColumns.has(column.key));
+        const escapeCsv = (value) => {
+            const text = `${value ?? ''}`;
+            return `"${text.replace(/"/g, '""')}"`;
+        };
+
+        const csvBody = [
+            activeColumns.map((column) => escapeCsv(column.header)).join(','),
+            ...exportRows.map((row) => activeColumns.map((column) => escapeCsv(row[column.key])).join(',')),
+        ].join('\n');
+
+        const blob = new Blob([csvBody], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${resolvedExportFileName}.csv`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+    }, [columns, resolvedExportFileName, rows, selectedRows, visibleColumns]);
+
+    const toggleColumnVisibility = useCallback((columnKey) => {
+        setVisibleColumns((current) => {
+            const next = new Set(current);
+            if (next.has(columnKey)) {
+                if (next.size === 1) {
+                    return next;
+                }
+                next.delete(columnKey);
+            } else {
+                next.add(columnKey);
+            }
+            return next;
+        });
+    }, []);
+
+    const restoreAllColumns = useCallback(() => {
+        setVisibleColumns(new Set(columns.map((column) => column.key)));
+    }, [columns]);
+
+    const closeColumnMenu = useCallback(() => {
+        setIsColumnMenuOpen(false);
+    }, []);
+
+    const openColumnMenu = useCallback(() => {
+        const triggerRect = columnMenuTriggerRef.current?.getBoundingClientRect();
+        if (!triggerRect) {
+            setIsColumnMenuOpen(true);
+            return;
+        }
+
+        const menuWidth = 224;
+        const viewportPadding = 8;
+        const left = Math.max(
+            viewportPadding,
+            Math.min(window.innerWidth - menuWidth - viewportPadding, triggerRect.right - menuWidth),
+        );
+
+        setColumnMenuStyle({
+            position: 'fixed',
+            top: triggerRect.bottom + 8,
+            left,
+            width: menuWidth,
+        });
+        setIsColumnMenuOpen(true);
+    }, []);
+
+    const toggleColumnMenu = useCallback(() => {
+        if (isColumnMenuOpen) {
+            closeColumnMenu();
+            return;
+        }
+
+        openColumnMenu();
+    }, [closeColumnMenu, isColumnMenuOpen, openColumnMenu]);
+
+    useEffect(() => {
+        if (!isColumnMenuOpen) {
+            return undefined;
+        }
+
+        const handlePointerDown = (event) => {
+            if (!(event.target instanceof Node)) {
+                return;
+            }
+
+            if (
+                columnMenuTriggerRef.current?.contains(event.target) ||
+                columnMenuPanelRef.current?.contains(event.target)
+            ) {
+                return;
+            }
+
+            closeColumnMenu();
+        };
+
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                closeColumnMenu();
+            }
+        };
+
+        document.addEventListener('mousedown', handlePointerDown);
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDown);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [closeColumnMenu, isColumnMenuOpen]);
+
+    const clearSelection = useCallback(() => {
+        setSelectedRows([]);
+        gridRef.current?.api?.deselectAll?.();
+    }, []);
+
+    return (
+        <section className='w-full max-w-full overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-lg'>
+            <div
+                data-testid='grid-toolbar'
+                className='flex flex-wrap items-start justify-between gap-3 border-b border-border bg-muted/30 px-4 py-3'
+            >
+                <div className='flex flex-wrap items-center gap-3 text-sm text-muted-foreground'>
+                    <span className='font-medium text-foreground'>
+                        {pageData ? `총 ${pageData.totalElements}건` : '총 0건'}
+                    </span>
+                    {selectable ? <span>선택 {selectedCount}건</span> : null}
+                    <label className='flex items-center gap-2'>
+                        <span>밀도</span>
+                        <select
+                            aria-label='Grid density'
+                            className='h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm'
+                            value={density}
+                            onChange={(event) => setDensity(event.target.value)}
+                        >
+                            <option value='compact'>컴팩트</option>
+                            <option value='comfortable'>보통</option>
+                            <option value='spacious'>여유</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div className='flex flex-wrap items-center justify-end gap-2'>
+                    <select
+                        aria-label='Page size'
+                        className='h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm'
+                        value={pageData?.size ?? pageSizeOptions[0]}
+                        onChange={(event) =>
+                            onPageChange?.({
+                                page: 1,
+                                size: Number(event.target.value),
+                            })
+                        }
+                    >
+                        {pageSizeOptions.map((option) => (
+                            <option key={option} value={option}>
+                                {option} / page
+                            </option>
+                        ))}
+                    </select>
+
+                    <span ref={columnMenuTriggerRef} className='inline-flex'>
+                        <Button
+                            variant='outline'
+                            size='sm'
+                            type='button'
+                            aria-haspopup='dialog'
+                            aria-expanded={isColumnMenuOpen}
+                            onClick={toggleColumnMenu}
+                        >
+                            컬럼
+                        </Button>
+                    </span>
+
+                    {isColumnMenuOpen && columnMenuStyle
+                        ? createPortal(
+                            <div
+                                ref={columnMenuPanelRef}
+                                role='dialog'
+                                aria-label='컬럼 설정'
+                                className='z-50 rounded-xl border border-border bg-card p-3 shadow-xl'
+                                style={columnMenuStyle}
+                            >
+                                <div className='mb-2 flex items-center justify-between gap-3'>
+                                    <span className='text-sm font-medium text-foreground'>현재 컬럼</span>
+                                    <button
+                                        type='button'
+                                        className='text-xs text-muted-foreground hover:text-foreground'
+                                        onClick={restoreAllColumns}
+                                    >
+                                        전체 보기
+                                    </button>
+                                </div>
+                                <div className='max-h-56 space-y-2 overflow-auto'>
+                                    {columns.map((column) => {
+                                        const isVisible = visibleColumns.has(column.key);
+
+                                        return (
+                                            <button
+                                                key={column.key}
+                                                type='button'
+                                                role='checkbox'
+                                                aria-checked={isVisible}
+                                                className='flex w-full items-center gap-2 rounded-md px-1 py-0.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground'
+                                                onClick={() => toggleColumnVisibility(column.key)}
+                                            >
+                                                <span
+                                                    aria-hidden='true'
+                                                    className={cn(
+                                                        'flex h-4 w-4 items-center justify-center rounded border text-[10px]',
+                                                        isVisible
+                                                            ? 'border-primary bg-primary text-primary-foreground'
+                                                            : 'border-input bg-background',
+                                                    )}
+                                                >
+                                                    {isVisible ? '✓' : ''}
+                                                </span>
+                                                <span>{column.header}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>,
+                            document.body,
+                        )
+                        : null}
+
+                    <Button variant='outline' size='sm' onClick={onRefresh} disabled={!onRefresh}>
+                        새로고침
+                    </Button>
+                    <Button variant='outline' size='sm' onClick={handleCsvExport}>
+                        CSV
+                    </Button>
+                    <Button variant='outline' size='sm' onClick={handleExcelExport}>
+                        엑셀
+                    </Button>
+                    {selectable ? (
+                        <Button variant='ghost' size='sm' onClick={clearSelection} disabled={selectedRows.length === 0}>
+                            선택 해제
+                        </Button>
+                    ) : null}
+                </div>
+            </div>
+
+            <AgGridReact
+                ref={gridRef}
+                theme={gridTheme}
+                rowData={rows}
+                columnDefs={columnDefs}
+                autoSizeStrategy={{
+                    type: 'fitGridWidth',
+                    defaultMinWidth: 120,
+                }}
+                localeText={KOREAN_LOCALE_TEXT}
+                domLayout='autoHeight'
+                rowSelection={
+                    selectable
+                        ? { mode: 'multiRow', checkboxes: true, headerCheckbox: true }
+                        : undefined
+                }
+                onSortChanged={onSortChanged}
+                onSelectionChanged={onSelectionChanged}
+                onRowClicked={(event) => onRowClick?.(event.data)}
+                suppressCellFocus
+                suppressRowClickSelection={selectable}
+                rowHeight={densityParams.rowHeight}
+                headerHeight={densityParams.headerHeight}
+            />
+
+            {pageData ? (
+                <footer
+                    data-testid='grid-footer'
+                    className='grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t border-border px-4 py-3'
+                >
+                    <div />
+                    <div className='flex flex-wrap items-center justify-center gap-1'>
+                        {pageItems.map((item) =>
+                            item.type === 'ellipsis' ? (
+                                <span key={item.key} className='px-2 text-sm text-muted-foreground'>
+                                    ...
+                                </span>
+                            ) : (
+                                <Button
+                                    key={item.value}
+                                    variant={item.value === pageData.page ? 'default' : 'outline'}
+                                    size='sm'
+                                    className={cn(
+                                        'min-w-9 px-3',
+                                        item.value === pageData.page && 'pointer-events-none',
+                                    )}
+                                    aria-current={item.value === pageData.page ? 'page' : undefined}
+                                    onClick={() => onPageChange?.({ page: item.value, size: pageData.size })}
+                                >
+                                    {item.value}
+                                </Button>
+                            ),
+                        )}
+                    </div>
+                    <div className='text-right text-sm text-muted-foreground'>
+                        {`페이지 ${pageData.page} / ${pageData.totalPages} · 총 ${pageData.totalElements}건`}
+                    </div>
+                </footer>
+            ) : null}
+        </section>
+    );
+};

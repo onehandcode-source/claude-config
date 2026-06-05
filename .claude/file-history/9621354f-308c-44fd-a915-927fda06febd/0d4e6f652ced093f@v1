@@ -1,0 +1,157 @@
+package com.devwogns.trmdict.module.word.service;
+
+import com.devwogns.trmdict.common.exception.BusinessException;
+import com.devwogns.trmdict.common.exception.ErrorCode;
+import com.devwogns.trmdict.common.response.PageResponse;
+import com.devwogns.trmdict.module.word.dto.WordSearchDto;
+import com.devwogns.trmdict.module.word.entity.WordEntity;
+import com.devwogns.trmdict.module.word.repository.WordRepository;
+import com.devwogns.trmdict.module.word.vo.WordDtlVo;
+import com.devwogns.trmdict.module.word.vo.WordListVo;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class WordService {
+    private static final char LIKE_ESCAPE_CHAR = '\\';
+
+    private static final Map<String, String> SORTABLE_COLUMNS;
+    private static final Set<String> SORTABLE_DIRS;
+
+    private static final String DEFAULT_SORT_BY = "mdfcn_dt";
+    private static final String DEFAULT_SORT_DIR = "desc";
+
+    private static final int DEFAULT_PAGE = 1;
+    private static final int DEFAULT_SIZE = 20;
+    private static final int MAX_SIZE = 100;
+
+    static {
+        Map<String, String> sortableColumns = new HashMap<>();
+        sortableColumns.put("std_word_nm", "stdWordNm");
+        sortableColumns.put("std_word_eng_abbr_nm", "stdWordEngAbbrNm");
+        sortableColumns.put("std_dmn_clsf_nm", "stdDmnClsfNm");
+        sortableColumns.put("enct_cycl", "enctCycl");
+        sortableColumns.put("mdfcn_dt", "mdfcnDt");
+        sortableColumns.put("reg_dt", "regDt");
+        SORTABLE_COLUMNS = Collections.unmodifiableMap(sortableColumns);
+
+        Set<String> sortableDirs = new HashSet<>();
+        sortableDirs.add("asc");
+        sortableDirs.add("desc");
+        SORTABLE_DIRS = Collections.unmodifiableSet(sortableDirs);
+    }
+
+    private final WordRepository repository;
+
+    public PageResponse<WordListVo> search(WordSearchDto criteria) {
+        if (criteria == null) {
+            criteria = new WordSearchDto();
+        }
+        normalizeAndValidate(criteria);
+
+        Page<WordEntity> page = repository.findAll(buildSpecification(criteria), buildPageable(criteria));
+        List<WordListVo> items = page.getContent().stream()
+                .map(WordListVo::fromEntity)
+                .collect(Collectors.toList());
+
+        return PageResponse.of(items, criteria.getPage(), criteria.getSize(), page.getTotalElements());
+    }
+
+    public WordDtlVo findById(Long id) {
+        if (id == null) {
+            throw new BusinessException(ErrorCode.COMMON_0001);
+        }
+
+        WordEntity entity = repository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.WORD_4001));
+        return WordDtlVo.fromEntity(entity);
+    }
+
+    private void normalizeAndValidate(WordSearchDto criteria) {
+        if (criteria.getPage() == null || criteria.getPage() < 1) {
+            criteria.setPage(DEFAULT_PAGE);
+        }
+        if (criteria.getSize() == null || criteria.getSize() < 1) {
+            criteria.setSize(DEFAULT_SIZE);
+        }
+        if (criteria.getSize() > MAX_SIZE) {
+            throw new BusinessException(ErrorCode.COMMON_0001);
+        }
+
+        if (!StringUtils.hasText(criteria.getSortBy())) {
+            criteria.setSortBy(DEFAULT_SORT_BY);
+        } else {
+            String normalizedSortBy = criteria.getSortBy().toLowerCase(Locale.ROOT);
+            if (!SORTABLE_COLUMNS.containsKey(normalizedSortBy)) {
+                throw new BusinessException(ErrorCode.COMMON_0001);
+            }
+            criteria.setSortBy(normalizedSortBy);
+        }
+
+        if (!StringUtils.hasText(criteria.getSortDir())) {
+            criteria.setSortDir(DEFAULT_SORT_DIR);
+        } else {
+            String normalizedSortDir = criteria.getSortDir().toLowerCase(Locale.ROOT);
+            if (!SORTABLE_DIRS.contains(normalizedSortDir)) {
+                throw new BusinessException(ErrorCode.COMMON_0001);
+            }
+            criteria.setSortDir(normalizedSortDir);
+        }
+    }
+
+    private Pageable buildPageable(WordSearchDto criteria) {
+        Sort.Direction direction = Sort.Direction.fromString(criteria.getSortDir());
+        return PageRequest.of(criteria.getPage() - 1, criteria.getSize(), Sort.by(direction, SORTABLE_COLUMNS.get(criteria.getSortBy())));
+    }
+
+    private Specification<WordEntity> buildSpecification(WordSearchDto criteria) {
+        Specification<WordEntity> specification = Specification.where(null);
+        specification = specification.and(contains("stdWordNm", criteria.getStdWordNm()));
+        specification = specification.and(contains("stdWordEngAbbrNm", criteria.getStdWordEngAbbrNm()));
+        specification = specification.and(contains("stdWordEngNm", criteria.getStdWordEngNm()));
+        specification = specification.and(contains("stdDmnClsfNm", criteria.getStdDmnClsfNm()));
+        specification = specification.and(contains("enctCycl", criteria.getEnctCycl()));
+        specification = specification.and(equalsTo("useYn", criteria.getUseYn()));
+        return specification;
+    }
+
+    private Specification<WordEntity> contains(String property, String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        String escapedValue = escapeLikePattern(value);
+        return (root, query, cb) -> cb.like(root.get(property).as(String.class), "%" + escapedValue + "%", LIKE_ESCAPE_CHAR);
+    }
+
+    private Specification<WordEntity> equalsTo(String property, String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return (root, query, cb) -> cb.equal(root.get(property), value);
+    }
+
+    private String escapeLikePattern(String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+    }
+}

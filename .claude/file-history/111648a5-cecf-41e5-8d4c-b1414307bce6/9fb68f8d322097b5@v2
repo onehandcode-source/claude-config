@@ -1,0 +1,106 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buildScenarioDiagram } from "@/lib/scenario-diagram";
+import type { Scenario } from "@/lib/types";
+
+interface ScenarioCardProps {
+  scenario: Scenario;
+  onDelete: (id: string) => void;
+}
+
+export function ScenarioCard({ scenario, onDelete }: ScenarioCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const groups = buildScenarioDiagram(scenario.testCases);
+
+  return (
+    <Card className="flex h-full flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="line-clamp-2 text-lg">{scenario.name}</CardTitle>
+        <Badge variant="secondary">{scenario.testCases.length}개 케이스</Badge>
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col space-y-4">
+        <p className="min-h-10 text-sm text-muted-foreground">
+          {scenario.description || "설명이 없습니다."}
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/scenarios/${scenario.id}/run`}>
+            <Button size="sm">실행</Button>
+          </Link>
+          <Link href={`/scenarios/${scenario.id}/edit`}>
+            <Button size="sm" variant="outline">
+              편집
+            </Button>
+          </Link>
+          <Button size="sm" variant="outline" onClick={() => setExpanded((current) => !current)}>
+            {expanded ? "Step 접기" : "Step 보기"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const blob = new Blob([JSON.stringify(scenario, null, 2)], {
+                type: "application/json",
+              });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `${scenario.name}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            다운로드
+          </Button>
+          <Button size="sm" variant="destructive" onClick={() => onDelete(scenario.id)}>
+            삭제
+          </Button>
+        </div>
+
+        {expanded && (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-muted/20">
+            <div className="border-b bg-background/80 px-4 py-3">
+              <p className="text-sm font-medium">테스트케이스별 Step 목록</p>
+              <p className="text-xs text-muted-foreground">
+                아래 영역만 스크롤됩니다. 카드 높이는 고정됩니다.
+              </p>
+            </div>
+
+            <div className="max-h-[28rem] space-y-4 overflow-y-auto p-4">
+              {groups.map((group) => (
+                <div key={group.id} className="space-y-3 rounded-lg border bg-background p-3">
+                  <div className="sticky top-0 z-10 -mx-3 -mt-3 rounded-t-lg border-b bg-background px-3 py-3">
+                    <h4 className="text-sm font-semibold">{group.title}</h4>
+                    <p className="text-xs text-muted-foreground">{group.subtitle}</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    {group.steps.map((step, index) => (
+                      <div key={step.id} className="rounded-md border p-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-slate-900 px-1.5 py-0.5 text-xs text-white">
+                            {index + 1}
+                          </span>
+                          <span>{step.label}</span>
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">{step.summary}</p>
+                        {step.description && (
+                          <p className="mt-1 text-xs text-slate-600">설명: {step.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

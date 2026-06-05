@@ -1,0 +1,179 @@
+import { normalizeLocator, normalizeStepForSave } from "./locator-utils.ts";
+import type { AnyStep, StepLocator, TestCase } from "./types.js";
+
+interface ImportedStepRecord {
+  [key: string]: unknown;
+}
+
+interface ImportedTestCase {
+  id?: string;
+  name?: unknown;
+  description?: unknown;
+  baseUrl?: unknown;
+  steps?: unknown;
+}
+
+interface ImportedScenarioLike {
+  testCases?: unknown;
+}
+
+function isScenarioLike(value: unknown): value is ImportedScenarioLike {
+  return typeof value === "object" && value !== null && "testCases" in value;
+}
+
+function isRecord(value: unknown): value is ImportedStepRecord {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeImportedLocator(value: ImportedStepRecord): StepLocator | undefined {
+  const locator = isRecord(value.locator) ? (value.locator as StepLocator) : undefined;
+  const selector = typeof value.selector === "string" ? value.selector : undefined;
+  return normalizeLocator(locator, selector);
+}
+
+function requireLocator(value: ImportedStepRecord, index: number): StepLocator {
+  const locator = normalizeImportedLocator(value);
+
+  if (!locator) {
+    throw new Error(`테스트케이스 step ${index + 1}에 locator 정보가 없습니다.`);
+  }
+
+  return locator;
+}
+
+function toImportedStep(value: unknown, index: number): AnyStep {
+  if (!isRecord(value) || typeof value.type !== "string") {
+    throw new Error(`step ${index + 1} 형식이 올바르지 않습니다.`);
+  }
+
+  switch (value.type) {
+    case "navigate":
+      if (typeof value.url !== "string" || value.url.trim().length === 0) {
+        throw new Error(`step ${index + 1}에 url이 없습니다.`);
+      }
+
+      return { type: "navigate", url: value.url, description: asDescription(value.description) };
+    case "click":
+      return normalizeStepForSave({
+        type: "click",
+        locator: requireLocator(value, index),
+        description: asDescription(value.description),
+      });
+    case "mapClick":
+      if (typeof value.x !== "number" || typeof value.y !== "number") {
+        throw new Error(`step ${index + 1}에 지도 좌표 x, y가 없습니다.`);
+      }
+
+      return normalizeStepForSave({
+        type: "mapClick",
+        locator: requireLocator(value, index),
+        x: value.x,
+        y: value.y,
+        description: asDescription(value.description),
+      });
+    case "fill":
+      if (typeof value.text !== "string") {
+        throw new Error(`step ${index + 1}에 입력 text가 없습니다.`);
+      }
+
+      return normalizeStepForSave({
+        type: "fill",
+        locator: requireLocator(value, index),
+        text: value.text,
+        description: asDescription(value.description),
+      });
+    case "select":
+      if (typeof value.text !== "string") {
+        throw new Error(`step ${index + 1}에 선택 text가 없습니다.`);
+      }
+
+      return normalizeStepForSave({
+        type: "select",
+        locator: requireLocator(value, index),
+        text: value.text,
+        description: asDescription(value.description),
+      });
+    case "wait":
+      if (typeof value.milliseconds !== "number") {
+        throw new Error(`step ${index + 1}에 milliseconds가 없습니다.`);
+      }
+
+      return {
+        type: "wait",
+        milliseconds: value.milliseconds,
+        description: asDescription(value.description),
+      };
+    case "screenshot":
+      return { type: "screenshot", description: asDescription(value.description) };
+    case "evaluate":
+      if (typeof value.script !== "string") {
+        throw new Error(`step ${index + 1}에 script가 없습니다.`);
+      }
+
+      return {
+        type: "evaluate",
+        script: value.script,
+        description: asDescription(value.description),
+      };
+    case "dbQuery":
+      if (typeof value.queryId !== "string" || typeof value.query !== "string") {
+        throw new Error(`step ${index + 1}에 dbQuery 정보가 없습니다.`);
+      }
+
+      return {
+        type: "dbQuery",
+        queryId: value.queryId,
+        query: value.query,
+        description: asDescription(value.description),
+      };
+    default:
+      throw new Error(`지원하지 않는 step type입니다: ${value.type}`);
+  }
+}
+
+function asDescription(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function toTestCase(value: ImportedTestCase, index: number): TestCase {
+  if (typeof value.name !== "string" || value.name.trim().length === 0) {
+    throw new Error(`테스트케이스 ${index + 1}에 name이 없습니다.`);
+  }
+
+  if (typeof value.baseUrl !== "string" || value.baseUrl.trim().length === 0) {
+    throw new Error(`테스트케이스 ${index + 1}에 baseUrl이 없습니다.`);
+  }
+
+  if (!Array.isArray(value.steps)) {
+    throw new Error(`테스트케이스 ${index + 1}에 steps 배열이 없습니다.`);
+  }
+
+  return {
+    id: typeof value.id === "string" && value.id.trim().length > 0 ? value.id : crypto.randomUUID(),
+    name: value.name,
+    description: typeof value.description === "string" ? value.description : "",
+    baseUrl: value.baseUrl,
+    steps: value.steps.map((step, stepIndex) => toImportedStep(step, stepIndex)),
+  };
+}
+
+function extractImportedTestCases(parsed: unknown): ImportedTestCase[] {
+  if (Array.isArray(parsed)) {
+    return parsed as ImportedTestCase[];
+  }
+
+  if (isScenarioLike(parsed) && Array.isArray(parsed.testCases)) {
+    return parsed.testCases as ImportedTestCase[];
+  }
+
+  throw new Error(
+    "testCases 배열 또는 testCases를 포함한 Scenario JSON 파일만 업로드할 수 있습니다."
+  );
+}
+
+export function parseTestCasesJson(content: string): TestCase[] {
+  const parsed = JSON.parse(content) as unknown;
+  const importedTestCases = extractImportedTestCases(parsed);
+
+  return importedTestCases.map((item, index) => toTestCase(item, index));
+}

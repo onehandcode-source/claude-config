@@ -1,0 +1,48 @@
+# Session: 2026-05-15
+**Date:** 2026-05-15
+**Started:** 09:56
+**Last Updated:** 13:12
+**Project:** agent-harness-ygkim
+**Branch:** unknown
+**Worktree:** D:\21. harness\agent-harness-ygkim
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- [Request interrupted by user for tool use]
+- codex cli는 이미 설치되어있음 omc 명령어로 codex에게 확인할 수 있는지 화깅ㄴ
+- <task-notification> <task-id>b8trrw1kz</task-id> <tool-use-id>toolu_011fWX6zFMvPzWDB2eKcamxz</tool-use-id> <output-file>C:\Users\ygkim\AppData\Local\Temp\claude\D--21--harness-agent-harness-ygkim\6ec9
+- 저장
+- omc ask gemini "질문"
+- <command-message>oh-my-claudecode:ccg</command-message> <command-name>/oh-my-claudecode:ccg</command-name> <command-args>ask gemini "오늘 날씨 알려줘"</command-args>
+- Base directory for this skill: C:\Users\ygkim\.claude\plugins\cache\omc\oh-my-claudecode\4.13.7\skills\ccg  # CCG - Claude-Codex-Gemini Tri-Model Orchestration  CCG routes through the canonical \`/ask\`
+- <task-notification> <task-id>bfe1sozm4</task-id> <tool-use-id>toolu_01UG6dDcvvfdMhSRTQbpzARY</tool-use-id> <output-file>C:\Users\ygkim\AppData\Local\Temp\claude\D--21--harness-agent-harness-ygkim\6ec9
+- <task-notification> <task-id>bfl3hmr7j</task-id> <tool-use-id>toolu_01WGbZjJXMtqvXKHmmLDvudX</tool-use-id> <output-file>C:\Users\ygkim\AppData\Local\Temp\claude\D--21--harness-agent-harness-ygkim\6ec9
+- 질문.  1. 지금 ccg gemini "질문"으로 날렸는데 병렬로 왜 요청이 되었는지. 2. /team 기능 자세하게 알려줘
+
+### Files Modified
+- D:\21. harness\agent-harness-ygkim\.agents-dev\scripts\ask_gemini.py
+- D:\21. harness\agent-harness-ygkim\.agents-dev\log\gemini-20260515-093000-result.md
+- D:\21. harness\agent-harness-ygkim\.agents-dev\log\claude-20260515-pm-review.md
+- D:\21. harness\agent-harness-ygkim\workspace\workspace.md
+- D:\21. harness\agent-harness-ygkim\.claude\settings.local.json
+
+### Tools Used
+Skill, Glob, Read, Edit, Grep, Bash, Write
+
+### Stats
+- Total user messages: 44
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```
+
+---
+**[Compaction occurred at 13:14]** - Context was summarized

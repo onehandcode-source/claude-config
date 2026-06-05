@@ -1,0 +1,68 @@
+package com.devwogns.trmdict.module.domain.vo;
+
+import com.devwogns.trmdict.module.domain.entity.DomainEntity;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Builder;
+import lombok.Getter;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class DomainDtlVo {
+
+    private Long id;
+    private String stdDmnGroupNm;
+    private String stdDmnClsfNm;
+    private String stdDmnNm;
+    private String stdDmnExpln;
+    private String dataTypeNm;
+    private String dataLen;
+    private String dataDcptDgt;
+    private String strgFrmNm;
+    private String indctFrmNm;
+    private String unitNm;
+    private String prmValueCn;
+    private String enctCycl;
+    private String rvsnSeNm;
+    private String rvsnArtclNm;
+    private String rvsnRsn;
+    private String useYn;
+    private String rmrkCn;
+    private String rgtrId;
+    private String regIpAddr;
+    private LocalDateTime regDt;
+    private String mdfrId;
+    private String mdfcnIpAddr;
+    private LocalDateTime mdfcnDt;
+
+    public static DomainDtlVo fromEntity(DomainEntity entity) {
+        return DomainDtlVo.builder()
+                .id(entity.getId())
+                .stdDmnGroupNm(entity.getStdDmnGroupNm())
+                .stdDmnClsfNm(entity.getStdDmnClsfNm())
+                .stdDmnNm(entity.getStdDmnNm())
+                .stdDmnExpln(entity.getStdDmnExpln())
+                .dataTypeNm(entity.getDataTypeNm())
+                .dataLen(entity.getDataLen())
+                .dataDcptDgt(entity.getDataDcptDgt())
+                .strgFrmNm(entity.getStrgFrmNm())
+                .indctFrmNm(entity.getIndctFrmNm())
+                .unitNm(entity.getUnitNm())
+                .prmValueCn(entity.getPrmValueCn())
+                .enctCycl(entity.getEnctCycl())
+                .rvsnSeNm(entity.getRvsnSeNm())
+                .rvsnArtclNm(entity.getRvsnArtclNm())
+                .rvsnRsn(entity.getRvsnRsn())
+                .useYn(entity.getUseYn())
+                .rmrkCn(entity.getRmrkCn())
+                .rgtrId(entity.getRgtrId())
+                .regIpAddr(entity.getRegIpAddr())
+                .regDt(entity.getRegDt())
+                .mdfrId(entity.getMdfrId())
+                .mdfcnIpAddr(entity.getMdfcnIpAddr())
+                .mdfcnDt(entity.getMdfcnDt())
+                .build();
+    }
+}

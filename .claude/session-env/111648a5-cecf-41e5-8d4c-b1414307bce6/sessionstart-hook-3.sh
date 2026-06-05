@@ -1,0 +1,8 @@
+export CODEX_COMPANION_SESSION_ID='111648a5-cecf-41e5-8d4c-b1414307bce6'
+export CLAUDE_PLUGIN_DATA='C:/Users/ygkim/.claude/plugins/data/codex-openai-codex'
+export CODEX_COMPANION_SESSION_ID='111648a5-cecf-41e5-8d4c-b1414307bce6'
+export CLAUDE_PLUGIN_DATA='C:/Users/ygkim/.claude/plugins/data/codex-openai-codex'
+export CODEX_COMPANION_SESSION_ID='111648a5-cecf-41e5-8d4c-b1414307bce6'
+export CLAUDE_PLUGIN_DATA='C:/Users/ygkim/.claude/plugins/data/codex-openai-codex'
+export CODEX_COMPANION_SESSION_ID='111648a5-cecf-41e5-8d4c-b1414307bce6'
+export CLAUDE_PLUGIN_DATA='C:/Users/ygkim/.claude/plugins/data/codex-openai-codex'

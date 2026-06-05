@@ -1,0 +1,9 @@
+{
+  "language": "ko",
+  "plan": "max",
+  "displayMode": "detailed",
+  "theme": "dracula",
+  "cache": {
+    "ttlSeconds": 300
+  }
+}

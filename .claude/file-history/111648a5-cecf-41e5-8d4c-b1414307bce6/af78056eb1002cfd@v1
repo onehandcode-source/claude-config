@@ -1,0 +1,75 @@
+"use client";
+
+import { Button } from "@/components/ui/button";
+import type { Step, TestCase } from "@/lib/types";
+import { StepEditor } from "./StepEditor";
+
+interface TestCaseEditorProps {
+  testCase: TestCase;
+  onChange: (testCase: TestCase) => void;
+  onRemove: () => void;
+}
+
+export function TestCaseEditor({ testCase, onChange, onRemove }: TestCaseEditorProps) {
+  function updateStep(index: number, step: Step) {
+    const next = [...testCase.steps];
+    next[index] = step;
+    onChange({ ...testCase, steps: next });
+  }
+
+  function removeStep(index: number) {
+    onChange({ ...testCase, steps: testCase.steps.filter((_, current) => current !== index) });
+  }
+
+  function addStep() {
+    onChange({
+      ...testCase,
+      steps: [...testCase.steps, { type: "navigate", url: "", description: "" }],
+    });
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border bg-card p-4">
+      <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+        <input
+          className="rounded border px-2 py-1 text-sm"
+          placeholder="테스트 케이스 이름"
+          value={testCase.name}
+          onChange={(event) => onChange({ ...testCase, name: event.target.value })}
+        />
+        <input
+          className="rounded border px-2 py-1 text-sm"
+          placeholder="Base URL"
+          value={testCase.baseUrl}
+          onChange={(event) => onChange({ ...testCase, baseUrl: event.target.value })}
+        />
+        <Button type="button" variant="destructive" size="sm" onClick={onRemove}>
+          케이스 삭제
+        </Button>
+      </div>
+
+      <textarea
+        className="w-full rounded border px-2 py-1 text-sm"
+        rows={2}
+        placeholder="설명"
+        value={testCase.description ?? ""}
+        onChange={(event) => onChange({ ...testCase, description: event.target.value })}
+      />
+
+      <div className="space-y-2">
+        {testCase.steps.map((step, index) => (
+          <StepEditor
+            key={`${testCase.id}-${index}`}
+            step={step}
+            onChange={(next) => updateStep(index, next)}
+            onRemove={() => removeStep(index)}
+          />
+        ))}
+      </div>
+
+      <Button type="button" size="sm" variant="outline" onClick={addStep}>
+        + Step 추가
+      </Button>
+    </div>
+  );
+}

@@ -1,0 +1,95 @@
+"use client";
+
+import type { RunProgress } from "@/lib/types";
+
+function getProgressPercent(progress: RunProgress): number {
+  if (progress.status === "completed") {
+    return 100;
+  }
+
+  if (progress.totalStepsOverall === 0) {
+    return progress.status === "savingSnapshot" ? 95 : 5;
+  }
+
+  const base = Math.round((progress.completedStepsOverall / progress.totalStepsOverall) * 100);
+
+  if (progress.status === "savingSnapshot") {
+    return Math.max(base, 95);
+  }
+
+  return Math.max(base, progress.status === "running" ? 5 : 0);
+}
+
+function getStatusLabel(status: RunProgress["status"]): string {
+  switch (status) {
+    case "idle":
+      return "대기";
+    case "running":
+      return "실행 중";
+    case "savingSnapshot":
+      return "스냅샷 저장 중";
+    case "completed":
+      return "완료";
+    case "error":
+      return "오류";
+  }
+}
+
+export function RunProgressView({ progress }: { progress: RunProgress | null }) {
+  const percent = progress ? getProgressPercent(progress) : 5;
+
+  return (
+    <section className="mb-6 rounded-xl border bg-card p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">AS-IS 저장 진행 상태</h2>
+          <p className="text-sm text-muted-foreground">
+            {progress?.message ?? "실행 준비 중입니다."}
+          </p>
+        </div>
+        <span className="rounded-full border px-3 py-1 text-xs font-medium">
+          {progress ? getStatusLabel(progress.status) : "준비 중"}
+        </span>
+      </div>
+
+      <div className="mb-4 h-3 overflow-hidden rounded-full bg-slate-200">
+        <div
+          className="h-full rounded-full bg-slate-900 transition-all duration-300"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-lg border bg-muted/20 p-3">
+          <div className="text-xs text-muted-foreground">테스트케이스</div>
+          <div className="mt-1 text-sm font-medium">
+            {progress?.currentTestCaseIndex ?? 0} / {progress?.totalTestCases ?? 0}
+          </div>
+          <div className="mt-1 text-xs text-slate-600">
+            {progress?.currentTestCaseName ?? "대기 중"}
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-muted/20 p-3">
+          <div className="text-xs text-muted-foreground">Step</div>
+          <div className="mt-1 text-sm font-medium">
+            {progress?.currentStepIndex ?? 0} / {progress?.currentTestCaseTotalSteps ?? 0}
+          </div>
+          <div className="mt-1 text-xs text-slate-600">
+            {progress?.currentStepDescription ?? "대기 중"}
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-muted/20 p-3">
+          <div className="text-xs text-muted-foreground">전체 진행</div>
+          <div className="mt-1 text-sm font-medium">{percent}%</div>
+          <div className="mt-1 text-xs text-slate-600">
+            {progress?.completedStepsOverall ?? 0} / {progress?.totalStepsOverall ?? 0} step 완료
+          </div>
+        </div>
+      </div>
+
+      {progress?.error && <p className="mt-3 text-sm text-red-600">{progress.error}</p>}
+    </section>
+  );
+}

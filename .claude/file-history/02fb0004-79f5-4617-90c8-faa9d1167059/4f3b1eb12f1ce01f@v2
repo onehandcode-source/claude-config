@@ -1,0 +1,14 @@
+{
+  "env": {
+    "GEMINI_CLI_TRUST_WORKSPACE": "true"
+  },
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"D:\\\\21. harness\\\\test\\\\.agents-dev\\\\scripts\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"D:\\\\21. harness\\\\test\\\\.agents-dev\\\\roles\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"D:\\\\21. harness\\\\test\\\\.agents-dev\\\\log\")"
+    ]
+  }
+}

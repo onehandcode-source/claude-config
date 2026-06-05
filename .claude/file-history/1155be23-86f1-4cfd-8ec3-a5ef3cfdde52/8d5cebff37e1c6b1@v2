@@ -1,0 +1,29 @@
+# 🚩 Project: React 19 훅 심층 리서치
+
+**Current Status:** In Progress
+**Last Updated:** 2026-05-14
+
+## 🎯 Global Goal
+
+React 19에서 새롭게 추가된 훅(use, useActionState, useOptimistic, useFormStatus)의 상세 스펙, 사용 패턴, 주의사항을 조사하여 정리한다.
+
+## 📋 Task Board
+
+| Task | Assigned To | Status | Result Link |
+| :--- | :--- | :--- | :--- |
+| React 19 신규 훅 상세 리서치 | Gemini (Researcher) | [ ] Blocked (Quota) | - |
+| 조사 결과 정리 및 보고 | Claude (PM) | [ ] Waiting | - |
+| Vite 기반 React 앱 설치 | Codex (Engineer) | [ ] In Progress | - |
+
+## 🧠 Current Context
+
+- 조사 대상 훅: `use`, `useActionState`, `useOptimistic`, `useFormStatus`
+- 각 훅의 시그니처, 동작 원리, 실전 패턴, 주의사항, 기존 훅과의 차이점 포함
+
+## 📝 Activity Log
+
+- [Claude]: React 19 신규 훅 리서치 Task 할당. (2026-05-14)
+
+---
+
+> **규칙:** 상세 결과는 `.agents-dev/log/`에 저장. workspace.md에는 요약과 파일 경로만 기록. Activity Log는 최근 5개만 유지.

@@ -1,0 +1,146 @@
+{
+  "fa9f071f7b7b": {
+    "id": "fa9f071f7b7b",
+    "name": "04. filesync_consumer_webclient",
+    "root": "D:/01. workSpace/04. filesync_consumer_webclient",
+    "remote": "http://172.21.10.28:9099/safetyreport/filesync/filesyncconsumer.git",
+    "created_at": "2026-04-30T09:15:12.338783Z",
+    "last_seen": "2026-05-08T09:12:34.724532Z"
+  },
+  "67c1c1a593d3": {
+    "id": "67c1c1a593d3",
+    "name": "11. autoSingo",
+    "root": "D:/01. workSpace/11. autoSingo",
+    "remote": "http://172.21.10.28:9099/yg.kim/auto-report.git",
+    "created_at": "2026-05-06T07:52:27.169978Z",
+    "last_seen": "2026-05-06T08:01:26.468243Z"
+  },
+  "359b1a0d60a4": {
+    "id": "359b1a0d60a4",
+    "name": "playwright-test-automation-complete",
+    "root": "D:\\16. \uc790\ub3d9\ud654 \ub3c4\uad6c\\files\\playwright-test-automation-complete",
+    "remote": "",
+    "created_at": "2026-05-11T01:32:19.578204Z",
+    "last_seen": "2026-05-11T02:05:33.868328Z"
+  },
+  "129366e3e9d5": {
+    "id": "129366e3e9d5",
+    "name": "safeAutoTest",
+    "root": "D:\\16. \uc790\ub3d9\ud654 \ub3c4\uad6c\\safeAutoTest",
+    "remote": "",
+    "created_at": "2026-05-11T02:29:28.198563Z",
+    "last_seen": "2026-05-18T05:17:04.228624Z"
+  },
+  "8ef246f079ba": {
+    "id": "8ef246f079ba",
+    "name": "TrmWordDict",
+    "root": "D:/20. POC/TrmWordDict",
+    "remote": "http://172.21.10.28:9099/devwogns/TrmWordDict.git",
+    "created_at": "2026-05-14T00:20:25.744372Z",
+    "last_seen": "2026-05-25T23:59:00.578769Z"
+  },
+  "155fddd2c495": {
+    "id": "155fddd2c495",
+    "name": "test",
+    "root": "D:\\21. harness\\test",
+    "remote": "",
+    "created_at": "2026-05-14T02:15:16.759906Z",
+    "last_seen": "2026-05-14T08:58:57.659336Z"
+  },
+  "56c658b578a2": {
+    "id": "56c658b578a2",
+    "name": "agent-harness-ygkim",
+    "root": "d:\\21. harness\\agent-harness-ygkim",
+    "remote": "",
+    "created_at": "2026-05-15T00:24:38.822115Z",
+    "last_seen": "2026-05-15T00:25:29.843548Z"
+  },
+  "3f6bfd8eda5e": {
+    "id": "3f6bfd8eda5e",
+    "name": "agent-harness-ygkim",
+    "root": "D:\\21. harness\\agent-harness-ygkim",
+    "remote": "",
+    "created_at": "2026-05-15T00:25:46.307718Z",
+    "last_seen": "2026-05-15T04:23:26.126170Z"
+  },
+  "7afdb64e2457": {
+    "id": "7afdb64e2457",
+    "name": "gstack",
+    "root": "D:/22. gStack/~/gstack",
+    "remote": "https://github.com/garrytan/gstack.git",
+    "created_at": "2026-05-15T01:11:50.588622Z",
+    "last_seen": "2026-05-15T01:47:36.502003Z"
+  },
+  "0009a4e1d1ca": {
+    "id": "0009a4e1d1ca",
+    "name": "ax\uc804\ud658\ubaa9\ud45c",
+    "root": "D:\\ax\uc804\ud658\ubaa9\ud45c",
+    "remote": "",
+    "created_at": "2026-05-15T02:02:01.611601Z",
+    "last_seen": "2026-05-15T08:18:35.814330Z"
+  },
+  "420cc5981ccc": {
+    "id": "420cc5981ccc",
+    "name": "ygkim",
+    "root": "C:\\Users\\ygkim",
+    "remote": "",
+    "created_at": "2026-05-15T09:03:27.312783Z",
+    "last_seen": "2026-05-15T09:06:26.284800Z"
+  },
+  "ee1abca74da8": {
+    "id": "ee1abca74da8",
+    "name": "safeAutoTest",
+    "root": "D:/16. \uc790\ub3d9\ud654 \ub3c4\uad6c/safeAutoTest",
+    "remote": "",
+    "created_at": "2026-05-18T05:17:07.777809Z",
+    "last_seen": "2026-06-05T02:19:40.738278Z"
+  },
+  "00a8fbf3f2eb": {
+    "id": "00a8fbf3f2eb",
+    "name": "sia",
+    "root": "C:/Dev/dev_safetyreport/workspace/sia",
+    "remote": "http://172.21.10.28:9099/safetyreport/web/sia.git",
+    "created_at": "2026-05-20T07:24:09.102777Z",
+    "last_seen": "2026-06-05T06:29:31.966062Z"
+  },
+  "d6bd77e3e96f": {
+    "id": "d6bd77e3e96f",
+    "name": "TrmWordDict2",
+    "root": "D:/20. POC/TrmWordDict2",
+    "remote": "https://github.com/devwogns/WordDictPOC.git",
+    "created_at": "2026-05-26T23:54:07.910951Z",
+    "last_seen": "2026-06-05T06:43:38.336031Z"
+  },
+  "9095db4f1221": {
+    "id": "9095db4f1221",
+    "name": "20. POC",
+    "root": "D:\\20. POC",
+    "remote": "",
+    "created_at": "2026-05-27T06:38:04.825367Z",
+    "last_seen": "2026-06-01T04:53:36.909295Z"
+  },
+  "0b2001f950e6": {
+    "id": "0b2001f950e6",
+    "name": "portal",
+    "root": "C:/Dev/dev_safetyreport/workspace/portal",
+    "remote": "http://172.21.10.28:9099/safetyreport/web/portal.git",
+    "created_at": "2026-05-28T08:43:17.043401Z",
+    "last_seen": "2026-05-28T08:43:50.119345Z"
+  },
+  "d68b5370bd0f": {
+    "id": "d68b5370bd0f",
+    "name": "monitoring",
+    "root": "D:\\20. POC\\monitoring",
+    "remote": "",
+    "created_at": "2026-06-04T07:30:31.865697Z",
+    "last_seen": "2026-06-05T03:55:52.981366Z"
+  },
+  "603aa2c6f3f2": {
+    "id": "603aa2c6f3f2",
+    "name": "haness",
+    "root": "D:\\haness",
+    "remote": "",
+    "created_at": "2026-06-04T08:31:11.420494Z",
+    "last_seen": "2026-06-05T00:53:20.060976Z"
+  }
+}

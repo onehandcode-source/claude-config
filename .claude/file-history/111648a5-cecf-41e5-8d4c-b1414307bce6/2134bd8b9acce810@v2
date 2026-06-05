@@ -1,0 +1,59 @@
+"use client";
+
+import "./globals.css";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
+
+const navItems = [
+  { href: "/", label: "시나리오", icon: "📋" },
+  { href: "/macros", label: "매크로", icon: "🔧" },
+  { href: "/runs", label: "실행 이력", icon: "📊" },
+];
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+
+  return (
+    <html lang="ko">
+      <head>
+        <title>Playwright 테스트 자동화 도구</title>
+        <meta name="description" content="Playwright 기반 자동화 테스트 도구" />
+      </head>
+      <body className="bg-background text-foreground">
+        <div className="flex min-h-screen">
+          <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-[#111827]">
+            <div className="flex items-center gap-3 border-b border-border px-5 py-5">
+              <span className="text-2xl">🎭</span>
+              <div>
+                <div className="text-sm font-bold text-foreground">Playwright</div>
+                <div className="text-xs text-muted-foreground">테스트 자동화</div>
+              </div>
+            </div>
+            <nav className="flex flex-1 flex-col gap-1 p-3">
+              {navItems.map((item) => {
+                const isActive =
+                  item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                      isActive
+                        ? "bg-primary/20 font-medium text-primary"
+                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                    }`}
+                  >
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </aside>
+          <main className="flex-1 overflow-auto">{children}</main>
+        </div>
+      </body>
+    </html>
+  );
+}

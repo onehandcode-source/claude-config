@@ -1,0 +1,491 @@
+# TrmWordDict 개발 가이드 스타일
+
+> **대상**: AI 에이전트 및 팀 개발자 2명  
+> **목적**: 코드 생성 시 일관성을 강제하는 단일 참조 문서  
+> **관련 문서**:
+> - 상세 Java 컨벤션 → `docs/dev-guide/conventions.md`
+> - 패키지/디렉터리 구조 → `docs/superpowers/specs/2026-05-03-code-structure-design.md`
+> - Endpoint 설계 원칙 → `docs/superpowers/ygKim/02. endPointRole.md`
+
+---
+
+## 1. 기술 스택 요약
+
+| 영역 | 기술 |
+|------|------|
+| Backend | Spring Boot 2.7.18, Java 1.8, MyBatis, Tibero7 |
+| Frontend | React 18+ (SPA), shadcn/ui, Tailwind CSS |
+| 상태관리 | Zustand (전역), React Query (서버 상태) |
+| 유효성 | Zod |
+| 인증 | Spring Security + JWT (stateless) |
+| 배포 | React 빌드 → `static/` → 단일 JAR |
+
+---
+
+## 2. Endpoint 명명 규칙
+
+### 2.1 경로 구분 원칙
+
+| 구분 | 패턴 | 처리 주체 |
+|------|------|----------|
+| REST API | `/api/v1/{module}/**` | Spring Controller |
+| 화면 라우트 | `/dic/**` | React Router |
+| 정적 자원 | `/assets/**` | Spring Static |
+
+### 2.2 REST API 명명 규칙
+
+**기본 패턴**: `/api/v1/{module}/{리소스}`
+
+| 규칙 | 내용 | 예시 |
+|------|------|------|
+| 소문자 + 케밥 케이스 | 단어 구분 시 하이픈 사용 | `/api/v1/word-categories` |
+| 복수 명사 | 컬렉션은 복수형 | `/api/v1/words` (O) `/api/v1/word` (X) |
+| 동사 금지 | URL에 동사 사용 금지 | `/api/v1/words` (O) `/api/v1/getWords` (X) |
+| 계층 관계 | 슬래시로 계층 표현 | `/api/v1/domains/{id}/words` |
+| 특수 동작 | 명사 불가 시에만 허용 | `/api/v1/words/{id}/approve` |
+
+**HTTP 메서드 매핑**:
+
+| 메서드 | 용도 | 예시 |
+|--------|------|------|
+| `GET /api/v1/{module}` | 목록 조회 | `GET /api/v1/words` |
+| `POST /api/v1/{module}/search` | 조건부 목록 조회 (검색 파라미터가 복잡한 경우) | `POST /api/v1/words/search` |
+| `GET /api/v1/{module}/{id}` | 단건 상세 조회 | `GET /api/v1/words/1` |
+| `POST /api/v1/{module}` | 생성 | `POST /api/v1/words` |
+| `PUT /api/v1/{module}/{id}` | 전체 수정 | `PUT /api/v1/words/1` |
+| `PATCH /api/v1/{module}/{id}` | 부분 수정 (운영 보강) | `PATCH /api/v1/words/1` |
+| `DELETE /api/v1/{module}/{id}` | 삭제 | `DELETE /api/v1/words/1` |
+
+**모듈별 기본 Endpoint**:
+
+| 모듈 | Base URL |
+|------|---------|
+| auth | `/api/v1/auth` |
+| domain | `/api/v1/domains` |
+| word | `/api/v1/words` |
+| term | `/api/v1/terms` |
+| forbidden | `/api/v1/forbidden-words` |
+| importjob | `/api/v1/import` |
+| inspection | `/api/v1/inspections` |
+
+---
+
+## 3. Backend 클래스 생성 규칙
+
+### 3.1 클래스 명명 패턴
+
+| 클래스 유형 | 패턴 | 예시 |
+|------------|------|------|
+| Controller | `{Module}Controller` | `WordController` |
+| Service | `{Module}Service` | `WordService` |
+| Mapper (인터페이스) | `{Module}Mapper` | `WordMapper` |
+| DTO (검색) | `{Module}SearchDto` | `WordSearchDto` |
+| DTO (저장) | `{Module}SaveDto` | `WordSaveDto` |
+| DTO (업로드) | `{Module}UploadDto` | `ImportUploadDto` |
+| VO (목록) | `{Module}MstVo` | `WordMstVo` |
+| VO (상세) | `{Module}DtlVo` | `WordDtlVo` |
+| VO (단순) | `{Module}Vo` | `WordVo` |
+| Config | `{기능}Config` | `DataSourceConfig`, `SecurityConfig` |
+
+**규칙**:
+- `dto`: 입력 전용 (Request). `vo`: 출력 전용 (Response + MyBatis 매핑 겸용).
+- 한 클래스가 DTO + VO 역할을 겸하지 않는다.
+- `entity` 폴더/클래스는 생성하지 않는다 (MyBatis 직접 VO 매핑).
+- Service 인터페이스는 분리하지 않는다 (단일 클래스).
+
+### 3.2 Controller 작성 규칙
+
+```java
+@Slf4j
+@RestController
+@RequestMapping("/api/v1/words")
+@RequiredArgsConstructor
+public class WordController {
+
+    private final WordService wordService;
+
+    // 목록 조회 (검색 조건이 단순할 때)
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<WordMstVo>>> getList(
+            @ModelAttribute WordSearchDto searchDto) {
+        return ResponseEntity.ok(ApiResponse.success(wordService.getList(searchDto)));
+    }
+
+    // 조건부 목록 조회 (검색 조건이 복잡할 때 — POST /search)
+    @PostMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<WordMstVo>>> search(
+            @RequestBody @Valid WordSearchDto searchDto) {
+        return ResponseEntity.ok(ApiResponse.success(wordService.getList(searchDto)));
+    }
+
+    // 상세 조회
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<WordDtlVo>> getDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(wordService.getDetail(id)));
+    }
+
+    // 생성
+    @PostMapping
+    public ResponseEntity<ApiResponse<Void>> save(@RequestBody @Valid WordSaveDto saveDto) {
+        wordService.save(saveDto);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    // 삭제
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        wordService.delete(id);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+}
+```
+
+**필수 어노테이션**:
+- `@Slf4j` — 모든 Controller에 필수
+- `@RestController` + `@RequestMapping` — 클래스 레벨 URL 지정
+- `@RequiredArgsConstructor` — 생성자 주입 (필드에 `final`)
+- `@Valid` — Request DTO에 유효성 검사 적용 시
+
+### 3.3 Service 작성 규칙
+
+```java
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class WordService {
+
+    private final WordMapper wordMapper;
+
+    @Transactional(readOnly = true)
+    public PageResponse<WordMstVo> getList(WordSearchDto searchDto) {
+        List<WordMstVo> list = wordMapper.selectList(searchDto);
+        int total = wordMapper.countList(searchDto);
+        return PageResponse.of(list, searchDto, total);
+    }
+
+    @Transactional
+    public void save(WordSaveDto saveDto) {
+        wordMapper.insert(saveDto);
+    }
+}
+```
+
+**규칙**:
+- `@Slf4j` — 모든 Service에 필수
+- 조회 메서드: `@Transactional(readOnly = true)`
+- 변경 메서드: `@Transactional`
+- 메서드명: `get*` (조회), `save` (생성), `update` (수정), `delete` (삭제)
+
+### 3.4 Mapper 인터페이스 작성 규칙
+
+```java
+@Mapper
+public interface WordMapper {
+
+    List<WordMstVo> selectList(WordSearchDto searchDto);
+
+    int countList(WordSearchDto searchDto);
+
+    WordDtlVo selectDetail(Long id);
+
+    void insert(WordSaveDto saveDto);
+
+    int update(WordSaveDto saveDto);
+
+    int delete(Long id);
+}
+```
+
+**Mapper XML 위치**: `src/main/resources/mapper/{module}/{Module}Mapper.xml`
+
+**XML namespace**: `com.devwogns.trmdict.module.{module}.mapper.{Module}Mapper`
+
+**메서드명 패턴**: `select*` (조회), `insert` (등록), `update` (수정), `delete` (삭제)
+
+### 3.5 VO / DTO 작성 규칙
+
+**VO (Response + MyBatis 매핑)**:
+```java
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class WordDtlVo {
+    private Long id;
+    private String wordNm;
+    private String wordEngNm;
+    private String useYn;
+    // nested 구조는 static inner class 또는 별도 VO 파일
+    private List<AliasItem> aliases;
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AliasItem {
+        private String value;
+        private String useYn;
+    }
+}
+```
+
+**DTO (Request)**:
+```java
+@Getter
+@Setter
+@NoArgsConstructor
+public class WordSearchDto {
+    private String wordNm;
+    private String useYn;
+    private int page = 1;
+    private int size = 20;
+}
+```
+
+**규칙**:
+- VO: `@Getter @Builder @NoArgsConstructor @AllArgsConstructor @JsonInclude(NON_NULL)`
+- DTO: `@Getter @Setter @NoArgsConstructor`
+- `Map<String, Object>` 응답 금지 (스키마 보호)
+- nullable 필드는 VO 클래스 레벨에 `@JsonInclude(NON_NULL)` 적용
+
+### 3.6 공통 응답 구조
+
+```
+ApiResponse<T>
+  success: boolean
+  code: String        (에러 코드, 성공 시 null)
+  message: String     (에러 메시지, 성공 시 null)
+  data: T             (응답 데이터)
+  timestamp: String
+```
+
+```
+PageResponse<T>
+  items: List<T>
+  page: int
+  size: int
+  totalElements: int
+  totalPages: int
+```
+
+### 3.7 ErrorCode 추가 규칙
+
+`src/main/java/com/devwogns/trmdict/common/exception/ErrorCode.java` 단일 enum에만 추가.
+
+코드 형식: `{MODULE}_{4자리}` (예: `WORD_3001`, `TERM_4001`)
+
+| 모듈 | 코드 범위 |
+|------|---------|
+| COMMON | 0001~0999 |
+| AUTH | 1001~1999 |
+| DOMAIN | 2001~2999 |
+| WORD | 3001~3999 |
+| TERM | 4001~4999 |
+| FORBIDDEN | 5001~5999 |
+| IMPORT | 6001~6999 |
+| INSPECTION | 7001~7999 |
+
+---
+
+## 4. Backend 파일 배치 규칙
+
+```
+src/main/java/com/devwogns/trmdict/
+├── module/{module}/
+│   ├── controller/{Module}Controller.java
+│   ├── service/{Module}Service.java
+│   ├── mapper/{Module}Mapper.java
+│   ├── dto/
+│   │   ├── {Module}SearchDto.java
+│   │   └── {Module}SaveDto.java
+│   └── vo/
+│       ├── {Module}Vo.java
+│       ├── {Module}MstVo.java
+│       └── {Module}DtlVo.java
+
+src/main/resources/
+├── mapper/{module}/{Module}Mapper.xml
+└── db-ddl/{NN}_{module}.sql
+```
+
+**파일 생성 체크리스트**:
+1. Controller → `module/{module}/controller/`
+2. Service → `module/{module}/service/`
+3. Mapper 인터페이스 → `module/{module}/mapper/`
+4. Mapper XML → `resources/mapper/{module}/`
+5. DTO → `module/{module}/dto/`
+6. VO → `module/{module}/vo/`
+
+---
+
+## 5. Frontend 파일 구조 (React TO-BE)
+
+### 5.1 디렉터리 구조
+
+```
+frontend/src/
+├── app/                        # 라우터, 전역 Provider
+├── core/                       # 싱글톤 (인터셉터, 가드, 전역 서비스)
+│   ├── api/                    # axios 인스턴스, 공통 API 유틸
+│   └── auth/                   # 인증 관련 유틸
+├── shared/                     # 재사용 컴포넌트, Hook, 유틸
+│   ├── components/             # 공통 UI 컴포넌트
+│   ├── hooks/                  # 공통 커스텀 Hook
+│   └── utils/                  # 순수 유틸 함수
+├── store/                      # Zustand 전역 상태
+├── features/                   # 도메인 기능 모듈
+│   ├── domain/
+│   ├── word/
+│   ├── term/
+│   ├── forbidden/
+│   ├── import/
+│   └── inspection/
+└── styles/                     # 전역 CSS, Tailwind base
+```
+
+### 5.2 파일 명명 규칙
+
+| 유형 | 패턴 | 예시 |
+|------|------|------|
+| React 컴포넌트 | PascalCase `.tsx` | `WordList.tsx` |
+| 커스텀 Hook | `use` + PascalCase `.ts` | `useWordList.ts` |
+| Zustand Store | `use` + PascalCase + `Store` `.ts` | `useAuthStore.ts` |
+| API 함수 파일 | camelCase + `Api` `.ts` | `wordApi.ts` |
+| 타입/인터페이스 | camelCase `.types.ts` | `word.types.ts` |
+| 유틸 함수 | camelCase + `Utils` `.ts` | `dateUtils.ts` |
+| 상수 | camelCase `.constants.ts` | `apiConstants.ts` |
+
+### 5.3 컴포넌트 구조 임계치
+
+- 컴포넌트 **2개 이하**: 평면 구조 (모듈 폴더 바로 아래)
+- 컴포넌트 **3개 이상**: 분리 구조 (`components/`, `hooks/`, `types/` 분리)
+
+**평면 구조 예시 (Import)**:
+```
+features/import/
+├── ImportPage.tsx
+├── useImportUpload.ts
+├── importApi.ts
+└── import.types.ts
+```
+
+**분리 구조 예시 (Word)**:
+```
+features/word/
+├── components/
+│   ├── WordList.tsx
+│   ├── WordDetail.tsx
+│   └── WordEditDrawer.tsx
+├── hooks/
+│   ├── useWordList.ts
+│   └── useWordDetail.ts
+├── wordApi.ts
+└── word.types.ts
+```
+
+### 5.4 React Query 사용 규칙
+
+**Query Key 패턴**: `['{module}', '{action}', ...params]`
+
+```typescript
+// wordApi.ts
+export const wordApi = {
+    getList: (params: WordSearchDto) =>
+        axiosInstance.post<ApiResponse<PageResponse<WordMstVo>>>('/api/v1/words/search', params),
+
+    getDetail: (id: number) =>
+        axiosInstance.get<ApiResponse<WordDtlVo>>(`/api/v1/words/${id}`),
+};
+
+// useWordList.ts
+export function useWordList(params: WordSearchDto) {
+    return useQuery({
+        queryKey: ['words', 'list', params],
+        queryFn: () => wordApi.getList(params),
+    });
+}
+```
+
+**Mutation 패턴**:
+```typescript
+export function useWordSave() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: WordSaveDto) => wordApi.save(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['words'] });
+            toast.success('저장되었습니다.');
+        },
+    });
+}
+```
+
+### 5.5 Zustand Store 규칙
+
+**파일 위치**: `store/use{Domain}Store.ts`
+
+```typescript
+// store/useAuthStore.ts
+interface AuthState {
+    user: AuthUser | null;
+    isAuthenticated: boolean;
+    setUser: (user: AuthUser | null) => void;
+    logout: () => void;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+    user: null,
+    isAuthenticated: false,
+    setUser: (user) => set({ user, isAuthenticated: !!user }),
+    logout: () => set({ user: null, isAuthenticated: false }),
+}));
+```
+
+**규칙**:
+- 서버 상태(API 데이터)는 React Query 사용, Zustand에 넣지 않는다.
+- Zustand는 UI 상태, 사용자 정보, 앱 전역 설정에만 사용한다.
+
+### 5.6 Zod 스키마 규칙
+
+```typescript
+// word.types.ts
+export const wordSaveDtoSchema = z.object({
+    wordNm: z.string().min(1, '단어명은 필수입니다.'),
+    wordEngNm: z.string().optional(),
+    useYn: z.enum(['Y', 'N']).default('Y'),
+});
+
+export type WordSaveDto = z.infer<typeof wordSaveDtoSchema>;
+```
+
+---
+
+## 6. 공통 코딩 규칙 요약
+
+### 6.1 금지 사항
+
+| 항목 | 금지 내용 |
+|------|---------|
+| Java | `entity` 폴더/클래스 생성 금지 |
+| Java | Service 인터페이스 분리 금지 (1차) |
+| Java | `Map<String, Object>` 응답 금지 |
+| Java | 하드코딩된 비밀번호/API 키 금지 |
+| Java | `Set.of()`, `List.of()` 사용 금지 (Java 8 호환) |
+| SQL | MyBatis `${}` 직접 치환 금지 (SQL 인젝션) → `#{}` 사용 |
+| React | 서버 상태를 Zustand에 저장 금지 → React Query 사용 |
+| React | `any` 타입 사용 금지 |
+| 공통 | 코드에 TODO 주석 남기고 미완성 상태로 종료 금지 |
+
+### 6.2 필수 적용 사항
+
+| 항목 | 규칙 |
+|------|------|
+| Java 들여쓰기 | 4칸 스페이스 (탭 금지) |
+| Java 라인 길이 | 최대 120자 |
+| Java Logger | `@Slf4j` 모든 Controller, Service에 필수 |
+| Java 조회 트랜잭션 | `@Transactional(readOnly = true)` |
+| VO nullable | `@JsonInclude(NON_NULL)` 클래스 레벨 |
+| React 컴포넌트 | PascalCase 파일명 필수 |
+| React Hook | `use` 접두사 필수 |
+| API 호출 | React Query (`useQuery`, `useMutation`) 경유 필수 |

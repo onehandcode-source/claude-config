@@ -1,0 +1,126 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Badge } from '@/shared/components/ui/badge';
+import Ban from 'lucide-react/dist/esm/icons/ban.js';
+import BookOpen from 'lucide-react/dist/esm/icons/book-open.js';
+import Database from 'lucide-react/dist/esm/icons/database.js';
+import FolderTree from 'lucide-react/dist/esm/icons/folder-tree.js';
+import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right.js';
+
+const quickEntries = [
+    {
+        title: '도메인 관리',
+        description: '도메인 분류 계층을 관리하고 메타데이터를 검토합니다.',
+        to: '/domain',
+        icon: FolderTree,
+        dotColor: '#8b5cf6',
+        dotBg: '#ede9fe',
+    },
+    {
+        title: '단어 관리',
+        description: '표준 용어를 확인하고 메타데이터를 최신 상태로 유지합니다.',
+        to: '/word',
+        icon: BookOpen,
+        dotColor: '#2563eb',
+        dotBg: '#eff6ff',
+    },
+    {
+        title: '금칙어 관리',
+        description: '금칙어 목록과 최신 적용 상태를 조회합니다.',
+        to: '/forbidden',
+        icon: Ban,
+        dotColor: '#ef4444',
+        dotBg: '#fee2e2',
+    },
+    {
+        title: '데이터 가져오기',
+        description: 'CSV 파일로 단어·도메인·금칙어를 일괄 등록합니다.',
+        to: '/import',
+        icon: Database,
+        dotColor: '#10b981',
+        dotBg: '#d1fae5',
+    },
+];
+
+const QuickCard = ({ title, description, to, icon: Icon, dotColor, dotBg }) => {
+    const [isHovered, setIsHovered] = useState(false);
+
+    return (
+        <Link
+            to={to}
+            className='no-underline h-full'
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <div
+                className='bg-card border-[1.5px] p-5 h-full flex flex-col gap-3 transition-all'
+                style={{
+                    borderColor: isHovered ? dotColor : 'hsl(var(--border-lt))',
+                    boxShadow: isHovered ? `0 4px 16px ${dotColor}18` : 'none',
+                }}
+            >
+                <div
+                    className='w-9 h-9 rounded flex items-center justify-center shrink-0'
+                    style={{ background: dotBg }}
+                >
+                    <Icon aria-hidden='true' className='w-[18px] h-[18px]' style={{ color: dotColor }} />
+                </div>
+                <div className='flex-1'>
+                    <div className='text-sm font-semibold text-foreground mb-1'>
+                        {title}
+                    </div>
+                    <div className='text-[13px] text-muted-foreground leading-relaxed'>
+                        {description}
+                    </div>
+                </div>
+                <div
+                    className='flex items-center gap-1 text-[12px] font-medium'
+                    style={{ color: dotColor }}
+                >
+                    바로가기
+                    <ArrowRight aria-hidden='true' className='w-[13px] h-[13px]' />
+                </div>
+            </div>
+        </Link>
+    );
+};
+
+export const HomePage = () => {
+    const user = useAuthStore((state) => state.user);
+
+    return (
+        <div className='flex flex-col gap-6'>
+            <div className='bg-card border-[1.5px] border-border p-7 px-8'>
+                <h1 className='text-2xl font-bold text-foreground mb-2'>
+                    안녕하세요,{' '}
+                    <span className='font-display italic' style={{ color: 'hsl(var(--accent))' }}>
+                        {user?.name ?? '사용자'}
+                    </span>님
+                </h1>
+                <p className='text-sm text-muted-foreground m-0'>
+                    행정표준용어 기반 용어 사전 시스템입니다. 아래 메뉴에서 빠르게 이동할 수 있습니다.
+                </p>
+                <div className='flex gap-2 mt-4 flex-wrap'>
+                    <Badge variant='secondary' className='text-[12px] font-medium px-3 py-1 rounded-full'>
+                        {user?.role ?? '-'}
+                    </Badge>
+                    <Badge variant='success' className='text-[12px] font-medium px-3 py-1 rounded-full'>
+                        활성
+                    </Badge>
+                </div>
+            </div>
+
+            <section>
+                <h2 className='text-[11px] font-semibold tracking-[0.06em] uppercase text-muted-foreground mb-3'>
+                    빠른 접근
+                </h2>
+                <div className='grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3'>
+                    {quickEntries.map((entry) => (
+                        <QuickCard key={entry.to} {...entry} />
+                    ))}
+                </div>
+            </section>
+        </div>
+    );
+};

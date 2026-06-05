@@ -1,0 +1,116 @@
+import { Button } from '../ui/button';
+
+const buildPageItems = (currentPage, totalPages) => {
+    if (totalPages <= 1) return [];
+    if (totalPages <= 7) {
+        return Array.from({ length: totalPages }, (_, i) => ({ type: 'page', value: i + 1 }));
+    }
+    const pages = new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+    const ordered = [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+    const items = [];
+    let last = 0;
+    ordered.forEach((p) => {
+        if (p - last > 1) items.push({ type: 'ellipsis', key: `e-${last}-${p}` });
+        items.push({ type: 'page', value: p });
+        last = p;
+    });
+    return items;
+};
+
+export const CardList = ({ pageData, pageSizeOptions = [10, 20, 50, 100], onPageChange, renderItem }) => {
+    const items = pageData?.items ?? [];
+    const pageItems = buildPageItems(pageData?.page ?? 1, pageData?.totalPages ?? 1);
+
+    return (
+        <div>
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '12px',
+                }}
+            >
+                <span style={{ fontSize: '13px', color: 'hsl(var(--muted-foreground))' }}>
+                    총 <strong style={{ color: 'hsl(var(--foreground))' }}>{pageData?.totalElements ?? 0}</strong>건
+                </span>
+                <select
+                    aria-label='페이지 크기'
+                    style={{
+                        height: '32px',
+                        borderRadius: '6px',
+                        border: '1px solid hsl(var(--border))',
+                        background: 'hsl(var(--card))',
+                        color: 'hsl(var(--foreground))',
+                        padding: '0 10px',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                    }}
+                    value={pageData?.size ?? pageSizeOptions[0]}
+                    onChange={(e) => onPageChange?.({ page: 1, size: Number(e.target.value) })}
+                >
+                    {pageSizeOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                            {opt}개씩 보기
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {items.length === 0 ? (
+                <div
+                    style={{
+                        padding: '48px 0',
+                        textAlign: 'center',
+                        color: 'hsl(var(--muted-foreground))',
+                        fontSize: '14px',
+                        background: 'hsl(var(--card))',
+                        borderRadius: '12px',
+                        border: '1px solid hsl(var(--border))',
+                    }}
+                >
+                    데이터가 없습니다.
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {items.map((item) => renderItem(item))}
+                </div>
+            )}
+
+            {pageItems.length > 0 ? (
+                <div
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '4px',
+                        marginTop: '16px',
+                    }}
+                >
+                    {pageItems.map((pi) =>
+                        pi.type === 'ellipsis' ? (
+                            <span
+                                key={pi.key}
+                                style={{ padding: '0 8px', color: 'hsl(var(--muted-foreground))', fontSize: '13px' }}
+                            >
+                                ...
+                            </span>
+                        ) : (
+                            <Button
+                                key={pi.value}
+                                variant={pi.value === pageData.page ? 'default' : 'outline'}
+                                size='sm'
+                                type='button'
+                                style={{ minWidth: '36px' }}
+                                aria-current={pi.value === pageData.page ? 'page' : undefined}
+                                onClick={() => onPageChange?.({ page: pi.value, size: pageData.size })}
+                            >
+                                {pi.value}
+                            </Button>
+                        ),
+                    )}
+                </div>
+            ) : null}
+        </div>
+    );
+};

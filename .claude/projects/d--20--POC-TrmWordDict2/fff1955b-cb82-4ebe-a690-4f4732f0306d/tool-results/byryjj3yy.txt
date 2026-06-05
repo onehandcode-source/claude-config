@@ -1,0 +1,1905 @@
+commit 38f059a5fcbfe0e46f5c8a52d208b03cfd237447
+Author: 김영건 <onehandcode@gmail.com>
+Date:   Tue May 26 11:07:51 2026 +0900
+
+    feat: 초안2
+
+ CLAUDE_andre.md | 80 ---------------------------------------------------------
+ 1 file changed, 80 deletions(-)
+===
+commit dc0b352dca84c353cc8940170d9157b6443ce965
+Author: 김영건 <onehandcode@gmail.com>
+Date:   Tue May 26 11:06:20 2026 +0900
+
+    feat:초안2
+
+ .../.claude/rules/api-dev-rule.md                  |   240 -
+ .../worktrees/c2-frontend-react-plan/.gitignore    |    23 -
+ .../.omc/project-memory.json                       |   104 -
+ ...play-83d1ef05-1595-4b81-962b-89f4178b16d4.jsonl |     2 -
+ .../session-started.json                           |     6 -
+ .../.omc/state/subagent-tracking.json              |     7 -
+ .claude/worktrees/c2-frontend-react-plan/CLAUDE.md |    89 -
+ .../backend/lib/tibero7-jdbc-18.jar                |   Bin 1710825 -> 0 bytes
+ .../c2-frontend-react-plan/backend/pom.xml         |   123 -
+ .../com/devwogns/trmdict/TrmDictApplication.java   |    13 -
+ .../devwogns/trmdict/common/async/JobStatus.java   |     9 -
+ .../common/exception/BusinessException.java        |    19 -
+ .../trmdict/common/exception/ErrorCode.java        |    44 -
+ .../common/exception/GlobalExceptionHandler.java   |    47 -
+ .../trmdict/common/paging/PageRequest.java         |    51 -
+ .../trmdict/common/response/ApiResponse.java       |    38 -
+ .../trmdict/common/response/PageResponse.java      |    23 -
+ .../trmdict/common/security/AuthPrincipal.java     |    12 -
+ .../common/security/JwtAuthenticationFilter.java   |    52 -
+ .../trmdict/common/security/JwtTokenProvider.java  |    56 -
+ .../trmdict/common/security/SecurityConfig.java    |    76 -
+ .../com/devwogns/trmdict/config/AsyncConfig.java   |    47 -
+ .../devwogns/trmdict/config/DataSourceConfig.java  |    12 -
+ .../com/devwogns/trmdict/config/MyBatisConfig.java |    24 -
+ .../module/auth/controller/AuthController.java     |    78 -
+ .../devwogns/trmdict/module/auth/dto/LoginDto.java |    22 -
+ .../trmdict/module/auth/mapper/AuthMapper.java     |    15 -
+ .../trmdict/module/auth/service/AuthService.java   |    62 -
+ .../trmdict/module/auth/vo/AuthUserVo.java         |    21 -
+ .../module/domain/controller/DomainController.java |    35 -
+ .../trmdict/module/domain/dto/DomainSearchDto.java |    20 -
+ .../trmdict/module/domain/mapper/DomainMapper.java |    18 -
+ .../module/domain/service/DomainService.java       |    88 -
+ .../trmdict/module/domain/vo/DomainDtlVo.java      |    45 -
+ .../trmdict/module/domain/vo/DomainListVo.java     |    21 -
+ .../importjob/controller/ImportJobController.java  |   134 -
+ .../listener/ImportJobRecoveryListener.java        |    32 -
+ .../module/importjob/mapper/ImportJobMapper.java   |    47 -
+ .../module/importjob/parser/CsvImportParser.java   |   101 -
+ .../module/importjob/parser/ImportType.java        |    60 -
+ .../module/importjob/service/ImportJobService.java |   216 -
+ .../trmdict/module/importjob/vo/ImportErrorVo.java |    23 -
+ .../module/importjob/vo/ImportHistoryVo.java       |    33 -
+ .../module/importjob/vo/ImportSummaryVo.java       |    13 -
+ .../src/main/resources/application-local.yml       |    40 -
+ .../src/main/resources/application-prod.yml        |    43 -
+ .../backend/src/main/resources/application.yml     |    16 -
+ .../src/main/resources/db-ddl/00_common.sql        |    90 -
+ .../src/main/resources/db-ddl/01_import.sql        |    63 -
+ .../src/main/resources/db-ddl/02_staging.sql       |   109 -
+ .../src/main/resources/db-ddl/03_domain.sql        |    41 -
+ .../backend/src/main/resources/db-ddl/04_word.sql  |    38 -
+ .../backend/src/main/resources/db-ddl/05_term.sql  |    40 -
+ .../src/main/resources/db-ddl/drop_legacy.sql      |    55 -
+ .../src/main/resources/mapper/auth/AuthMapper.xml  |    30 -
+ .../main/resources/mapper/domain/DomainMapper.xml  |    85 -
+ .../resources/mapper/importjob/ImportJobMapper.xml |   327 -
+ .../devwogns/trmdict/TrmDictApplicationTests.java  |    33 -
+ .../trmdict/common/async/JobStatusTest.java        |    35 -
+ .../trmdict/common/exception/ErrorCodeTest.java    |    39 -
+ .../exception/GlobalExceptionHandlerTest.java      |    33 -
+ .../trmdict/common/paging/PageRequestTest.java     |    66 -
+ .../trmdict/common/response/ApiResponseTest.java   |    43 -
+ .../trmdict/common/response/PageResponseTest.java  |    28 -
+ .../security/JwtAuthenticationFilterTest.java      |    72 -
+ .../common/security/JwtTokenProviderTest.java      |    54 -
+ .../common/security/SecurityConfigTest.java        |    47 -
+ .../devwogns/trmdict/config/AsyncConfigTest.java   |    33 -
+ .../com/devwogns/trmdict/db/SchemaVerifyTest.java  |    52 -
+ .../trmdict/module/auth/AuthIntegrationTest.java   |   114 -
+ .../module/auth/controller/AuthControllerTest.java |   120 -
+ .../trmdict/module/auth/mapper/AuthMapperTest.java |    23 -
+ .../module/auth/service/AuthServiceTest.java       |   110 -
+ .../domain/controller/DomainControllerTest.java    |   116 -
+ .../module/domain/service/DomainServiceTest.java   |   110 -
+ .../module/importjob/ImportJobIntegrationTest.java |    84 -
+ .../controller/ImportJobControllerTest.java        |   120 -
+ .../listener/ImportJobRecoveryListenerTest.java    |    52 -
+ .../importjob/parser/CsvImportParserTest.java      |    97 -
+ .../importjob/service/ImportJobServiceTest.java    |   166 -
+ .../docs/cycles/01-c0-backend-core/plan.md         |  3346 ----
+ .../docs/cycles/01-c0-backend-core/spec.md         |   324 -
+ .../docs/cycles/01-c0-backend-core/status.md       |   279 -
+ .../docs/cycles/02-c1-async-infra/plan.md          |  1149 --
+ .../docs/cycles/02-c1-async-infra/spec.md          |   341 -
+ .../docs/cycles/02-c1-async-infra/status.md        |    98 -
+ .../docs/cycles/03-c2-frontend-core/plan.md        |   759 -
+ .../docs/cycles/03-c2-frontend-core/spec.md        |   528 -
+ .../docs/cycles/03-c2-frontend-core/status.md      |   123 -
+ .../docs/cycles/04-i0-import-backend/plan.md       |  3140 ----
+ .../docs/cycles/04-i0-import-backend/spec.md       |   662 -
+ .../docs/cycles/04-i0-import-backend/status.md     |    67 -
+ .../docs/cycles/05-rename-naming-alignment/plan.md |  1796 --
+ .../docs/cycles/05-rename-naming-alignment/spec.md |    68 -
+ .../cycles/05-rename-naming-alignment/status.md    |    75 -
+ .../docs/cycles/06-i1-import-frontend/plan.md      |  2379 ---
+ .../docs/cycles/06-i1-import-frontend/spec.md      |   525 -
+ .../docs/cycles/06-i1-import-frontend/status.md    |   113 -
+ .../docs/cycles/07-m-d-r-domain-read/plan.md       |  2491 ---
+ .../docs/cycles/07-m-d-r-domain-read/spec.md       |   665 -
+ .../docs/cycles/07-m-d-r-domain-read/status.md     |   185 -
+ .../c2-frontend-react-plan/docs/decisions.md       |   791 -
+ .../docs/dev-guide/conventions.md                  |   233 -
+ .../c2-frontend-react-plan/docs/handoff.md         |   281 -
+ .../worktrees/c2-frontend-react-plan/docs/plan.md  |   235 -
+ .../specs/2026-05-03-code-structure-design.md      |   404 -
+ .../specs/2026-05-03-cycle-decomposition-design.md |   257 -
+ ...2026-05-06-naming-standards-alignment-design.md |   412 -
+ .../worktrees/c2-frontend-react-plan/docs/tips.md  |    32 -
+ .../c2-frontend-react-plan/docs/worklog.md         |   130 -
+ ...4\244\200\353\213\250\354\226\264_20251101.csv" |  3285 ----
+ ...3\217\204\353\251\224\354\235\270_20251101.csv" |   130 -
+ ...4\244\200\354\232\251\354\226\264_20251101.csv" | 13177 --------------
+ .../c2-frontend-react-plan/frontend/.editorconfig  |    16 -
+ .../c2-frontend-react-plan/frontend/.eslintrc.json |    51 -
+ .../c2-frontend-react-plan/frontend/.gitignore     |    46 -
+ .../frontend/.prettierignore                       |     6 -
+ .../c2-frontend-react-plan/frontend/.prettierrc    |    10 -
+ .../c2-frontend-react-plan/frontend/README.md      |    27 -
+ .../c2-frontend-react-plan/frontend/e2e/.gitkeep   |     0
+ .../frontend/e2e/auth.spec.ts                      |    64 -
+ .../frontend/e2e/domain.spec.ts                    |    83 -
+ .../frontend/e2e/fixtures/domain-valid.csv         |    32 -
+ .../frontend/e2e/fixtures/word-duplicate-key.csv   |     4 -
+ .../frontend/e2e/fixtures/word-invalid-header.csv  |     2 -
+ .../frontend/e2e/fixtures/word-valid-3rows.csv     |     4 -
+ .../frontend/e2e/import.spec.ts                    |   101 -
+ .../frontend/package-lock.json                     | 17775 -------------------
+ .../c2-frontend-react-plan/frontend/package.json   |    55 -
+ .../frontend/playwright.config.ts                  |    21 -
+ .../frontend/proxy.conf.json                       |     8 -
+ .../frontend/src/app/app-routing.module.ts         |    40 -
+ .../frontend/src/app/app.component.html            |     2 -
+ .../frontend/src/app/app.component.scss            |     7 -
+ .../frontend/src/app/app.component.spec.ts         |    35 -
+ .../frontend/src/app/app.component.ts              |    20 -
+ .../frontend/src/app/app.module.ts                 |    22 -
+ .../frontend/src/app/auth/auth.module.ts           |    19 -
+ .../src/app/auth/login/login.component.html        |    17 -
+ .../src/app/auth/login/login.component.scss        |    18 -
+ .../src/app/auth/login/login.component.spec.ts     |    89 -
+ .../frontend/src/app/auth/login/login.component.ts |    43 -
+ .../frontend/src/app/core/core.module.ts           |    15 -
+ .../src/app/core/guards/admin.guard.spec.ts        |    71 -
+ .../frontend/src/app/core/guards/admin.guard.ts    |    31 -
+ .../src/app/core/guards/auth.guard.spec.ts         |    45 -
+ .../frontend/src/app/core/guards/auth.guard.ts     |    28 -
+ .../core/interceptors/error.interceptor.spec.ts    |   158 -
+ .../src/app/core/interceptors/error.interceptor.ts |    64 -
+ .../app/core/interceptors/jwt.interceptor.spec.ts  |    67 -
+ .../src/app/core/interceptors/jwt.interceptor.ts   |    27 -
+ .../src/app/core/models/api-response.model.ts      |     7 -
+ .../src/app/core/models/page-response.model.ts     |     7 -
+ .../frontend/src/app/core/models/user.model.ts     |    21 -
+ .../src/app/core/services/api.service.spec.ts      |    36 -
+ .../frontend/src/app/core/services/api.service.ts  |    17 -
+ .../src/app/core/services/auth.service.spec.ts     |   106 -
+ .../frontend/src/app/core/services/auth.service.ts |    61 -
+ .../src/app/core/services/loading.service.spec.ts  |    48 -
+ .../src/app/core/services/loading.service.ts       |    21 -
+ .../app/features/domain/domain-routing.module.ts   |    13 -
+ .../src/app/features/domain/domain.module.ts       |    12 -
+ .../src/app/features/domain/models/domain.model.ts |    57 -
+ .../pages/list/domain-list-page.component.html     |   130 -
+ .../pages/list/domain-list-page.component.scss     |    60 -
+ .../pages/list/domain-list-page.component.spec.ts  |   141 -
+ .../pages/list/domain-list-page.component.ts       |   129 -
+ .../domain/services/domain.service.spec.ts         |   109 -
+ .../app/features/domain/services/domain.service.ts |    27 -
+ .../src/app/features/home/home-page.component.html |    12 -
+ .../src/app/features/home/home-page.component.scss |     3 -
+ .../app/features/home/home-page.component.spec.ts  |    35 -
+ .../src/app/features/home/home-page.component.ts   |    17 -
+ .../frontend/src/app/features/home/home.module.ts  |    12 -
+ .../app/features/import/import-routing.module.ts   |    18 -
+ .../src/app/features/import/import.module.ts       |    13 -
+ .../features/import/models/import-summary.model.ts |    47 -
+ .../import/pages/detail/detail-page.component.html |    58 -
+ .../import/pages/detail/detail-page.component.scss |    93 -
+ .../pages/detail/detail-page.component.spec.ts     |   160 -
+ .../import/pages/detail/detail-page.component.ts   |   124 -
+ .../import/pages/upload/upload-page.component.html |    29 -
+ .../import/pages/upload/upload-page.component.scss |    26 -
+ .../pages/upload/upload-page.component.spec.ts     |    73 -
+ .../import/pages/upload/upload-page.component.ts   |    64 -
+ .../import/services/import.service.spec.ts         |   145 -
+ .../app/features/import/services/import.service.ts |    53 -
+ .../blank-layout/blank-layout.component.html       |     3 -
+ .../blank-layout/blank-layout.component.scss       |     7 -
+ .../blank-layout/blank-layout.component.spec.ts    |    21 -
+ .../layouts/blank-layout/blank-layout.component.ts |     8 -
+ .../layouts/main-layout/main-layout.component.html |    31 -
+ .../layouts/main-layout/main-layout.component.scss |    57 -
+ .../main-layout/main-layout.component.spec.ts      |    69 -
+ .../layouts/main-layout/main-layout.component.ts   |    35 -
+ .../src/app/layouts/main-layout/menu-items.ts      |    13 -
+ .../components/data-grid/column-def.model.ts       |    11 -
+ .../data-grid/column-resize.directive.spec.ts      |    38 -
+ .../data-grid/column-resize.directive.ts           |    41 -
+ .../components/data-grid/data-grid.component.html  |    50 -
+ .../components/data-grid/data-grid.component.scss  |    18 -
+ .../data-grid/data-grid.component.spec.ts          |    68 -
+ .../components/data-grid/data-grid.component.ts    |    67 -
+ .../detail-panel/detail-panel.component.html       |    17 -
+ .../detail-panel/detail-panel.component.scss       |    40 -
+ .../detail-panel/detail-panel.component.spec.ts    |    47 -
+ .../detail-panel/detail-panel.component.ts         |    20 -
+ .../edit-drawer/edit-drawer.component.html         |    16 -
+ .../edit-drawer/edit-drawer.component.scss         |    46 -
+ .../edit-drawer/edit-drawer.component.spec.ts      |    46 -
+ .../edit-drawer/edit-drawer.component.ts           |    25 -
+ .../file-upload/file-upload.component.html         |     7 -
+ .../file-upload/file-upload.component.scss         |     8 -
+ .../file-upload/file-upload.component.spec.ts      |    48 -
+ .../file-upload/file-upload.component.ts           |    48 -
+ .../search-form/search-form.component.html         |    11 -
+ .../search-form/search-form.component.scss         |    22 -
+ .../search-form/search-form.component.spec.ts      |    46 -
+ .../search-form/search-form.component.ts           |    21 -
+ .../frontend/src/app/shared/material.module.ts     |    45 -
+ .../frontend/src/app/shared/shared.module.ts       |    37 -
+ .../frontend/src/assets/.gitkeep                   |     0
+ .../frontend/src/environments/environment.prod.ts  |     4 -
+ .../frontend/src/environments/environment.ts       |     4 -
+ .../frontend/src/favicon.ico                       |   Bin 948 -> 0 bytes
+ .../c2-frontend-react-plan/frontend/src/index.html |    16 -
+ .../c2-frontend-react-plan/frontend/src/main.ts    |     7 -
+ .../frontend/src/styles.scss                       |    28 -
+ .../frontend/tsconfig.app.json                     |    14 -
+ .../c2-frontend-react-plan/frontend/tsconfig.json  |    33 -
+ .../frontend/tsconfig.spec.json                    |    14 -
+ .../c2-spec-react/.claude/rules/api-dev-rule.md    |   240 -
+ .claude/worktrees/c2-spec-react/.gitignore         |    23 -
+ .../c2-spec-react/.omc/project-memory.json         |   110 -
+ .../4e307d26-4fd8-4273-b497-15b43adfb08b.json      |     8 -
+ ...play-685255ec-75a8-4f4c-9eda-b496b632d1e0.jsonl |     1 -
+ .../checkpoint-2026-05-15T08-15-04-337Z.json       |    16 -
+ .../session-started.json                           |     6 -
+ .../.omc/state/subagent-tracking.json              |     7 -
+ .claude/worktrees/c2-spec-react/CLAUDE.md          |    89 -
+ .../c2-spec-react/backend/lib/tibero7-jdbc-18.jar  |   Bin 1710825 -> 0 bytes
+ .claude/worktrees/c2-spec-react/backend/pom.xml    |   123 -
+ .../com/devwogns/trmdict/TrmDictApplication.java   |    13 -
+ .../devwogns/trmdict/common/async/JobStatus.java   |     9 -
+ .../common/exception/BusinessException.java        |    19 -
+ .../trmdict/common/exception/ErrorCode.java        |    44 -
+ .../common/exception/GlobalExceptionHandler.java   |    47 -
+ .../trmdict/common/paging/PageRequest.java         |    51 -
+ .../trmdict/common/response/ApiResponse.java       |    38 -
+ .../trmdict/common/response/PageResponse.java      |    23 -
+ .../trmdict/common/security/AuthPrincipal.java     |    12 -
+ .../common/security/JwtAuthenticationFilter.java   |    52 -
+ .../trmdict/common/security/JwtTokenProvider.java  |    56 -
+ .../trmdict/common/security/SecurityConfig.java    |    76 -
+ .../com/devwogns/trmdict/config/AsyncConfig.java   |    47 -
+ .../devwogns/trmdict/config/DataSourceConfig.java  |    12 -
+ .../com/devwogns/trmdict/config/MyBatisConfig.java |    24 -
+ .../module/auth/controller/AuthController.java     |    78 -
+ .../devwogns/trmdict/module/auth/dto/LoginDto.java |    22 -
+ .../trmdict/module/auth/mapper/AuthMapper.java     |    15 -
+ .../trmdict/module/auth/service/AuthService.java   |    62 -
+ .../trmdict/module/auth/vo/AuthUserVo.java         |    21 -
+ .../module/domain/controller/DomainController.java |    35 -
+ .../trmdict/module/domain/dto/DomainSearchDto.java |    20 -
+ .../trmdict/module/domain/mapper/DomainMapper.java |    18 -
+ .../module/domain/service/DomainService.java       |    88 -
+ .../trmdict/module/domain/vo/DomainDtlVo.java      |    45 -
+ .../trmdict/module/domain/vo/DomainListVo.java     |    21 -
+ .../importjob/controller/ImportJobController.java  |   134 -
+ .../listener/ImportJobRecoveryListener.java        |    32 -
+ .../module/importjob/mapper/ImportJobMapper.java   |    47 -
+ .../module/importjob/parser/CsvImportParser.java   |   101 -
+ .../module/importjob/parser/ImportType.java        |    60 -
+ .../module/importjob/service/ImportJobService.java |   216 -
+ .../trmdict/module/importjob/vo/ImportErrorVo.java |    23 -
+ .../module/importjob/vo/ImportHistoryVo.java       |    33 -
+ .../module/importjob/vo/ImportSummaryVo.java       |    13 -
+ .../src/main/resources/application-local.yml       |    40 -
+ .../src/main/resources/application-prod.yml        |    43 -
+ .../backend/src/main/resources/application.yml     |    16 -
+ .../src/main/resources/db-ddl/00_common.sql        |    90 -
+ .../src/main/resources/db-ddl/01_import.sql        |    63 -
+ .../src/main/resources/db-ddl/02_staging.sql       |   109 -
+ .../src/main/resources/db-ddl/03_domain.sql        |    41 -
+ .../backend/src/main/resources/db-ddl/04_word.sql  |    38 -
+ .../backend/src/main/resources/db-ddl/05_term.sql  |    40 -
+ .../src/main/resources/db-ddl/drop_legacy.sql      |    55 -
+ .../src/main/resources/mapper/auth/AuthMapper.xml  |    30 -
+ .../main/resources/mapper/domain/DomainMapper.xml  |    85 -
+ .../resources/mapper/importjob/ImportJobMapper.xml |   327 -
+ .../devwogns/trmdict/TrmDictApplicationTests.java  |    33 -
+ .../trmdict/common/async/JobStatusTest.java        |    35 -
+ .../trmdict/common/exception/ErrorCodeTest.java    |    39 -
+ .../exception/GlobalExceptionHandlerTest.java      |    33 -
+ .../trmdict/common/paging/PageRequestTest.java     |    66 -
+ .../trmdict/common/response/ApiResponseTest.java   |    43 -
+ .../trmdict/common/response/PageResponseTest.java  |    28 -
+ .../security/JwtAuthenticationFilterTest.java      |    72 -
+ .../common/security/JwtTokenProviderTest.java      |    54 -
+ .../common/security/SecurityConfigTest.java        |    47 -
+ .../devwogns/trmdict/config/AsyncConfigTest.java   |    33 -
+ .../com/devwogns/trmdict/db/SchemaVerifyTest.java  |    52 -
+ .../trmdict/module/auth/AuthIntegrationTest.java   |   114 -
+ .../module/auth/controller/AuthControllerTest.java |   120 -
+ .../trmdict/module/auth/mapper/AuthMapperTest.java |    23 -
+ .../module/auth/service/AuthServiceTest.java       |   110 -
+ .../domain/controller/DomainControllerTest.java    |   116 -
+ .../module/domain/service/DomainServiceTest.java   |   110 -
+ .../module/importjob/ImportJobIntegrationTest.java |    84 -
+ .../controller/ImportJobControllerTest.java        |   120 -
+ .../listener/ImportJobRecoveryListenerTest.java    |    52 -
+ .../importjob/parser/CsvImportParserTest.java      |    97 -
+ .../importjob/service/ImportJobServiceTest.java    |   166 -
+ .../docs/cycles/01-c0-backend-core/plan.md         |  3346 ----
+ .../docs/cycles/01-c0-backend-core/spec.md         |   324 -
+ .../docs/cycles/01-c0-backend-core/status.md       |   279 -
+ .../docs/cycles/02-c1-async-infra/plan.md          |  1149 --
+ .../docs/cycles/02-c1-async-infra/spec.md          |   341 -
+ .../docs/cycles/02-c1-async-infra/status.md        |    98 -
+ .../docs/cycles/03-c2-frontend-core/plan.md        |  4258 -----
+ .../docs/cycles/03-c2-frontend-core/spec.md        |   542 -
+ .../docs/cycles/03-c2-frontend-core/status.md      |   100 -
+ .../docs/cycles/04-i0-import-backend/plan.md       |  3140 ----
+ .../docs/cycles/04-i0-import-backend/spec.md       |   662 -
+ .../docs/cycles/04-i0-import-backend/status.md     |    67 -
+ .../docs/cycles/05-rename-naming-alignment/plan.md |  1796 --
+ .../docs/cycles/05-rename-naming-alignment/spec.md |    68 -
+ .../cycles/05-rename-naming-alignment/status.md    |    75 -
+ .../docs/cycles/06-i1-import-frontend/plan.md      |  2379 ---
+ .../docs/cycles/06-i1-import-frontend/spec.md      |   525 -
+ .../docs/cycles/06-i1-import-frontend/status.md    |   113 -
+ .../docs/cycles/07-m-d-r-domain-read/plan.md       |  2491 ---
+ .../docs/cycles/07-m-d-r-domain-read/spec.md       |   665 -
+ .../docs/cycles/07-m-d-r-domain-read/status.md     |   185 -
+ .claude/worktrees/c2-spec-react/docs/decisions.md  |   791 -
+ .../c2-spec-react/docs/dev-guide/conventions.md    |   233 -
+ .claude/worktrees/c2-spec-react/docs/handoff.md    |   281 -
+ .claude/worktrees/c2-spec-react/docs/plan.md       |   235 -
+ .../specs/2026-05-03-code-structure-design.md      |   404 -
+ .../specs/2026-05-03-cycle-decomposition-design.md |   257 -
+ ...2026-05-06-naming-standards-alignment-design.md |   412 -
+ .claude/worktrees/c2-spec-react/docs/tips.md       |    32 -
+ .claude/worktrees/c2-spec-react/docs/worklog.md    |   130 -
+ ...4\244\200\353\213\250\354\226\264_20251101.csv" |  3285 ----
+ ...3\217\204\353\251\224\354\235\270_20251101.csv" |   130 -
+ ...4\244\200\354\232\251\354\226\264_20251101.csv" | 13177 --------------
+ .../worktrees/c2-spec-react/frontend/.editorconfig |    16 -
+ .../c2-spec-react/frontend/.eslintrc.json          |    51 -
+ .../worktrees/c2-spec-react/frontend/.gitignore    |    46 -
+ .../c2-spec-react/frontend/.prettierignore         |     6 -
+ .../worktrees/c2-spec-react/frontend/.prettierrc   |    10 -
+ .claude/worktrees/c2-spec-react/frontend/README.md |    27 -
+ .../worktrees/c2-spec-react/frontend/angular.json  |   124 -
+ .../worktrees/c2-spec-react/frontend/e2e/.gitkeep  |     0
+ .../c2-spec-react/frontend/e2e/auth.spec.ts        |    64 -
+ .../c2-spec-react/frontend/e2e/domain.spec.ts      |    83 -
+ .../frontend/e2e/fixtures/domain-valid.csv         |    32 -
+ .../frontend/e2e/fixtures/word-duplicate-key.csv   |     4 -
+ .../frontend/e2e/fixtures/word-invalid-header.csv  |     2 -
+ .../frontend/e2e/fixtures/word-valid-3rows.csv     |     4 -
+ .../c2-spec-react/frontend/e2e/import.spec.ts      |   101 -
+ .../c2-spec-react/frontend/package-lock.json       | 17775 -------------------
+ .../worktrees/c2-spec-react/frontend/package.json  |    55 -
+ .../c2-spec-react/frontend/playwright.config.ts    |    21 -
+ .../c2-spec-react/frontend/proxy.conf.json         |     8 -
+ .../frontend/src/app/app-routing.module.ts         |    40 -
+ .../frontend/src/app/app.component.html            |     2 -
+ .../frontend/src/app/app.component.scss            |     7 -
+ .../frontend/src/app/app.component.spec.ts         |    35 -
+ .../frontend/src/app/app.component.ts              |    20 -
+ .../c2-spec-react/frontend/src/app/app.module.ts   |    22 -
+ .../frontend/src/app/auth/auth.module.ts           |    19 -
+ .../src/app/auth/login/login.component.html        |    17 -
+ .../src/app/auth/login/login.component.scss        |    18 -
+ .../src/app/auth/login/login.component.spec.ts     |    89 -
+ .../frontend/src/app/auth/login/login.component.ts |    43 -
+ .../frontend/src/app/core/core.module.ts           |    15 -
+ .../src/app/core/guards/admin.guard.spec.ts        |    71 -
+ .../frontend/src/app/core/guards/admin.guard.ts    |    31 -
+ .../src/app/core/guards/auth.guard.spec.ts         |    45 -
+ .../frontend/src/app/core/guards/auth.guard.ts     |    28 -
+ .../core/interceptors/error.interceptor.spec.ts    |   158 -
+ .../src/app/core/interceptors/error.interceptor.ts |    64 -
+ .../app/core/interceptors/jwt.interceptor.spec.ts  |    67 -
+ .../src/app/core/interceptors/jwt.interceptor.ts   |    27 -
+ .../src/app/core/models/api-response.model.ts      |     7 -
+ .../src/app/core/models/page-response.model.ts     |     7 -
+ .../frontend/src/app/core/models/user.model.ts     |    21 -
+ .../src/app/core/services/api.service.spec.ts      |    36 -
+ .../frontend/src/app/core/services/api.service.ts  |    17 -
+ .../src/app/core/services/auth.service.spec.ts     |   106 -
+ .../frontend/src/app/core/services/auth.service.ts |    61 -
+ .../src/app/core/services/loading.service.spec.ts  |    48 -
+ .../src/app/core/services/loading.service.ts       |    21 -
+ .../app/features/domain/domain-routing.module.ts   |    13 -
+ .../src/app/features/domain/domain.module.ts       |    12 -
+ .../src/app/features/domain/models/domain.model.ts |    57 -
+ .../pages/list/domain-list-page.component.html     |   130 -
+ .../pages/list/domain-list-page.component.scss     |    60 -
+ .../pages/list/domain-list-page.component.spec.ts  |   141 -
+ .../pages/list/domain-list-page.component.ts       |   129 -
+ .../domain/services/domain.service.spec.ts         |   109 -
+ .../app/features/domain/services/domain.service.ts |    27 -
+ .../src/app/features/home/home-page.component.html |    12 -
+ .../src/app/features/home/home-page.component.scss |     3 -
+ .../app/features/home/home-page.component.spec.ts  |    35 -
+ .../src/app/features/home/home-page.component.ts   |    17 -
+ .../frontend/src/app/features/home/home.module.ts  |    12 -
+ .../app/features/import/import-routing.module.ts   |    18 -
+ .../src/app/features/import/import.module.ts       |    13 -
+ .../features/import/models/import-summary.model.ts |    47 -
+ .../import/pages/detail/detail-page.component.html |    58 -
+ .../import/pages/detail/detail-page.component.scss |    93 -
+ .../pages/detail/detail-page.component.spec.ts     |   160 -
+ .../import/pages/detail/detail-page.component.ts   |   124 -
+ .../import/pages/upload/upload-page.component.html |    29 -
+ .../import/pages/upload/upload-page.component.scss |    26 -
+ .../pages/upload/upload-page.component.spec.ts     |    73 -
+ .../import/pages/upload/upload-page.component.ts   |    64 -
+ .../import/services/import.service.spec.ts         |   145 -
+ .../app/features/import/services/import.service.ts |    53 -
+ .../blank-layout/blank-layout.component.html       |     3 -
+ .../blank-layout/blank-layout.component.scss       |     7 -
+ .../blank-layout/blank-layout.component.spec.ts    |    21 -
+ .../layouts/blank-layout/blank-layout.component.ts |     8 -
+ .../layouts/main-layout/main-layout.component.html |    31 -
+ .../layouts/main-layout/main-layout.component.scss |    57 -
+ .../main-layout/main-layout.component.spec.ts      |    69 -
+ .../layouts/main-layout/main-layout.component.ts   |    35 -
+ .../src/app/layouts/main-layout/menu-items.ts      |    13 -
+ .../components/data-grid/column-def.model.ts       |    11 -
+ .../data-grid/column-resize.directive.spec.ts      |    38 -
+ .../data-grid/column-resize.directive.ts           |    41 -
+ .../components/data-grid/data-grid.component.html  |    50 -
+ .../components/data-grid/data-grid.component.scss  |    18 -
+ .../data-grid/data-grid.component.spec.ts          |    68 -
+ .../components/data-grid/data-grid.component.ts    |    67 -
+ .../detail-panel/detail-panel.component.html       |    17 -
+ .../detail-panel/detail-panel.component.scss       |    40 -
+ .../detail-panel/detail-panel.component.spec.ts    |    47 -
+ .../detail-panel/detail-panel.component.ts         |    20 -
+ .../edit-drawer/edit-drawer.component.html         |    16 -
+ .../edit-drawer/edit-drawer.component.scss         |    46 -
+ .../edit-drawer/edit-drawer.component.spec.ts      |    46 -
+ .../edit-drawer/edit-drawer.component.ts           |    25 -
+ .../file-upload/file-upload.component.html         |     7 -
+ .../file-upload/file-upload.component.scss         |     8 -
+ .../file-upload/file-upload.component.spec.ts      |    48 -
+ .../file-upload/file-upload.component.ts           |    48 -
+ .../search-form/search-form.component.html         |    11 -
+ .../search-form/search-form.component.scss         |    22 -
+ .../search-form/search-form.component.spec.ts      |    46 -
+ .../search-form/search-form.component.ts           |    21 -
+ .../frontend/src/app/shared/material.module.ts     |    45 -
+ .../frontend/src/app/shared/shared.module.ts       |    37 -
+ .../c2-spec-react/frontend/src/assets/.gitkeep     |     0
+ .../frontend/src/environments/environment.prod.ts  |     4 -
+ .../frontend/src/environments/environment.ts       |     4 -
+ .../c2-spec-react/frontend/src/favicon.ico         |   Bin 948 -> 0 bytes
+ .../c2-spec-react/frontend/src/index.html          |    16 -
+ .../worktrees/c2-spec-react/frontend/src/main.ts   |     7 -
+ .../c2-spec-react/frontend/src/styles.scss         |    28 -
+ .../c2-spec-react/frontend/tsconfig.app.json       |    14 -
+ .../worktrees/c2-spec-react/frontend/tsconfig.json |    33 -
+ .../c2-spec-react/frontend/tsconfig.spec.json      |    14 -
+ .../6cf58105-adc3-4323-9860-e5dbd118352e.json      |     8 -
+ ...play-6cf58105-adc3-4323-9860-e5dbd118352e.jsonl |     4 +
+ .omc/state/last-tool-error.json                    |     7 +
+ .omc/state/mission-state.json                      |    58 +-
+ .../session-started.json                           |     6 +
+ .../session-started.json                           |     6 +
+ .omc/state/subagent-tracking.json                  |    17 +
+ CLAUDE_andre.md                                    |    80 +
+ backend/.classpath                                 |   223 +-
+ backend/.gradle/8.11.1/fileHashes/fileHashes.lock  |   Bin 17 -> 17 bytes
+ .../bin/main/static/assets/DetailPage-BfZq5g_o.js  |    73 +
+ .../bin/main/static/assets/DetailPage-BpnZfOp3.js  |     1 -
+ .../bin/main/static/assets/DetailView-DJesx_FC.js  |    73 -
+ .../bin/main/static/assets/DetailView-Df6et0Zi.js  |     1 +
+ .../main/static/assets/DomainListPage-CngLpfQi.js  |     1 -
+ .../main/static/assets/DomainListPage-CrcazImb.js  |     1 +
+ .../static/assets/ForbiddenListPage-CNCi9jJf.js    |     1 +
+ .../static/assets/ForbiddenListPage-Cg7xhvIz.js    |     1 -
+ .../bin/main/static/assets/HomePage-D4Jz-eVH.js    |     1 +
+ .../bin/main/static/assets/HomePage-DyoFQzL4.js    |     1 -
+ .../bin/main/static/assets/LoginPage-B4FhrDPo.js   |     1 +
+ .../bin/main/static/assets/LoginPage-D7YwJgQU.js   |     1 -
+ ...loadPage-CQHR6vif.js => UploadPage-DjT4BZPv.js} |     2 +-
+ .../main/static/assets/WordListPage-CSvOmKPq.js    |     1 +
+ .../main/static/assets/WordListPage-CgiOKy0W.js    |     1 -
+ backend/bin/main/static/assets/dialog-CYwC4q4S.js  |     1 -
+ backend/bin/main/static/assets/dialog-ZbDnrnyN.js  |     1 +
+ ....model-CUFs7txB.js => import.model-CCSYEEWk.js} |     2 +-
+ backend/bin/main/static/assets/index-Cj896_6D.js   |    63 -
+ backend/bin/main/static/assets/index-D078ev5I.css  |     1 -
+ backend/bin/main/static/assets/index-DJUNdVQO.js   |    63 +
+ backend/bin/main/static/assets/index-MWh3yOz2.css  |     1 +
+ .../{input-Dp1zXjib.js => input-DNazaDdq.js}       |     2 +-
+ ...utation-RQor87G_.js => useMutation-CcWx-whw.js} |     2 +-
+ backend/bin/main/static/index.html                 |    28 +-
+ .../resources/static/assets/DetailPage-BfZq5g_o.js |    73 +
+ .../resources/static/assets/DetailPage-BpnZfOp3.js |     1 -
+ .../resources/static/assets/DetailView-DJesx_FC.js |    73 -
+ .../resources/static/assets/DetailView-Df6et0Zi.js |     1 +
+ .../static/assets/DomainListPage-CngLpfQi.js       |     1 -
+ .../static/assets/DomainListPage-CrcazImb.js       |     1 +
+ .../static/assets/ForbiddenListPage-CNCi9jJf.js    |     1 +
+ .../static/assets/ForbiddenListPage-Cg7xhvIz.js    |     1 -
+ .../resources/static/assets/HomePage-D4Jz-eVH.js   |     1 +
+ .../resources/static/assets/HomePage-DyoFQzL4.js   |     1 -
+ .../resources/static/assets/LoginPage-B4FhrDPo.js  |     1 +
+ .../resources/static/assets/LoginPage-D7YwJgQU.js  |     1 -
+ ...loadPage-CQHR6vif.js => UploadPage-DjT4BZPv.js} |     2 +-
+ .../static/assets/WordListPage-CSvOmKPq.js         |     1 +
+ .../static/assets/WordListPage-CgiOKy0W.js         |     1 -
+ .../resources/static/assets/dialog-CYwC4q4S.js     |     1 -
+ .../resources/static/assets/dialog-ZbDnrnyN.js     |     1 +
+ ....model-CUFs7txB.js => import.model-CCSYEEWk.js} |     2 +-
+ .../main/resources/static/assets/index-Cj896_6D.js |    63 -
+ .../resources/static/assets/index-D078ev5I.css     |     1 -
+ .../main/resources/static/assets/index-DJUNdVQO.js |    63 +
+ .../resources/static/assets/index-MWh3yOz2.css     |     1 +
+ .../{input-Dp1zXjib.js => input-DNazaDdq.js}       |     2 +-
+ ...utation-RQor87G_.js => useMutation-CcWx-whw.js} |     2 +-
+ backend/src/main/resources/static/index.html       |    28 +-
+ docs/migrations/2026-05-19-dependency-upgrade.md   |    11 -
+ frontend/.omc/project-memory.json                  |   262 +-
+ ...play-6cf58105-adc3-4323-9860-e5dbd118352e.jsonl |     3 +
+ .../checkpoint-2026-05-22T06-21-38-927Z.json       |     4 +-
+ .../session-started.json                           |     6 +
+ .../session-started.json                           |     6 -
+ frontend/.omc/state/subagent-tracking.json         |     2 +-
+ frontend/src/features/auth/LoginPage.jsx           |    71 +-
+ .../src/features/domain/DomainDetailDialog.jsx     |    73 +-
+ frontend/src/features/domain/DomainListPage.jsx    |   138 +-
+ .../features/forbidden/ForbiddenDetailDialog.jsx   |    99 +-
+ .../src/features/forbidden/ForbiddenListPage.jsx   |   131 +-
+ frontend/src/features/home/HomePage.jsx            |   325 +-
+ frontend/src/features/word/WordDetailDialog.jsx    |    48 +-
+ frontend/src/features/word/WordListPage.jsx        |   136 +-
+ frontend/src/layouts/MainLayout.jsx                |    88 +-
+ frontend/src/layouts/components/LayoutHeader.jsx   |   137 +-
+ frontend/src/layouts/components/SidebarSurface.jsx |   163 +-
+ frontend/src/main.jsx                              |     1 -
+ .../src/shared/components/CardList/CardList.jsx    |   116 +
+ frontend/src/shared/components/ui/button.jsx       |     5 +-
+ frontend/src/shared/components/ui/card.jsx         |    26 +-
+ frontend/src/styles/globals.css                    |    85 +-
+ 548 files changed, 1777 insertions(+), 136097 deletions(-)
+===
+commit e2ffc190d44956c7c84be8beb516aa30f30aa07b
+Author: 김영건 <yg.kim@uracle.co.kr>
+Date:   Tue May 26 10:38:40 2026 +0900
+
+    feat: 초안1
+
+ .claude/rules/api-dev-rule.md                      |   238 +
+ .claude/setting.local.json                         |     5 +
+ .claude/settings.local.json                        |    24 +
+ .../.claude/rules/api-dev-rule.md                  |   240 +
+ .../worktrees/c2-frontend-react-plan/.gitignore    |    23 +
+ .../.omc/project-memory.json                       |   104 +
+ ...play-83d1ef05-1595-4b81-962b-89f4178b16d4.jsonl |     2 +
+ .../checkpoint-2026-05-15T08-19-15-001Z.json       |    16 +
+ .../session-started.json                           |     6 +
+ .../.omc/state/subagent-tracking.json              |     7 +
+ .claude/worktrees/c2-frontend-react-plan/CLAUDE.md |    89 +
+ .../backend/lib/tibero7-jdbc-18.jar                |   Bin 0 -> 1710825 bytes
+ .../c2-frontend-react-plan/backend/pom.xml         |   123 +
+ .../com/devwogns/trmdict/TrmDictApplication.java   |    13 +
+ .../devwogns/trmdict/common/async/JobStatus.java   |     9 +
+ .../common/exception/BusinessException.java        |    19 +
+ .../trmdict/common/exception/ErrorCode.java        |    44 +
+ .../common/exception/GlobalExceptionHandler.java   |    47 +
+ .../trmdict/common/paging/PageRequest.java         |    51 +
+ .../trmdict/common/response/ApiResponse.java       |    38 +
+ .../trmdict/common/response/PageResponse.java      |    23 +
+ .../trmdict/common/security/AuthPrincipal.java     |    12 +
+ .../common/security/JwtAuthenticationFilter.java   |    52 +
+ .../trmdict/common/security/JwtTokenProvider.java  |    56 +
+ .../trmdict/common/security/SecurityConfig.java    |    76 +
+ .../com/devwogns/trmdict/config/AsyncConfig.java   |    47 +
+ .../devwogns/trmdict/config/DataSourceConfig.java  |    12 +
+ .../com/devwogns/trmdict/config/MyBatisConfig.java |    24 +
+ .../module/auth/controller/AuthController.java     |    78 +
+ .../devwogns/trmdict/module/auth/dto/LoginDto.java |    22 +
+ .../trmdict/module/auth/mapper/AuthMapper.java     |    15 +
+ .../trmdict/module/auth/service/AuthService.java   |    62 +
+ .../trmdict/module/auth/vo/AuthUserVo.java         |    21 +
+ .../module/domain/controller/DomainController.java |    35 +
+ .../trmdict/module/domain/dto/DomainSearchDto.java |    20 +
+ .../trmdict/module/domain/mapper/DomainMapper.java |    18 +
+ .../module/domain/service/DomainService.java       |    88 +
+ .../trmdict/module/domain/vo/DomainDtlVo.java      |    45 +
+ .../trmdict/module/domain/vo/DomainListVo.java     |    21 +
+ .../importjob/controller/ImportJobController.java  |   134 +
+ .../listener/ImportJobRecoveryListener.java        |    32 +
+ .../module/importjob/mapper/ImportJobMapper.java   |    47 +
+ .../module/importjob/parser/CsvImportParser.java   |   101 +
+ .../module/importjob/parser/ImportType.java        |    60 +
+ .../module/importjob/service/ImportJobService.java |   216 +
+ .../trmdict/module/importjob/vo/ImportErrorVo.java |    23 +
+ .../module/importjob/vo/ImportHistoryVo.java       |    33 +
+ .../module/importjob/vo/ImportSummaryVo.java       |    13 +
+ .../src/main/resources/application-local.yml       |    40 +
+ .../src/main/resources/application-prod.yml        |    43 +
+ .../backend/src/main/resources/application.yml     |    16 +
+ .../src/main/resources/db-ddl/00_common.sql        |    90 +
+ .../src/main/resources/db-ddl/01_import.sql        |    63 +
+ .../src/main/resources/db-ddl/02_staging.sql       |   109 +
+ .../src/main/resources/db-ddl/03_domain.sql        |    41 +
+ .../backend/src/main/resources/db-ddl/04_word.sql  |    38 +
+ .../backend/src/main/resources/db-ddl/05_term.sql  |    40 +
+ .../src/main/resources/db-ddl/drop_legacy.sql      |    55 +
+ .../src/main/resources/mapper/auth/AuthMapper.xml  |    30 +
+ .../main/resources/mapper/domain/DomainMapper.xml  |    85 +
+ .../resources/mapper/importjob/ImportJobMapper.xml |   327 +
+ .../devwogns/trmdict/TrmDictApplicationTests.java  |    33 +
+ .../trmdict/common/async/JobStatusTest.java        |    35 +
+ .../trmdict/common/exception/ErrorCodeTest.java    |    39 +
+ .../exception/GlobalExceptionHandlerTest.java      |    33 +
+ .../trmdict/common/paging/PageRequestTest.java     |    66 +
+ .../trmdict/common/response/ApiResponseTest.java   |    43 +
+ .../trmdict/common/response/PageResponseTest.java  |    28 +
+ .../security/JwtAuthenticationFilterTest.java      |    72 +
+ .../common/security/JwtTokenProviderTest.java      |    54 +
+ .../common/security/SecurityConfigTest.java        |    47 +
+ .../devwogns/trmdict/config/AsyncConfigTest.java   |    33 +
+ .../com/devwogns/trmdict/db/SchemaVerifyTest.java  |    52 +
+ .../trmdict/module/auth/AuthIntegrationTest.java   |   114 +
+ .../module/auth/controller/AuthControllerTest.java |   120 +
+ .../trmdict/module/auth/mapper/AuthMapperTest.java |    23 +
+ .../module/auth/service/AuthServiceTest.java       |   110 +
+ .../domain/controller/DomainControllerTest.java    |   116 +
+ .../module/domain/service/DomainServiceTest.java   |   110 +
+ .../module/importjob/ImportJobIntegrationTest.java |    84 +
+ .../controller/ImportJobControllerTest.java        |   120 +
+ .../listener/ImportJobRecoveryListenerTest.java    |    52 +
+ .../importjob/parser/CsvImportParserTest.java      |    97 +
+ .../importjob/service/ImportJobServiceTest.java    |   166 +
+ .../docs/cycles/01-c0-backend-core/plan.md         |  3346 ++++
+ .../docs/cycles/01-c0-backend-core/spec.md         |   324 +
+ .../docs/cycles/01-c0-backend-core/status.md       |   279 +
+ .../docs/cycles/02-c1-async-infra/plan.md          |  1149 ++
+ .../docs/cycles/02-c1-async-infra/spec.md          |   341 +
+ .../docs/cycles/02-c1-async-infra/status.md        |    98 +
+ .../docs/cycles/03-c2-frontend-core/plan.md        |   759 +
+ .../docs/cycles/03-c2-frontend-core/spec.md        |   528 +
+ .../docs/cycles/03-c2-frontend-core/status.md      |   123 +
+ .../docs/cycles/04-i0-import-backend/plan.md       |  3140 ++++
+ .../docs/cycles/04-i0-import-backend/spec.md       |   662 +
+ .../docs/cycles/04-i0-import-backend/status.md     |    67 +
+ .../docs/cycles/05-rename-naming-alignment/plan.md |  1796 ++
+ .../docs/cycles/05-rename-naming-alignment/spec.md |    68 +
+ .../cycles/05-rename-naming-alignment/status.md    |    75 +
+ .../docs/cycles/06-i1-import-frontend/plan.md      |  2379 +++
+ .../docs/cycles/06-i1-import-frontend/spec.md      |   525 +
+ .../docs/cycles/06-i1-import-frontend/status.md    |   113 +
+ .../docs/cycles/07-m-d-r-domain-read/plan.md       |  2491 +++
+ .../docs/cycles/07-m-d-r-domain-read/spec.md       |   665 +
+ .../docs/cycles/07-m-d-r-domain-read/status.md     |   185 +
+ .../c2-frontend-react-plan/docs/decisions.md       |   791 +
+ .../docs/dev-guide/conventions.md                  |   233 +
+ .../c2-frontend-react-plan/docs/handoff.md         |   281 +
+ .../worktrees/c2-frontend-react-plan/docs/plan.md  |   235 +
+ .../specs/2026-05-03-code-structure-design.md      |   404 +
+ .../specs/2026-05-03-cycle-decomposition-design.md |   257 +
+ ...2026-05-06-naming-standards-alignment-design.md |   412 +
+ .../worktrees/c2-frontend-react-plan/docs/tips.md  |    32 +
+ .../c2-frontend-react-plan/docs/worklog.md         |   130 +
+ ...4\244\200\353\213\250\354\226\264_20251101.csv" |  3285 ++++
+ ...3\217\204\353\251\224\354\235\270_20251101.csv" |   130 +
+ ...4\244\200\354\232\251\354\226\264_20251101.csv" | 13177 ++++++++++++++
+ .../c2-frontend-react-plan/frontend/.editorconfig  |    16 +
+ .../c2-frontend-react-plan/frontend/.eslintrc.json |    51 +
+ .../c2-frontend-react-plan/frontend/.gitignore     |    46 +
+ .../frontend/.prettierignore                       |     6 +
+ .../c2-frontend-react-plan/frontend/.prettierrc    |    10 +
+ .../c2-frontend-react-plan/frontend/README.md      |    27 +
+ .../c2-frontend-react-plan/frontend/e2e/.gitkeep   |     0
+ .../frontend/e2e/auth.spec.ts                      |    64 +
+ .../frontend/e2e/domain.spec.ts                    |    83 +
+ .../frontend/e2e/fixtures/domain-valid.csv         |    32 +
+ .../frontend/e2e/fixtures/word-duplicate-key.csv   |     4 +
+ .../frontend/e2e/fixtures/word-invalid-header.csv  |     2 +
+ .../frontend/e2e/fixtures/word-valid-3rows.csv     |     4 +
+ .../frontend/e2e/import.spec.ts                    |   101 +
+ .../frontend/package-lock.json                     | 17775 +++++++++++++++++++
+ .../c2-frontend-react-plan/frontend/package.json   |    55 +
+ .../frontend/playwright.config.ts                  |    21 +
+ .../frontend/proxy.conf.json                       |     8 +
+ .../frontend/src/app/app-routing.module.ts         |    40 +
+ .../frontend/src/app/app.component.html            |     2 +
+ .../frontend/src/app/app.component.scss            |     7 +
+ .../frontend/src/app/app.component.spec.ts         |    35 +
+ .../frontend/src/app/app.component.ts              |    20 +
+ .../frontend/src/app/app.module.ts                 |    22 +
+ .../frontend/src/app/auth/auth.module.ts           |    19 +
+ .../src/app/auth/login/login.component.html        |    17 +
+ .../src/app/auth/login/login.component.scss        |    18 +
+ .../src/app/auth/login/login.component.spec.ts     |    89 +
+ .../frontend/src/app/auth/login/login.component.ts |    43 +
+ .../frontend/src/app/core/core.module.ts           |    15 +
+ .../src/app/core/guards/admin.guard.spec.ts        |    71 +
+ .../frontend/src/app/core/guards/admin.guard.ts    |    31 +
+ .../src/app/core/guards/auth.guard.spec.ts         |    45 +
+ .../frontend/src/app/core/guards/auth.guard.ts     |    28 +
+ .../core/interceptors/error.interceptor.spec.ts    |   158 +
+ .../src/app/core/interceptors/error.interceptor.ts |    64 +
+ .../app/core/interceptors/jwt.interceptor.spec.ts  |    67 +
+ .../src/app/core/interceptors/jwt.interceptor.ts   |    27 +
+ .../src/app/core/models/api-response.model.ts      |     7 +
+ .../src/app/core/models/page-response.model.ts     |     7 +
+ .../frontend/src/app/core/models/user.model.ts     |    21 +
+ .../src/app/core/services/api.service.spec.ts      |    36 +
+ .../frontend/src/app/core/services/api.service.ts  |    17 +
+ .../src/app/core/services/auth.service.spec.ts     |   106 +
+ .../frontend/src/app/core/services/auth.service.ts |    61 +
+ .../src/app/core/services/loading.service.spec.ts  |    48 +
+ .../src/app/core/services/loading.service.ts       |    21 +
+ .../app/features/domain/domain-routing.module.ts   |    13 +
+ .../src/app/features/domain/domain.module.ts       |    12 +
+ .../src/app/features/domain/models/domain.model.ts |    57 +
+ .../pages/list/domain-list-page.component.html     |   130 +
+ .../pages/list/domain-list-page.component.scss     |    60 +
+ .../pages/list/domain-list-page.component.spec.ts  |   141 +
+ .../pages/list/domain-list-page.component.ts       |   129 +
+ .../domain/services/domain.service.spec.ts         |   109 +
+ .../app/features/domain/services/domain.service.ts |    27 +
+ .../src/app/features/home/home-page.component.html |    12 +
+ .../src/app/features/home/home-page.component.scss |     3 +
+ .../app/features/home/home-page.component.spec.ts  |    35 +
+ .../src/app/features/home/home-page.component.ts   |    17 +
+ .../frontend/src/app/features/home/home.module.ts  |    12 +
+ .../app/features/import/import-routing.module.ts   |    18 +
+ .../src/app/features/import/import.module.ts       |    13 +
+ .../features/import/models/import-summary.model.ts |    47 +
+ .../import/pages/detail/detail-page.component.html |    58 +
+ .../import/pages/detail/detail-page.component.scss |    93 +
+ .../pages/detail/detail-page.component.spec.ts     |   160 +
+ .../import/pages/detail/detail-page.component.ts   |   124 +
+ .../import/pages/upload/upload-page.component.html |    29 +
+ .../import/pages/upload/upload-page.component.scss |    26 +
+ .../pages/upload/upload-page.component.spec.ts     |    73 +
+ .../import/pages/upload/upload-page.component.ts   |    64 +
+ .../import/services/import.service.spec.ts         |   145 +
+ .../app/features/import/services/import.service.ts |    53 +
+ .../blank-layout/blank-layout.component.html       |     3 +
+ .../blank-layout/blank-layout.component.scss       |     7 +
+ .../blank-layout/blank-layout.component.spec.ts    |    21 +
+ .../layouts/blank-layout/blank-layout.component.ts |     8 +
+ .../layouts/main-layout/main-layout.component.html |    31 +
+ .../layouts/main-layout/main-layout.component.scss |    57 +
+ .../main-layout/main-layout.component.spec.ts      |    69 +
+ .../layouts/main-layout/main-layout.component.ts   |    35 +
+ .../src/app/layouts/main-layout/menu-items.ts      |    13 +
+ .../components/data-grid/column-def.model.ts       |    11 +
+ .../data-grid/column-resize.directive.spec.ts      |    38 +
+ .../data-grid/column-resize.directive.ts           |    41 +
+ .../components/data-grid/data-grid.component.html  |    50 +
+ .../components/data-grid/data-grid.component.scss  |    18 +
+ .../data-grid/data-grid.component.spec.ts          |    68 +
+ .../components/data-grid/data-grid.component.ts    |    67 +
+ .../detail-panel/detail-panel.component.html       |    17 +
+ .../detail-panel/detail-panel.component.scss       |    40 +
+ .../detail-panel/detail-panel.component.spec.ts    |    47 +
+ .../detail-panel/detail-panel.component.ts         |    20 +
+ .../edit-drawer/edit-drawer.component.html         |    16 +
+ .../edit-drawer/edit-drawer.component.scss         |    46 +
+ .../edit-drawer/edit-drawer.component.spec.ts      |    46 +
+ .../edit-drawer/edit-drawer.component.ts           |    25 +
+ .../file-upload/file-upload.component.html         |     7 +
+ .../file-upload/file-upload.component.scss         |     8 +
+ .../file-upload/file-upload.component.spec.ts      |    48 +
+ .../file-upload/file-upload.component.ts           |    48 +
+ .../search-form/search-form.component.html         |    11 +
+ .../search-form/search-form.component.scss         |    22 +
+ .../search-form/search-form.component.spec.ts      |    46 +
+ .../search-form/search-form.component.ts           |    21 +
+ .../frontend/src/app/shared/material.module.ts     |    45 +
+ .../frontend/src/app/shared/shared.module.ts       |    37 +
+ .../frontend/src/assets/.gitkeep                   |     0
+ .../frontend/src/environments/environment.prod.ts  |     4 +
+ .../frontend/src/environments/environment.ts       |     4 +
+ .../frontend/src/favicon.ico                       |   Bin 0 -> 948 bytes
+ .../c2-frontend-react-plan/frontend/src/index.html |    16 +
+ .../c2-frontend-react-plan/frontend/src/main.ts    |     7 +
+ .../frontend/src/styles.scss                       |    28 +
+ .../frontend/tsconfig.app.json                     |    14 +
+ .../c2-frontend-react-plan/frontend/tsconfig.json  |    33 +
+ .../frontend/tsconfig.spec.json                    |    14 +
+ .../c2-spec-react/.claude/rules/api-dev-rule.md    |   240 +
+ .claude/worktrees/c2-spec-react/.gitignore         |    23 +
+ .../c2-spec-react/.omc/project-memory.json         |   110 +
+ .../4e307d26-4fd8-4273-b497-15b43adfb08b.json      |     8 +
+ ...play-685255ec-75a8-4f4c-9eda-b496b632d1e0.jsonl |     1 +
+ .../checkpoint-2026-05-15T08-15-04-337Z.json       |    16 +
+ .../session-started.json                           |     6 +
+ .../.omc/state/subagent-tracking.json              |     7 +
+ .claude/worktrees/c2-spec-react/CLAUDE.md          |    89 +
+ .../c2-spec-react/backend/lib/tibero7-jdbc-18.jar  |   Bin 0 -> 1710825 bytes
+ .claude/worktrees/c2-spec-react/backend/pom.xml    |   123 +
+ .../com/devwogns/trmdict/TrmDictApplication.java   |    13 +
+ .../devwogns/trmdict/common/async/JobStatus.java   |     9 +
+ .../common/exception/BusinessException.java        |    19 +
+ .../trmdict/common/exception/ErrorCode.java        |    44 +
+ .../common/exception/GlobalExceptionHandler.java   |    47 +
+ .../trmdict/common/paging/PageRequest.java         |    51 +
+ .../trmdict/common/response/ApiResponse.java       |    38 +
+ .../trmdict/common/response/PageResponse.java      |    23 +
+ .../trmdict/common/security/AuthPrincipal.java     |    12 +
+ .../common/security/JwtAuthenticationFilter.java   |    52 +
+ .../trmdict/common/security/JwtTokenProvider.java  |    56 +
+ .../trmdict/common/security/SecurityConfig.java    |    76 +
+ .../com/devwogns/trmdict/config/AsyncConfig.java   |    47 +
+ .../devwogns/trmdict/config/DataSourceConfig.java  |    12 +
+ .../com/devwogns/trmdict/config/MyBatisConfig.java |    24 +
+ .../module/auth/controller/AuthController.java     |    78 +
+ .../devwogns/trmdict/module/auth/dto/LoginDto.java |    22 +
+ .../trmdict/module/auth/mapper/AuthMapper.java     |    15 +
+ .../trmdict/module/auth/service/AuthService.java   |    62 +
+ .../trmdict/module/auth/vo/AuthUserVo.java         |    21 +
+ .../module/domain/controller/DomainController.java |    35 +
+ .../trmdict/module/domain/dto/DomainSearchDto.java |    20 +
+ .../trmdict/module/domain/mapper/DomainMapper.java |    18 +
+ .../module/domain/service/DomainService.java       |    88 +
+ .../trmdict/module/domain/vo/DomainDtlVo.java      |    45 +
+ .../trmdict/module/domain/vo/DomainListVo.java     |    21 +
+ .../importjob/controller/ImportJobController.java  |   134 +
+ .../listener/ImportJobRecoveryListener.java        |    32 +
+ .../module/importjob/mapper/ImportJobMapper.java   |    47 +
+ .../module/importjob/parser/CsvImportParser.java   |   101 +
+ .../module/importjob/parser/ImportType.java        |    60 +
+ .../module/importjob/service/ImportJobService.java |   216 +
+ .../trmdict/module/importjob/vo/ImportErrorVo.java |    23 +
+ .../module/importjob/vo/ImportHistoryVo.java       |    33 +
+ .../module/importjob/vo/ImportSummaryVo.java       |    13 +
+ .../src/main/resources/application-local.yml       |    40 +
+ .../src/main/resources/application-prod.yml        |    43 +
+ .../backend/src/main/resources/application.yml     |    16 +
+ .../src/main/resources/db-ddl/00_common.sql        |    90 +
+ .../src/main/resources/db-ddl/01_import.sql        |    63 +
+ .../src/main/resources/db-ddl/02_staging.sql       |   109 +
+ .../src/main/resources/db-ddl/03_domain.sql        |    41 +
+ .../backend/src/main/resources/db-ddl/04_word.sql  |    38 +
+ .../backend/src/main/resources/db-ddl/05_term.sql  |    40 +
+ .../src/main/resources/db-ddl/drop_legacy.sql      |    55 +
+ .../src/main/resources/mapper/auth/AuthMapper.xml  |    30 +
+ .../main/resources/mapper/domain/DomainMapper.xml  |    85 +
+ .../resources/mapper/importjob/ImportJobMapper.xml |   327 +
+ .../devwogns/trmdict/TrmDictApplicationTests.java  |    33 +
+ .../trmdict/common/async/JobStatusTest.java        |    35 +
+ .../trmdict/common/exception/ErrorCodeTest.java    |    39 +
+ .../exception/GlobalExceptionHandlerTest.java      |    33 +
+ .../trmdict/common/paging/PageRequestTest.java     |    66 +
+ .../trmdict/common/response/ApiResponseTest.java   |    43 +
+ .../trmdict/common/response/PageResponseTest.java  |    28 +
+ .../security/JwtAuthenticationFilterTest.java      |    72 +
+ .../common/security/JwtTokenProviderTest.java      |    54 +
+ .../common/security/SecurityConfigTest.java        |    47 +
+ .../devwogns/trmdict/config/AsyncConfigTest.java   |    33 +
+ .../com/devwogns/trmdict/db/SchemaVerifyTest.java  |    52 +
+ .../trmdict/module/auth/AuthIntegrationTest.java   |   114 +
+ .../module/auth/controller/AuthControllerTest.java |   120 +
+ .../trmdict/module/auth/mapper/AuthMapperTest.java |    23 +
+ .../module/auth/service/AuthServiceTest.java       |   110 +
+ .../domain/controller/DomainControllerTest.java    |   116 +
+ .../module/domain/service/DomainServiceTest.java   |   110 +
+ .../module/importjob/ImportJobIntegrationTest.java |    84 +
+ .../controller/ImportJobControllerTest.java        |   120 +
+ .../listener/ImportJobRecoveryListenerTest.java    |    52 +
+ .../importjob/parser/CsvImportParserTest.java      |    97 +
+ .../importjob/service/ImportJobServiceTest.java    |   166 +
+ .../docs/cycles/01-c0-backend-core/plan.md         |  3346 ++++
+ .../docs/cycles/01-c0-backend-core/spec.md         |   324 +
+ .../docs/cycles/01-c0-backend-core/status.md       |   279 +
+ .../docs/cycles/02-c1-async-infra/plan.md          |  1149 ++
+ .../docs/cycles/02-c1-async-infra/spec.md          |   341 +
+ .../docs/cycles/02-c1-async-infra/status.md        |    98 +
+ .../docs/cycles/03-c2-frontend-core/plan.md        |  4258 +++++
+ .../docs/cycles/03-c2-frontend-core/spec.md        |   542 +
+ .../docs/cycles/03-c2-frontend-core/status.md      |   100 +
+ .../docs/cycles/04-i0-import-backend/plan.md       |  3140 ++++
+ .../docs/cycles/04-i0-import-backend/spec.md       |   662 +
+ .../docs/cycles/04-i0-import-backend/status.md     |    67 +
+ .../docs/cycles/05-rename-naming-alignment/plan.md |  1796 ++
+ .../docs/cycles/05-rename-naming-alignment/spec.md |    68 +
+ .../cycles/05-rename-naming-alignment/status.md    |    75 +
+ .../docs/cycles/06-i1-import-frontend/plan.md      |  2379 +++
+ .../docs/cycles/06-i1-import-frontend/spec.md      |   525 +
+ .../docs/cycles/06-i1-import-frontend/status.md    |   113 +
+ .../docs/cycles/07-m-d-r-domain-read/plan.md       |  2491 +++
+ .../docs/cycles/07-m-d-r-domain-read/spec.md       |   665 +
+ .../docs/cycles/07-m-d-r-domain-read/status.md     |   185 +
+ .claude/worktrees/c2-spec-react/docs/decisions.md  |   791 +
+ .../c2-spec-react/docs/dev-guide/conventions.md    |   233 +
+ .claude/worktrees/c2-spec-react/docs/handoff.md    |   281 +
+ .claude/worktrees/c2-spec-react/docs/plan.md       |   235 +
+ .../specs/2026-05-03-code-structure-design.md      |   404 +
+ .../specs/2026-05-03-cycle-decomposition-design.md |   257 +
+ ...2026-05-06-naming-standards-alignment-design.md |   412 +
+ .claude/worktrees/c2-spec-react/docs/tips.md       |    32 +
+ .claude/worktrees/c2-spec-react/docs/worklog.md    |   130 +
+ ...4\244\200\353\213\250\354\226\264_20251101.csv" |  3285 ++++
+ ...3\217\204\353\251\224\354\235\270_20251101.csv" |   130 +
+ ...4\244\200\354\232\251\354\226\264_20251101.csv" | 13177 ++++++++++++++
+ .../worktrees/c2-spec-react/frontend/.editorconfig |    16 +
+ .../c2-spec-react/frontend/.eslintrc.json          |    51 +
+ .../worktrees/c2-spec-react/frontend/.gitignore    |    46 +
+ .../c2-spec-react/frontend/.prettierignore         |     6 +
+ .../worktrees/c2-spec-react/frontend/.prettierrc   |    10 +
+ .claude/worktrees/c2-spec-react/frontend/README.md |    27 +
+ .../worktrees/c2-spec-react/frontend/angular.json  |   124 +
+ .../worktrees/c2-spec-react/frontend/e2e/.gitkeep  |     0
+ .../c2-spec-react/frontend/e2e/auth.spec.ts        |    64 +
+ .../c2-spec-react/frontend/e2e/domain.spec.ts      |    83 +
+ .../frontend/e2e/fixtures/domain-valid.csv         |    32 +
+ .../frontend/e2e/fixtures/word-duplicate-key.csv   |     4 +
+ .../frontend/e2e/fixtures/word-invalid-header.csv  |     2 +
+ .../frontend/e2e/fixtures/word-valid-3rows.csv     |     4 +
+ .../c2-spec-react/frontend/e2e/import.spec.ts      |   101 +
+ .../c2-spec-react/frontend/package-lock.json       | 17775 +++++++++++++++++++
+ .../worktrees/c2-spec-react/frontend/package.json  |    55 +
+ .../c2-spec-react/frontend/playwright.config.ts    |    21 +
+ .../c2-spec-react/frontend/proxy.conf.json         |     8 +
+ .../frontend/src/app/app-routing.module.ts         |    40 +
+ .../frontend/src/app/app.component.html            |     2 +
+ .../frontend/src/app/app.component.scss            |     7 +
+ .../frontend/src/app/app.component.spec.ts         |    35 +
+ .../frontend/src/app/app.component.ts              |    20 +
+ .../c2-spec-react/frontend/src/app/app.module.ts   |    22 +
+ .../frontend/src/app/auth/auth.module.ts           |    19 +
+ .../src/app/auth/login/login.component.html        |    17 +
+ .../src/app/auth/login/login.component.scss        |    18 +
+ .../src/app/auth/login/login.component.spec.ts     |    89 +
+ .../frontend/src/app/auth/login/login.component.ts |    43 +
+ .../frontend/src/app/core/core.module.ts           |    15 +
+ .../src/app/core/guards/admin.guard.spec.ts        |    71 +
+ .../frontend/src/app/core/guards/admin.guard.ts    |    31 +
+ .../src/app/core/guards/auth.guard.spec.ts         |    45 +
+ .../frontend/src/app/core/guards/auth.guard.ts     |    28 +
+ .../core/interceptors/error.interceptor.spec.ts    |   158 +
+ .../src/app/core/interceptors/error.interceptor.ts |    64 +
+ .../app/core/interceptors/jwt.interceptor.spec.ts  |    67 +
+ .../src/app/core/interceptors/jwt.interceptor.ts   |    27 +
+ .../src/app/core/models/api-response.model.ts      |     7 +
+ .../src/app/core/models/page-response.model.ts     |     7 +
+ .../frontend/src/app/core/models/user.model.ts     |    21 +
+ .../src/app/core/services/api.service.spec.ts      |    36 +
+ .../frontend/src/app/core/services/api.service.ts  |    17 +
+ .../src/app/core/services/auth.service.spec.ts     |   106 +
+ .../frontend/src/app/core/services/auth.service.ts |    61 +
+ .../src/app/core/services/loading.service.spec.ts  |    48 +
+ .../src/app/core/services/loading.service.ts       |    21 +
+ .../app/features/domain/domain-routing.module.ts   |    13 +
+ .../src/app/features/domain/domain.module.ts       |    12 +
+ .../src/app/features/domain/models/domain.model.ts |    57 +
+ .../pages/list/domain-list-page.component.html     |   130 +
+ .../pages/list/domain-list-page.component.scss     |    60 +
+ .../pages/list/domain-list-page.component.spec.ts  |   141 +
+ .../pages/list/domain-list-page.component.ts       |   129 +
+ .../domain/services/domain.service.spec.ts         |   109 +
+ .../app/features/domain/services/domain.service.ts |    27 +
+ .../src/app/features/home/home-page.component.html |    12 +
+ .../src/app/features/home/home-page.component.scss |     3 +
+ .../app/features/home/home-page.component.spec.ts  |    35 +
+ .../src/app/features/home/home-page.component.ts   |    17 +
+ .../frontend/src/app/features/home/home.module.ts  |    12 +
+ .../app/features/import/import-routing.module.ts   |    18 +
+ .../src/app/features/import/import.module.ts       |    13 +
+ .../features/import/models/import-summary.model.ts |    47 +
+ .../import/pages/detail/detail-page.component.html |    58 +
+ .../import/pages/detail/detail-page.component.scss |    93 +
+ .../pages/detail/detail-page.component.spec.ts     |   160 +
+ .../import/pages/detail/detail-page.component.ts   |   124 +
+ .../import/pages/upload/upload-page.component.html |    29 +
+ .../import/pages/upload/upload-page.component.scss |    26 +
+ .../pages/upload/upload-page.component.spec.ts     |    73 +
+ .../import/pages/upload/upload-page.component.ts   |    64 +
+ .../import/services/import.service.spec.ts         |   145 +
+ .../app/features/import/services/import.service.ts |    53 +
+ .../blank-layout/blank-layout.component.html       |     3 +
+ .../blank-layout/blank-layout.component.scss       |     7 +
+ .../blank-layout/blank-layout.component.spec.ts    |    21 +
+ .../layouts/blank-layout/blank-layout.component.ts |     8 +
+ .../layouts/main-layout/main-layout.component.html |    31 +
+ .../layouts/main-layout/main-layout.component.scss |    57 +
+ .../main-layout/main-layout.component.spec.ts      |    69 +
+ .../layouts/main-layout/main-layout.component.ts   |    35 +
+ .../src/app/layouts/main-layout/menu-items.ts      |    13 +
+ .../components/data-grid/column-def.model.ts       |    11 +
+ .../data-grid/column-resize.directive.spec.ts      |    38 +
+ .../data-grid/column-resize.directive.ts           |    41 +
+ .../components/data-grid/data-grid.component.html  |    50 +
+ .../components/data-grid/data-grid.component.scss  |    18 +
+ .../data-grid/data-grid.component.spec.ts          |    68 +
+ .../components/data-grid/data-grid.component.ts    |    67 +
+ .../detail-panel/detail-panel.component.html       |    17 +
+ .../detail-panel/detail-panel.component.scss       |    40 +
+ .../detail-panel/detail-panel.component.spec.ts    |    47 +
+ .../detail-panel/detail-panel.component.ts         |    20 +
+ .../edit-drawer/edit-drawer.component.html         |    16 +
+ .../edit-drawer/edit-drawer.component.scss         |    46 +
+ .../edit-drawer/edit-drawer.component.spec.ts      |    46 +
+ .../edit-drawer/edit-drawer.component.ts           |    25 +
+ .../file-upload/file-upload.component.html         |     7 +
+ .../file-upload/file-upload.component.scss         |     8 +
+ .../file-upload/file-upload.component.spec.ts      |    48 +
+ .../file-upload/file-upload.component.ts           |    48 +
+ .../search-form/search-form.component.html         |    11 +
+ .../search-form/search-form.component.scss         |    22 +
+ .../search-form/search-form.component.spec.ts      |    46 +
+ .../search-form/search-form.component.ts           |    21 +
+ .../frontend/src/app/shared/material.module.ts     |    45 +
+ .../frontend/src/app/shared/shared.module.ts       |    37 +
+ .../c2-spec-react/frontend/src/assets/.gitkeep     |     0
+ .../frontend/src/environments/environment.prod.ts  |     4 +
+ .../frontend/src/environments/environment.ts       |     4 +
+ .../c2-spec-react/frontend/src/favicon.ico         |   Bin 0 -> 948 bytes
+ .../c2-spec-react/frontend/src/index.html          |    16 +
+ .../worktrees/c2-spec-react/frontend/src/main.ts   |     7 +
+ .../c2-spec-react/frontend/src/styles.scss         |    28 +
+ .../c2-spec-react/frontend/tsconfig.app.json       |    14 +
+ .../worktrees/c2-spec-react/frontend/tsconfig.json |    33 +
+ .../c2-spec-react/frontend/tsconfig.spec.json      |    14 +
+ .dockerignore                                      |    25 +
+ .gitignore                                         |    23 +
+ ...y.json.tmp.9f11ec4d-6942-45b0-9309-b970bea91d7c |   440 +
+ .omc/project-memory.json                           |   416 +
+ .../58199c03-11b4-4a84-85b5-1ff4e4d599de.json      |     8 +
+ .../6cf58105-adc3-4323-9860-e5dbd118352e.json      |     8 +
+ .../76f4bc16-b927-4b45-b3c8-05d13e16e226.json      |     8 +
+ .../77ac2710-f058-4a8a-9d86-8090b523ae3e.json      |     8 +
+ .../9621354f-308c-44fd-a915-927fda06febd.json      |     8 +
+ .../d5f1b03d-ebab-4702-8e37-897a3482639a.json      |     8 +
+ .../d6ab1e0b-4c57-41b3-a0a8-fd5dada21ad0.json      |     8 +
+ .../checkpoint-2026-05-20T06-33-25-767Z.json       |    16 +
+ .../checkpoint-2026-05-20T07-34-41-079Z.json       |    16 +
+ .../checkpoint-2026-05-21T04-10-39-673Z.json       |    16 +
+ .../checkpoint-2026-05-22T05-55-24-411Z.json       |    16 +
+ .omc/state/mission-state.json                      |   255 +
+ .../session-started.json                           |     6 +
+ .../session-started.json                           |     6 +
+ .../session-started.json                           |     6 +
+ .../session-started.json                           |     6 +
+ .../session-started.json                           |     6 +
+ .../session-started.json                           |     6 +
+ .../session-started.json                           |     6 +
+ .../console-2026-05-21T01-41-07-738Z.log           |    13 +
+ .playwright-mcp/page-2026-05-21T01-41-08-307Z.yml  |     3 +
+ .playwright-mcp/page-2026-05-21T01-41-08-380Z.png  |   Bin 0 -> 7313 bytes
+ .playwright-mcp/page-2026-05-21T01-41-12-691Z.yml  |    16 +
+ .project                                           |    28 +
+ .../v22.16.0-x64-00250a7c/004f756a                 |   Bin 0 -> 908 bytes
+ .../v22.16.0-x64-00250a7c/0091d30d                 |   Bin 0 -> 1924 bytes
+ .../v22.16.0-x64-00250a7c/0aa5b0af                 |   Bin 0 -> 2884 bytes
+ .../v22.16.0-x64-00250a7c/10512cea                 |   Bin 0 -> 1004 bytes
+ .../v22.16.0-x64-00250a7c/123da91c                 |   Bin 0 -> 1092 bytes
+ .../v22.16.0-x64-00250a7c/13510f9b                 |   Bin 0 -> 6812 bytes
+ .../v22.16.0-x64-00250a7c/1403bf14                 |   Bin 0 -> 2428 bytes
+ .../v22.16.0-x64-00250a7c/14054e39                 |   Bin 0 -> 1444 bytes
+ .../v22.16.0-x64-00250a7c/17d77f69                 |   Bin 0 -> 916 bytes
+ .../v22.16.0-x64-00250a7c/1b35e97b                 |   Bin 0 -> 1052 bytes
+ .../v22.16.0-x64-00250a7c/1e9e601e                 |   Bin 0 -> 1204 bytes
+ .../v22.16.0-x64-00250a7c/2128abc1                 |   Bin 0 -> 940 bytes
+ .../v22.16.0-x64-00250a7c/22174fd5                 |   Bin 0 -> 980 bytes
+ .../v22.16.0-x64-00250a7c/23d40db1                 |   Bin 0 -> 1220 bytes
+ .../v22.16.0-x64-00250a7c/257cbe89                 |   Bin 0 -> 948 bytes
+ .../v22.16.0-x64-00250a7c/26b8d6da                 |   Bin 0 -> 4772 bytes
+ .../v22.16.0-x64-00250a7c/28286a90                 |   Bin 0 -> 9044 bytes
+ .../v22.16.0-x64-00250a7c/286bd53c                 |   Bin 0 -> 892 bytes
+ .../v22.16.0-x64-00250a7c/28d9070c                 |   Bin 0 -> 1060 bytes
+ .../v22.16.0-x64-00250a7c/30ca91df                 |   Bin 0 -> 2244 bytes
+ .../v22.16.0-x64-00250a7c/333fd057                 |   Bin 0 -> 2556 bytes
+ .../v22.16.0-x64-00250a7c/35895f8f                 |   Bin 0 -> 1100 bytes
+ .../v22.16.0-x64-00250a7c/396a2b89                 |   Bin 0 -> 4076 bytes
+ .../v22.16.0-x64-00250a7c/3a99db8b                 |   Bin 0 -> 916 bytes
+ .../v22.16.0-x64-00250a7c/3b22e5ac                 |   Bin 0 -> 3636 bytes
+ .../v22.16.0-x64-00250a7c/3bc79275                 |   Bin 0 -> 3532 bytes
+ .../v22.16.0-x64-00250a7c/407d1819                 |   Bin 0 -> 7476 bytes
+ .../v22.16.0-x64-00250a7c/40cd3479                 |   Bin 0 -> 868 bytes
+ .../v22.16.0-x64-00250a7c/44520c6c                 |   Bin 0 -> 1444 bytes
+ .../v22.16.0-x64-00250a7c/4490f637                 |   Bin 0 -> 1268 bytes
+ .../v22.16.0-x64-00250a7c/453eae77                 |   Bin 0 -> 1116 bytes
+ .../v22.16.0-x64-00250a7c/45a86901                 |   Bin 0 -> 1260 bytes
+ .../v22.16.0-x64-00250a7c/462546db                 |   Bin 0 -> 2964 bytes
+ .../v22.16.0-x64-00250a7c/47aef756                 |   Bin 0 -> 1476 bytes
+ .../v22.16.0-x64-00250a7c/49d9064c                 |   Bin 0 -> 1788 bytes
+ .../v22.16.0-x64-00250a7c/4a24e902                 |   Bin 0 -> 2548 bytes
+ .../v22.16.0-x64-00250a7c/4b3d98ee                 |   Bin 0 -> 4292 bytes
+ .../v22.16.0-x64-00250a7c/4c0457c0                 |   Bin 0 -> 1356 bytes
+ .../v22.16.0-x64-00250a7c/4e0a6caa                 |   Bin 0 -> 2276 bytes
+ .../v22.16.0-x64-00250a7c/5500dab8                 |   Bin 0 -> 1484 bytes
+ .../v22.16.0-x64-00250a7c/57c659a1                 |   Bin 0 -> 932 bytes
+ .../v22.16.0-x64-00250a7c/57f64824                 |   Bin 0 -> 12324 bytes
+ .../v22.16.0-x64-00250a7c/5ba50c40                 |   Bin 0 -> 1308 bytes
+ .../v22.16.0-x64-00250a7c/5cd85890                 |   Bin 0 -> 1644 bytes
+ .../v22.16.0-x64-00250a7c/64ed0d51                 |   Bin 0 -> 2132 bytes
+ .../v22.16.0-x64-00250a7c/6ac281a9                 |   Bin 0 -> 1044 bytes
+ .../v22.16.0-x64-00250a7c/70c2c94d                 |   Bin 0 -> 916 bytes
+ .../v22.16.0-x64-00250a7c/731ca3a4                 |   Bin 0 -> 4460 bytes
+ .../v22.16.0-x64-00250a7c/76021300                 |   Bin 0 -> 884 bytes
+ .../v22.16.0-x64-00250a7c/764c18f6                 |   Bin 0 -> 1308 bytes
+ .../v22.16.0-x64-00250a7c/779fada1                 |   Bin 0 -> 5508 bytes
+ .../v22.16.0-x64-00250a7c/78319760                 |   Bin 0 -> 932 bytes
+ .../v22.16.0-x64-00250a7c/78e9f32d                 |   Bin 0 -> 1476 bytes
+ .../v22.16.0-x64-00250a7c/7c943ce7                 |   Bin 0 -> 2348 bytes
+ .../v22.16.0-x64-00250a7c/8118510e                 |   Bin 0 -> 3452 bytes
+ .../v22.16.0-x64-00250a7c/8278f32c                 |   Bin 0 -> 1332 bytes
+ .../v22.16.0-x64-00250a7c/883effa1                 |   Bin 0 -> 1244 bytes
+ .../v22.16.0-x64-00250a7c/884873a0                 |   Bin 0 -> 2260 bytes
+ .../v22.16.0-x64-00250a7c/8ca68648                 |   Bin 0 -> 1676 bytes
+ .../v22.16.0-x64-00250a7c/94277df6                 |   Bin 0 -> 2164 bytes
+ .../v22.16.0-x64-00250a7c/970867c5                 |   Bin 0 -> 1412 bytes
+ .../v22.16.0-x64-00250a7c/986208c5                 |   Bin 0 -> 916 bytes
+ .../v22.16.0-x64-00250a7c/9d8a5e4d                 |   Bin 0 -> 1532 bytes
+ .../v22.16.0-x64-00250a7c/a2ac9a86                 |   Bin 0 -> 916 bytes
+ .../v22.16.0-x64-00250a7c/a648279b                 |   Bin 0 -> 884 bytes
+ .../v22.16.0-x64-00250a7c/a74bd18f                 |   Bin 0 -> 2476 bytes
+ .../v22.16.0-x64-00250a7c/b2bae971                 |   Bin 0 -> 1052 bytes
+ .../v22.16.0-x64-00250a7c/b35a4110                 |   Bin 0 -> 78476 bytes
+ .../v22.16.0-x64-00250a7c/b45cdc02                 |   Bin 0 -> 1484 bytes
+ .../v22.16.0-x64-00250a7c/b63ebfa0                 |   Bin 0 -> 1116 bytes
+ .../v22.16.0-x64-00250a7c/b6cf02b3                 |   Bin 0 -> 2788 bytes
+ .../v22.16.0-x64-00250a7c/b94ef32e                 |   Bin 0 -> 3348 bytes
+ .../v22.16.0-x64-00250a7c/ba817d5d                 |   Bin 0 -> 1492 bytes
+ .../v22.16.0-x64-00250a7c/befa2e69                 |   Bin 0 -> 1076 bytes
+ .../v22.16.0-x64-00250a7c/bff116bc                 |   Bin 0 -> 916 bytes
+ .../v22.16.0-x64-00250a7c/c03c74f2                 |   Bin 0 -> 2452 bytes
+ .../v22.16.0-x64-00250a7c/c0a8f6b8                 |   Bin 0 -> 1004 bytes
+ .../v22.16.0-x64-00250a7c/c231468a                 |   Bin 0 -> 2892 bytes
+ .../v22.16.0-x64-00250a7c/c8a480a4                 |   Bin 0 -> 988 bytes
+ .../v22.16.0-x64-00250a7c/c9ef9db9                 |   Bin 0 -> 884 bytes
+ .../v22.16.0-x64-00250a7c/cb0a3042                 |   Bin 0 -> 2252 bytes
+ .../v22.16.0-x64-00250a7c/cd7fe506                 |   Bin 0 -> 1940 bytes
+ .../v22.16.0-x64-00250a7c/cda254ea                 |   Bin 0 -> 1220 bytes
+ .../v22.16.0-x64-00250a7c/cf155f89                 |   Bin 0 -> 1012 bytes
+ .../v22.16.0-x64-00250a7c/d536e67f                 |   Bin 0 -> 916 bytes
+ .../v22.16.0-x64-00250a7c/d57cab97                 |   Bin 0 -> 916 bytes
+ .../v22.16.0-x64-00250a7c/db512e14                 |   Bin 0 -> 1092 bytes
+ .../v22.16.0-x64-00250a7c/dbbe5adb                 |   Bin 0 -> 2764 bytes
+ .../v22.16.0-x64-00250a7c/ddc3f5dc                 |   Bin 0 -> 884 bytes
+ .../v22.16.0-x64-00250a7c/dfa224d3                 |   Bin 0 -> 948 bytes
+ .../v22.16.0-x64-00250a7c/e30c1547                 |   Bin 0 -> 8156 bytes
+ .../v22.16.0-x64-00250a7c/e6c57b71                 |   Bin 0 -> 8292 bytes
+ .../v22.16.0-x64-00250a7c/eccc22be                 |   Bin 0 -> 5532 bytes
+ .../v22.16.0-x64-00250a7c/ed5814e0                 |   Bin 0 -> 980 bytes
+ .../v22.16.0-x64-00250a7c/edd6731c                 |   Bin 0 -> 1620 bytes
+ .../v22.16.0-x64-00250a7c/f5dd5115                 |   Bin 0 -> 1420 bytes
+ .../v22.16.0-x64-00250a7c/fc97a94c                 |   Bin 0 -> 1124 bytes
+ CLAUDE.md                                          |   189 +
+ Dockerfile                                         |    25 +
+ DockerfileStart.md                                 |     7 +
+ backend/.classpath                                 |   571 +
+ backend/.gradle/8.11.1/checksums/checksums.lock    |   Bin 0 -> 17 bytes
+ backend/.gradle/8.11.1/checksums/md5-checksums.bin |   Bin 0 -> 31347 bytes
+ .../.gradle/8.11.1/checksums/sha1-checksums.bin    |   Bin 0 -> 92525 bytes
+ .../8.11.1/executionHistory/executionHistory.bin   |   Bin 0 -> 1182655 bytes
+ .../8.11.1/executionHistory/executionHistory.lock  |   Bin 0 -> 17 bytes
+ backend/.gradle/8.11.1/fileChanges/last-build.bin  |   Bin 0 -> 1 bytes
+ backend/.gradle/8.11.1/fileHashes/fileHashes.bin   |   Bin 0 -> 40197 bytes
+ backend/.gradle/8.11.1/fileHashes/fileHashes.lock  |   Bin 0 -> 17 bytes
+ .../8.11.1/fileHashes/resourceHashesCache.bin      |   Bin 0 -> 31145 bytes
+ backend/.gradle/8.11.1/gc.properties               |     0
+ .../buildOutputCleanup/buildOutputCleanup.lock     |   Bin 0 -> 17 bytes
+ .../.gradle/buildOutputCleanup/cache.properties    |     2 +
+ backend/.gradle/buildOutputCleanup/outputFiles.bin |   Bin 0 -> 19271 bytes
+ backend/.gradle/file-system.probe                  |   Bin 0 -> 8 bytes
+ backend/.gradle/vcs-1/gc.properties                |     0
+ ...play-9621354f-308c-44fd-a915-927fda06febd.jsonl |     1 +
+ ...play-c41782d8-0e19-42ef-b859-98c2b9fad863.jsonl |     2 +
+ backend/.omc/state/last-tool-error.json            |     7 +
+ backend/.omc/state/subagent-tracking.json          |     7 +
+ backend/.project                                   |    28 +
+ backend/.settings/org.eclipse.jdt.core.prefs       |    13 +
+ backend/.tmp/scoped-tests.init.gradle              |    22 +
+ backend/bin/main/application-local.yml             |    46 +
+ backend/bin/main/application-prod.yml              |    48 +
+ backend/bin/main/application.yml                   |    16 +
+ .../com/devwogns/trmdict/TrmDictApplication.class  |   Bin 0 -> 834 bytes
+ .../devwogns/trmdict/common/async/JobStatus.class  |   Bin 0 -> 1278 bytes
+ .../common/exception/BusinessException.class       |   Bin 0 -> 1043 bytes
+ .../trmdict/common/exception/ErrorCode.class       |   Bin 0 -> 3751 bytes
+ .../common/exception/GlobalExceptionHandler.class  |   Bin 0 -> 5761 bytes
+ .../trmdict/common/paging/PageRequest.class        |   Bin 0 -> 2764 bytes
+ .../response/ApiResponse$ApiResponseBuilder.class  |   Bin 0 -> 3576 bytes
+ .../trmdict/common/response/ApiResponse.class      |   Bin 0 -> 3718 bytes
+ .../PageResponse$PageResponseBuilder.class         |   Bin 0 -> 3007 bytes
+ .../trmdict/common/response/PageResponse.class     |   Bin 0 -> 2461 bytes
+ .../trmdict/common/security/AuthPrincipal.class    |   Bin 0 -> 924 bytes
+ .../trmdict/common/security/CookieProperties.class |   Bin 0 -> 1831 bytes
+ .../common/security/JwtAuthenticationFilter.class  |   Bin 0 -> 4181 bytes
+ .../trmdict/common/security/JwtTokenProvider.class |   Bin 0 -> 3276 bytes
+ .../trmdict/common/security/SecurityConfig.class   |   Bin 0 -> 12051 bytes
+ .../com/devwogns/trmdict/config/AsyncConfig.class  |   Bin 0 -> 2179 bytes
+ .../devwogns/trmdict/config/DataSourceConfig.class |   Bin 0 -> 426 bytes
+ .../com/devwogns/trmdict/config/JpaConfig.class    |   Bin 0 -> 478 bytes
+ .../devwogns/trmdict/config/SpaController.class    |   Bin 0 -> 655 bytes
+ .../devwogns/trmdict/config/TiberoDialect.class    |   Bin 0 -> 342 bytes
+ ...roller$LoginResponse$LoginResponseBuilder.class |   Bin 0 -> 1835 bytes
+ .../controller/AuthController$LoginResponse.class  |   Bin 0 -> 1319 bytes
+ ...thController$MeResponse$MeResponseBuilder.class |   Bin 0 -> 2348 bytes
+ .../controller/AuthController$MeResponse.class     |   Bin 0 -> 1941 bytes
+ ...Controller$UserSummary$UserSummaryBuilder.class |   Bin 0 -> 2191 bytes
+ .../controller/AuthController$UserSummary.class    |   Bin 0 -> 1509 bytes
+ .../module/auth/controller/AuthController.class    |   Bin 0 -> 6599 bytes
+ .../trmdict/module/auth/dto/LoginDto.class         |   Bin 0 -> 1292 bytes
+ .../AuthUserEntity$AuthUserEntityBuilder.class     |   Bin 0 -> 2542 bytes
+ .../module/auth/entity/AuthUserEntity.class        |   Bin 0 -> 2252 bytes
+ .../module/auth/repository/AuthRepository.class    |   Bin 0 -> 561 bytes
+ .../auth/service/AuthService$LoginResult.class     |   Bin 0 -> 1155 bytes
+ .../trmdict/module/auth/service/AuthService.class  |   Bin 0 -> 5431 bytes
+ .../auth/vo/AuthUserVo$AuthUserVoBuilder.class     |   Bin 0 -> 2462 bytes
+ .../trmdict/module/auth/vo/AuthUserVo.class        |   Bin 0 -> 2286 bytes
+ .../domain/controller/DomainController.class       |   Bin 0 -> 2596 bytes
+ .../module/domain/dto/DomainSearchDto.class        |   Bin 0 -> 2455 bytes
+ .../entity/DomainEntity$DomainEntityBuilder.class  |   Bin 0 -> 5727 bytes
+ .../module/domain/entity/DomainEntity.class        |   Bin 0 -> 5455 bytes
+ .../domain/repository/DomainRepository.class       |   Bin 0 -> 586 bytes
+ .../module/domain/service/DomainService.class      |   Bin 0 -> 12222 bytes
+ .../domain/vo/DomainDtlVo$DomainDtlVoBuilder.class |   Bin 0 -> 5683 bytes
+ .../trmdict/module/domain/vo/DomainDtlVo.class     |   Bin 0 -> 6182 bytes
+ .../vo/DomainListVo$DomainListVoBuilder.class      |   Bin 0 -> 2886 bytes
+ .../trmdict/module/domain/vo/DomainListVo.class    |   Bin 0 -> 3295 bytes
+ .../forbidden/controller/ForbiddenController.class |   Bin 0 -> 2674 bytes
+ .../module/forbidden/dto/ForbiddenSearchDto.class  |   Bin 0 -> 1792 bytes
+ .../ForbiddenEntity$ForbiddenEntityBuilder.class   |   Bin 0 -> 4171 bytes
+ .../module/forbidden/entity/ForbiddenEntity.class  |   Bin 0 -> 4695 bytes
+ .../forbidden/repository/ForbiddenRepository.class |   Bin 0 -> 607 bytes
+ .../forbidden/service/ForbiddenService.class       |   Bin 0 -> 12975 bytes
+ .../vo/ForbiddenDtlVo$ForbiddenDtlVoBuilder.class  |   Bin 0 -> 2922 bytes
+ .../module/forbidden/vo/ForbiddenDtlVo.class       |   Bin 0 -> 3355 bytes
+ .../ForbiddenListVo$ForbiddenListVoBuilder.class   |   Bin 0 -> 2216 bytes
+ .../module/forbidden/vo/ForbiddenListVo.class      |   Bin 0 -> 2633 bytes
+ .../importjob/controller/ImportJobController.class |   Bin 0 -> 8070 bytes
+ ...mportErrorEntity$ImportErrorEntityBuilder.class |   Bin 0 -> 2929 bytes
+ .../importjob/entity/ImportErrorEntity.class       |   Bin 0 -> 2766 bytes
+ .../ImportJobEntity$ImportJobEntityBuilder.class   |   Bin 0 -> 4550 bytes
+ .../module/importjob/entity/ImportJobEntity.class  |   Bin 0 -> 4416 bytes
+ .../listener/ImportJobRecoveryListener.class       |   Bin 0 -> 2268 bytes
+ .../parser/CsvImportParser$RowConsumer.class       |   Bin 0 -> 396 bytes
+ .../module/importjob/parser/CsvImportParser.class  |   Bin 0 -> 5050 bytes
+ .../module/importjob/parser/ImportType.class       |   Bin 0 -> 3265 bytes
+ .../persistence/ImportJobNativePersistence.class   |   Bin 0 -> 9589 bytes
+ .../repository/ImportErrorRepository.class         |   Bin 0 -> 683 bytes
+ .../importjob/repository/ImportJobRepository.class |   Bin 0 -> 2530 bytes
+ .../service/ImportJobService$ProcessStats.class    |   Bin 0 -> 1335 bytes
+ .../importjob/service/ImportJobService.class       |   Bin 0 -> 20192 bytes
+ .../vo/ImportErrorVo$ImportErrorVoBuilder.class    |   Bin 0 -> 2825 bytes
+ .../module/importjob/vo/ImportErrorVo.class        |   Bin 0 -> 2245 bytes
+ .../ImportHistoryVo$ImportHistoryVoBuilder.class   |   Bin 0 -> 4518 bytes
+ .../module/importjob/vo/ImportHistoryVo.class      |   Bin 0 -> 3675 bytes
+ .../ImportSummaryVo$ImportSummaryVoBuilder.class   |   Bin 0 -> 1531 bytes
+ .../module/importjob/vo/ImportSummaryVo.class      |   Bin 0 -> 1338 bytes
+ .../module/word/controller/WordController.class    |   Bin 0 -> 2544 bytes
+ .../trmdict/module/word/dto/WordSearchDto.class    |   Bin 0 -> 2677 bytes
+ .../word/entity/WordEntity$WordEntityBuilder.class |   Bin 0 -> 5166 bytes
+ .../trmdict/module/word/entity/WordEntity.class    |   Bin 0 -> 5168 bytes
+ .../module/word/repository/WordRepository.class    |   Bin 0 -> 572 bytes
+ .../trmdict/module/word/service/WordService.class  |   Bin 0 -> 12681 bytes
+ .../word/vo/WordDtlVo$WordDtlVoBuilder.class       |   Bin 0 -> 3932 bytes
+ .../trmdict/module/word/vo/WordDtlVo.class         |   Bin 0 -> 4349 bytes
+ .../word/vo/WordListVo$WordListVoBuilder.class     |   Bin 0 -> 2510 bytes
+ .../trmdict/module/word/vo/WordListVo.class        |   Bin 0 -> 2895 bytes
+ backend/bin/main/db-ddl/00_common.sql              |    90 +
+ backend/bin/main/db-ddl/01_import.sql              |    63 +
+ backend/bin/main/db-ddl/02_staging.sql             |   109 +
+ backend/bin/main/db-ddl/03_domain.sql              |    41 +
+ backend/bin/main/db-ddl/04_word.sql                |    38 +
+ backend/bin/main/db-ddl/05_term.sql                |    40 +
+ backend/bin/main/db-ddl/06_forbidden.sql           |    34 +
+ backend/bin/main/db-ddl/drop_legacy.sql            |    55 +
+ .../bin/main/static/assets/DetailPage-BpnZfOp3.js  |     1 +
+ .../bin/main/static/assets/DetailView-DJesx_FC.js  |    73 +
+ .../main/static/assets/DomainListPage-CngLpfQi.js  |     1 +
+ .../static/assets/ForbiddenListPage-Cg7xhvIz.js    |     1 +
+ .../bin/main/static/assets/HomePage-DyoFQzL4.js    |     1 +
+ .../bin/main/static/assets/LoginPage-D7YwJgQU.js   |     1 +
+ .../bin/main/static/assets/UploadPage-CQHR6vif.js  |     1 +
+ .../main/static/assets/WordListPage-CgiOKy0W.js    |     1 +
+ backend/bin/main/static/assets/dialog-CYwC4q4S.js  |     1 +
+ .../main/static/assets/import.model-CUFs7txB.js    |     1 +
+ backend/bin/main/static/assets/index-Cj896_6D.js   |    63 +
+ backend/bin/main/static/assets/index-D078ev5I.css  |     1 +
+ backend/bin/main/static/assets/input-Dp1zXjib.js   |     1 +
+ .../bin/main/static/assets/useMutation-RQor87G_.js |     1 +
+ backend/bin/main/static/assets/xlsx-Bme4aJTu.js    |   105 +
+ backend/bin/main/static/favicon.svg                |     7 +
+ backend/bin/main/static/index.html                 |    14 +
+ .../devwogns/trmdict/TrmDictApplicationTests.class |   Bin 0 -> 1731 bytes
+ .../trmdict/common/async/JobStatusTest.class       |   Bin 0 -> 2184 bytes
+ .../trmdict/common/exception/ErrorCodeTest.class   |   Bin 0 -> 1936 bytes
+ .../exception/GlobalExceptionHandlerTest.class     |   Bin 0 -> 2985 bytes
+ .../trmdict/common/paging/PageRequestTest.class    |   Bin 0 -> 4091 bytes
+ .../trmdict/common/response/ApiResponseTest.class  |   Bin 0 -> 3205 bytes
+ .../trmdict/common/response/PageResponseTest.class |   Bin 0 -> 1920 bytes
+ .../security/JwtAuthenticationFilterTest.class     |   Bin 0 -> 5188 bytes
+ .../common/security/JwtTokenProviderTest.class     |   Bin 0 -> 4342 bytes
+ .../SecurityConfigTest$DummyController.class       |   Bin 0 -> 873 bytes
+ .../common/security/SecurityConfigTest.class       |   Bin 0 -> 2948 bytes
+ .../devwogns/trmdict/config/AsyncConfigTest.class  |   Bin 0 -> 2028 bytes
+ .../com/devwogns/trmdict/db/SchemaVerifyTest.class |   Bin 0 -> 2283 bytes
+ .../trmdict/module/auth/AuthIntegrationTest.class  |   Bin 0 -> 9837 bytes
+ .../auth/controller/AuthControllerTest.class       |   Bin 0 -> 8858 bytes
+ .../auth/repository/AuthRepositoryTest.class       |   Bin 0 -> 1765 bytes
+ .../module/auth/service/AuthServiceTest.class      |   Bin 0 -> 7933 bytes
+ .../domain/controller/DomainControllerTest.class   |   Bin 0 -> 8100 bytes
+ .../module/domain/service/DomainServiceTest.class  |   Bin 0 -> 9969 bytes
+ .../controller/ForbiddenControllerTest.class       |   Bin 0 -> 8905 bytes
+ .../service/ForbiddenServiceJpaTest.class          |   Bin 0 -> 8735 bytes
+ .../forbidden/service/ForbiddenServiceTest.class   |   Bin 0 -> 14782 bytes
+ .../importjob/ImportJobIntegrationTest.class       |   Bin 0 -> 689 bytes
+ .../controller/ImportJobControllerTest.class       |   Bin 0 -> 9145 bytes
+ .../listener/ImportJobRecoveryListenerTest.class   |   Bin 0 -> 3572 bytes
+ .../importjob/parser/CsvImportParserTest.class     |   Bin 0 -> 7534 bytes
+ .../importjob/service/ImportJobServiceTest.class   |   Bin 0 -> 18381 bytes
+ .../word/controller/WordControllerTest.class       |   Bin 0 -> 8453 bytes
+ .../module/word/service/WordServiceJpaTest.class   |   Bin 0 -> 5712 bytes
+ .../module/word/service/WordServiceTest.class      |   Bin 0 -> 13930 bytes
+ backend/build.gradle                               |    50 +
+ backend/build/bootJarMainClassName                 |     1 +
+ .../com/devwogns/trmdict/TrmDictApplication.class  |   Bin 0 -> 864 bytes
+ .../devwogns/trmdict/common/async/JobStatus.class  |   Bin 0 -> 1324 bytes
+ .../common/exception/BusinessException.class       |   Bin 0 -> 1025 bytes
+ .../trmdict/common/exception/ErrorCode.class       |   Bin 0 -> 3744 bytes
+ .../common/exception/GlobalExceptionHandler.class  |   Bin 0 -> 5687 bytes
+ .../trmdict/common/paging/PageRequest.class        |   Bin 0 -> 2742 bytes
+ .../trmdict/common/response/ApiResponse$1.class    |   Bin 0 -> 255 bytes
+ .../response/ApiResponse$ApiResponseBuilder.class  |   Bin 0 -> 3471 bytes
+ .../trmdict/common/response/ApiResponse.class      |   Bin 0 -> 3893 bytes
+ .../trmdict/common/response/PageResponse$1.class   |   Bin 0 -> 258 bytes
+ .../PageResponse$PageResponseBuilder.class         |   Bin 0 -> 2903 bytes
+ .../trmdict/common/response/PageResponse.class     |   Bin 0 -> 2628 bytes
+ .../trmdict/common/security/AuthPrincipal.class    |   Bin 0 -> 863 bytes
+ .../trmdict/common/security/CookieProperties.class |   Bin 0 -> 1889 bytes
+ .../common/security/JwtAuthenticationFilter.class  |   Bin 0 -> 4154 bytes
+ .../trmdict/common/security/JwtTokenProvider.class |   Bin 0 -> 3269 bytes
+ .../trmdict/common/security/SecurityConfig.class   |   Bin 0 -> 10913 bytes
+ .../com/devwogns/trmdict/config/AsyncConfig.class  |   Bin 0 -> 2179 bytes
+ .../devwogns/trmdict/config/DataSourceConfig.class |   Bin 0 -> 426 bytes
+ .../com/devwogns/trmdict/config/JpaConfig.class    |   Bin 0 -> 478 bytes
+ .../devwogns/trmdict/config/SpaController.class    |   Bin 0 -> 655 bytes
+ .../devwogns/trmdict/config/TiberoDialect.class    |   Bin 0 -> 342 bytes
+ ...roller$LoginResponse$LoginResponseBuilder.class |   Bin 0 -> 1716 bytes
+ .../controller/AuthController$LoginResponse.class  |   Bin 0 -> 1254 bytes
+ ...thController$MeResponse$MeResponseBuilder.class |   Bin 0 -> 2177 bytes
+ .../controller/AuthController$MeResponse.class     |   Bin 0 -> 1844 bytes
+ ...Controller$UserSummary$UserSummaryBuilder.class |   Bin 0 -> 2033 bytes
+ .../controller/AuthController$UserSummary.class    |   Bin 0 -> 1420 bytes
+ .../module/auth/controller/AuthController.class    |   Bin 0 -> 6587 bytes
+ .../trmdict/module/auth/dto/LoginDto.class         |   Bin 0 -> 1222 bytes
+ .../AuthUserEntity$AuthUserEntityBuilder.class     |   Bin 0 -> 2345 bytes
+ .../module/auth/entity/AuthUserEntity.class        |   Bin 0 -> 2127 bytes
+ .../module/auth/repository/AuthRepository.class    |   Bin 0 -> 602 bytes
+ .../auth/service/AuthService$LoginResult.class     |   Bin 0 -> 1094 bytes
+ .../trmdict/module/auth/service/AuthService.class  |   Bin 0 -> 5408 bytes
+ .../auth/vo/AuthUserVo$AuthUserVoBuilder.class     |   Bin 0 -> 2265 bytes
+ .../trmdict/module/auth/vo/AuthUserVo.class        |   Bin 0 -> 2135 bytes
+ .../domain/controller/DomainController.class       |   Bin 0 -> 2565 bytes
+ .../module/domain/dto/DomainSearchDto.class        |   Bin 0 -> 2306 bytes
+ .../entity/DomainEntity$DomainEntityBuilder.class  |   Bin 0 -> 5309 bytes
+ .../module/domain/entity/DomainEntity.class        |   Bin 0 -> 5194 bytes
+ .../domain/repository/DomainRepository.class       |   Bin 0 -> 586 bytes
+ .../module/domain/service/DomainService.class      |   Bin 0 -> 12229 bytes
+ .../domain/vo/DomainDtlVo$DomainDtlVoBuilder.class |   Bin 0 -> 5265 bytes
+ .../trmdict/module/domain/vo/DomainDtlVo.class     |   Bin 0 -> 5944 bytes
+ .../vo/DomainListVo$DomainListVoBuilder.class      |   Bin 0 -> 2663 bytes
+ .../trmdict/module/domain/vo/DomainListVo.class    |   Bin 0 -> 3177 bytes
+ .../forbidden/controller/ForbiddenController.class |   Bin 0 -> 2643 bytes
+ .../module/forbidden/dto/ForbiddenSearchDto.class  |   Bin 0 -> 1682 bytes
+ .../ForbiddenEntity$ForbiddenEntityBuilder.class   |   Bin 0 -> 3870 bytes
+ .../module/forbidden/entity/ForbiddenEntity.class  |   Bin 0 -> 4506 bytes
+ .../forbidden/repository/ForbiddenRepository.class |   Bin 0 -> 607 bytes
+ .../forbidden/service/ForbiddenService.class       |   Bin 0 -> 12990 bytes
+ .../vo/ForbiddenDtlVo$ForbiddenDtlVoBuilder.class  |   Bin 0 -> 2699 bytes
+ .../module/forbidden/vo/ForbiddenDtlVo.class       |   Bin 0 -> 3237 bytes
+ .../ForbiddenListVo$ForbiddenListVoBuilder.class   |   Bin 0 -> 2045 bytes
+ .../module/forbidden/vo/ForbiddenListVo.class      |   Bin 0 -> 2547 bytes
+ .../importjob/controller/ImportJobController.class |   Bin 0 -> 8108 bytes
+ ...mportErrorEntity$ImportErrorEntityBuilder.class |   Bin 0 -> 2732 bytes
+ .../importjob/entity/ImportErrorEntity.class       |   Bin 0 -> 2641 bytes
+ .../ImportJobEntity$ImportJobEntityBuilder.class   |   Bin 0 -> 4236 bytes
+ .../module/importjob/entity/ImportJobEntity.class  |   Bin 0 -> 4219 bytes
+ .../listener/ImportJobRecoveryListener.class       |   Bin 0 -> 2211 bytes
+ .../parser/CsvImportParser$RowConsumer.class       |   Bin 0 -> 445 bytes
+ .../module/importjob/parser/CsvImportParser.class  |   Bin 0 -> 5521 bytes
+ .../module/importjob/parser/ImportType.class       |   Bin 0 -> 3237 bytes
+ .../persistence/ImportJobNativePersistence$1.class |   Bin 0 -> 962 bytes
+ .../persistence/ImportJobNativePersistence.class   |   Bin 0 -> 9511 bytes
+ .../repository/ImportErrorRepository.class         |   Bin 0 -> 740 bytes
+ .../importjob/repository/ImportJobRepository.class |   Bin 0 -> 2664 bytes
+ .../service/ImportJobService$ProcessStats.class    |   Bin 0 -> 1236 bytes
+ .../importjob/service/ImportJobService.class       |   Bin 0 -> 20370 bytes
+ .../vo/ImportErrorVo$ImportErrorVoBuilder.class    |   Bin 0 -> 2628 bytes
+ .../module/importjob/vo/ImportErrorVo.class        |   Bin 0 -> 2132 bytes
+ .../ImportHistoryVo$ImportHistoryVoBuilder.class   |   Bin 0 -> 4204 bytes
+ .../module/importjob/vo/ImportHistoryVo.class      |   Bin 0 -> 3490 bytes
+ .../ImportSummaryVo$ImportSummaryVoBuilder.class   |   Bin 0 -> 1412 bytes
+ .../module/importjob/vo/ImportSummaryVo.class      |   Bin 0 -> 1273 bytes
+ .../module/word/controller/WordController.class    |   Bin 0 -> 2513 bytes
+ .../trmdict/module/word/dto/WordSearchDto.class    |   Bin 0 -> 2515 bytes
+ .../word/entity/WordEntity$WordEntityBuilder.class |   Bin 0 -> 4787 bytes
+ .../trmdict/module/word/entity/WordEntity.class    |   Bin 0 -> 4931 bytes
+ .../module/word/repository/WordRepository.class    |   Bin 0 -> 572 bytes
+ .../trmdict/module/word/service/WordService.class  |   Bin 0 -> 12695 bytes
+ .../word/vo/WordDtlVo$WordDtlVoBuilder.class       |   Bin 0 -> 3631 bytes
+ .../trmdict/module/word/vo/WordDtlVo.class         |   Bin 0 -> 4183 bytes
+ .../word/vo/WordListVo$WordListVoBuilder.class     |   Bin 0 -> 2313 bytes
+ .../trmdict/module/word/vo/WordListVo.class        |   Bin 0 -> 2793 bytes
+ .../devwogns/trmdict/TrmDictApplicationTests.class |   Bin 0 -> 1830 bytes
+ .../trmdict/common/async/JobStatusTest.class       |   Bin 0 -> 2154 bytes
+ .../trmdict/common/exception/ErrorCodeTest.class   |   Bin 0 -> 1936 bytes
+ .../exception/GlobalExceptionHandlerTest.class     |   Bin 0 -> 2981 bytes
+ .../trmdict/common/paging/PageRequestTest.class    |   Bin 0 -> 4179 bytes
+ .../trmdict/common/response/ApiResponseTest.class  |   Bin 0 -> 3182 bytes
+ .../trmdict/common/response/PageResponseTest.class |   Bin 0 -> 1920 bytes
+ .../security/JwtAuthenticationFilterTest.class     |   Bin 0 -> 5150 bytes
+ .../common/security/JwtTokenProviderTest.class     |   Bin 0 -> 4377 bytes
+ .../SecurityConfigTest$DummyController.class       |   Bin 0 -> 873 bytes
+ .../common/security/SecurityConfigTest.class       |   Bin 0 -> 2948 bytes
+ .../devwogns/trmdict/config/AsyncConfigTest.class  |   Bin 0 -> 2028 bytes
+ .../com/devwogns/trmdict/db/SchemaVerifyTest.class |   Bin 0 -> 2235 bytes
+ .../trmdict/module/auth/AuthIntegrationTest.class  |   Bin 0 -> 9839 bytes
+ .../auth/controller/AuthControllerTest.class       |   Bin 0 -> 8828 bytes
+ .../auth/repository/AuthRepositoryTest.class       |   Bin 0 -> 1765 bytes
+ .../module/auth/service/AuthServiceTest.class      |   Bin 0 -> 8098 bytes
+ .../domain/controller/DomainControllerTest.class   |   Bin 0 -> 8090 bytes
+ .../module/domain/service/DomainServiceTest.class  |   Bin 0 -> 10016 bytes
+ .../controller/ForbiddenControllerTest.class       |   Bin 0 -> 8889 bytes
+ .../service/ForbiddenServiceJpaTest.class          |   Bin 0 -> 8853 bytes
+ .../forbidden/service/ForbiddenServiceTest.class   |   Bin 0 -> 14927 bytes
+ .../importjob/ImportJobIntegrationTest.class       |   Bin 0 -> 689 bytes
+ .../controller/ImportJobControllerTest.class       |   Bin 0 -> 9098 bytes
+ .../listener/ImportJobRecoveryListenerTest.class   |   Bin 0 -> 3572 bytes
+ .../importjob/parser/CsvImportParserTest.class     |   Bin 0 -> 7765 bytes
+ .../importjob/service/ImportJobServiceTest.class   |   Bin 0 -> 18483 bytes
+ .../word/controller/WordControllerTest.class       |   Bin 0 -> 8440 bytes
+ .../module/word/service/WordServiceJpaTest.class   |   Bin 0 -> 5694 bytes
+ .../module/word/service/WordServiceTest.class      |   Bin 0 -> 14049 bytes
+ .../build/libs/trmdict-1.0.0-SNAPSHOT-plain.jar    |   Bin 0 -> 5790910 bytes
+ backend/build/libs/trmdict-1.0.0-SNAPSHOT.jar      |   Bin 0 -> 51167019 bytes
+ .../build/reports/problems/problems-report.html    |   663 +
+ ...ommon.security.JwtAuthenticationFilterTest.html |   111 +
+ ...mdict.common.security.JwtTokenProviderTest.html |   106 +
+ ...trmdict.common.security.SecurityConfigTest.html |   151 +
+ ...ns.trmdict.module.auth.AuthIntegrationTest.html |   176 +
+ ....module.auth.controller.AuthControllerTest.html |   162 +
+ ....module.auth.repository.AuthRepositoryTest.html |   135 +
+ ...rmdict.module.auth.service.AuthServiceTest.html |   131 +
+ ...ule.domain.controller.DomainControllerTest.html |   156 +
+ ...ct.module.domain.service.DomainServiceTest.html |   116 +
+ ...rbidden.controller.ForbiddenControllerTest.html |   162 +
+ ....forbidden.service.ForbiddenServiceJpaTest.html |   535 +
+ ...ule.forbidden.service.ForbiddenServiceTest.html |   151 +
+ ....module.importjob.ImportJobIntegrationTest.html |    96 +
+ ...portjob.controller.ImportJobControllerTest.html |   161 +
+ ...job.listener.ImportJobRecoveryListenerTest.html |   119 +
+ ...odule.importjob.parser.CsvImportParserTest.html |   132 +
+ ...ule.importjob.service.ImportJobServiceTest.html |   233 +
+ ....module.word.controller.WordControllerTest.html |   162 +
+ ...ict.module.word.service.WordServiceJpaTest.html |   394 +
+ ...rmdict.module.word.service.WordServiceTest.html |   141 +
+ .../build/reports/tests/test/css/base-style.css    |   179 +
+ backend/build/reports/tests/test/css/style.css     |    84 +
+ backend/build/reports/tests/test/index.html        |   485 +
+ backend/build/reports/tests/test/js/report.js      |   194 +
+ .../com.devwogns.trmdict.common.security.html      |   123 +
+ ...om.devwogns.trmdict.module.auth.controller.html |   103 +
+ .../packages/com.devwogns.trmdict.module.auth.html |   103 +
+ ...om.devwogns.trmdict.module.auth.repository.html |   103 +
+ .../com.devwogns.trmdict.module.auth.service.html  |   103 +
+ ....devwogns.trmdict.module.domain.controller.html |   103 +
+ ...com.devwogns.trmdict.module.domain.service.html |   103 +
+ ...vwogns.trmdict.module.forbidden.controller.html |   103 +
+ ....devwogns.trmdict.module.forbidden.service.html |   113 +
+ ...vwogns.trmdict.module.importjob.controller.html |   103 +
+ .../com.devwogns.trmdict.module.importjob.html     |   115 +
+ ...devwogns.trmdict.module.importjob.listener.html |   103 +
+ ...m.devwogns.trmdict.module.importjob.parser.html |   103 +
+ ....devwogns.trmdict.module.importjob.service.html |   103 +
+ ...om.devwogns.trmdict.module.word.controller.html |   103 +
+ .../com.devwogns.trmdict.module.word.service.html  |   113 +
+ backend/build/resources/main/application-local.yml |    46 +
+ backend/build/resources/main/application-prod.yml  |    48 +
+ backend/build/resources/main/application.yml       |    16 +
+ backend/build/resources/main/db-ddl/00_common.sql  |    90 +
+ backend/build/resources/main/db-ddl/01_import.sql  |    63 +
+ backend/build/resources/main/db-ddl/02_staging.sql |   109 +
+ backend/build/resources/main/db-ddl/03_domain.sql  |    41 +
+ backend/build/resources/main/db-ddl/04_word.sql    |    38 +
+ backend/build/resources/main/db-ddl/05_term.sql    |    40 +
+ .../build/resources/main/db-ddl/06_forbidden.sql   |    34 +
+ .../build/resources/main/db-ddl/drop_legacy.sql    |    55 +
+ .../main/static/assets/DetailPage-CrI8j3bj.js      |     1 +
+ .../main/static/assets/DetailPanel-Dz-2dn2u.js     |     1 +
+ .../main/static/assets/DetailView-3DZeGng7.js      |    73 +
+ .../main/static/assets/DomainListPage-Cn_eVRHy.js  |     1 +
+ .../static/assets/ForbiddenListPage-D9Gt3PHk.js    |     1 +
+ .../main/static/assets/HomePage-D-TqDgc7.js        |     1 +
+ .../main/static/assets/LoginPage-DtUczcmP.js       |     1 +
+ .../main/static/assets/UploadPage-CSrS-Aff.js      |     1 +
+ .../main/static/assets/WordListPage-DzOFXKX1.js    |     1 +
+ .../main/static/assets/dialog-CTStrWvh.js          |    45 +
+ .../main/static/assets/import.model-aYc_o_kL.js    |     1 +
+ .../main/static/assets/index-B4y4L8IY.css          |     1 +
+ .../resources/main/static/assets/index-Cvs0wBJo.js |    19 +
+ .../resources/main/static/assets/input-ByP3pWMZ.js |     1 +
+ .../main/static/assets/queryHelpers-D-w_DsRs.js    |     1 +
+ .../main/static/assets/useMutation-DQjMPezt.js     |     1 +
+ .../resources/main/static/assets/xlsx-Bme4aJTu.js  |   105 +
+ .../resources/main/static/favicon-option1.svg      |     4 +
+ .../resources/main/static/favicon-option2.svg      |     6 +
+ .../resources/main/static/favicon-option3.svg      |    11 +
+ .../resources/main/static/favicon-option4.svg      |     5 +
+ .../resources/main/static/favicon-option5.svg      |     6 +
+ .../resources/main/static/favicon-option6.svg      |     6 +
+ backend/build/resources/main/static/favicon.ico    |   Bin 0 -> 948 bytes
+ backend/build/resources/main/static/index.html     |    14 +
+ ...common.security.JwtAuthenticationFilterTest.xml |    10 +
+ ...rmdict.common.security.JwtTokenProviderTest.xml |     9 +
+ ....trmdict.common.security.SecurityConfigTest.xml |    49 +
+ ...gns.trmdict.module.auth.AuthIntegrationTest.xml |    54 +
+ ...t.module.auth.controller.AuthControllerTest.xml |    44 +
+ ...t.module.auth.repository.AuthRepositoryTest.xml |    37 +
+ ...trmdict.module.auth.service.AuthServiceTest.xml |    13 +
+ ...dule.domain.controller.DomainControllerTest.xml |    42 +
+ ...ict.module.domain.service.DomainServiceTest.xml |    11 +
+ ...orbidden.controller.ForbiddenControllerTest.xml |    44 +
+ ...e.forbidden.service.ForbiddenServiceJpaTest.xml |   417 +
+ ...dule.forbidden.service.ForbiddenServiceTest.xml |    18 +
+ ...t.module.importjob.ImportJobIntegrationTest.xml |     9 +
+ ...mportjob.controller.ImportJobControllerTest.xml |    43 +
+ ...tjob.listener.ImportJobRecoveryListenerTest.xml |    13 +
+ ...module.importjob.parser.CsvImportParserTest.xml |    14 +
+ ...dule.importjob.service.ImportJobServiceTest.xml |   107 +
+ ...t.module.word.controller.WordControllerTest.xml |    44 +
+ ...dict.module.word.service.WordServiceJpaTest.xml |   292 +
+ ...trmdict.module.word.service.WordServiceTest.xml |    16 +
+ backend/build/test-results/test/binary/output.bin  |   Bin 0 -> 189390 bytes
+ .../build/test-results/test/binary/output.bin.idx  |   Bin 0 -> 1316 bytes
+ backend/build/test-results/test/binary/results.bin |   Bin 0 -> 11754 bytes
+ backend/build/tmp/bootJar/MANIFEST.MF              |     9 +
+ .../stash-dir/ApiResponse.class.uniqueId33         |   Bin 0 -> 3113 bytes
+ .../AuthController$LoginResponse.class.uniqueId12  |   Bin 0 -> 963 bytes
+ .../AuthController$MeResponse.class.uniqueId37     |   Bin 0 -> 1568 bytes
+ .../AuthController$UserSummary.class.uniqueId14    |   Bin 0 -> 1139 bytes
+ .../stash-dir/AuthController.class.uniqueId13      |   Bin 0 -> 5050 bytes
+ .../stash-dir/AuthRepository.class.uniqueId39      |   Bin 0 -> 602 bytes
+ .../AuthService$LoginResult.class.uniqueId3        |   Bin 0 -> 1094 bytes
+ .../stash-dir/AuthService.class.uniqueId6          |   Bin 0 -> 5076 bytes
+ .../stash-dir/AuthUserEntity.class.uniqueId38      |   Bin 0 -> 2220 bytes
+ .../stash-dir/AuthUserVo.class.uniqueId27          |   Bin 0 -> 2317 bytes
+ .../stash-dir/DomainController.class.uniqueId20    |   Bin 0 -> 2565 bytes
+ .../stash-dir/DomainDtlVo.class.uniqueId34         |   Bin 0 -> 6857 bytes
+ .../stash-dir/DomainEntity.class.uniqueId41        |   Bin 0 -> 6335 bytes
+ .../stash-dir/DomainListVo.class.uniqueId42        |   Bin 0 -> 3256 bytes
+ .../stash-dir/DomainRepository.class.uniqueId21    |   Bin 0 -> 586 bytes
+ .../stash-dir/DomainService.class.uniqueId24       |   Bin 0 -> 12123 bytes
+ .../stash-dir/ForbiddenController.class.uniqueId10 |   Bin 0 -> 2643 bytes
+ .../stash-dir/ForbiddenDtlVo.class.uniqueId0       |   Bin 0 -> 3276 bytes
+ .../stash-dir/ForbiddenEntity.class.uniqueId28     |   Bin 0 -> 5079 bytes
+ .../stash-dir/ForbiddenListVo.class.uniqueId7      |   Bin 0 -> 2330 bytes
+ .../stash-dir/ForbiddenRepository.class.uniqueId18 |   Bin 0 -> 607 bytes
+ .../stash-dir/ForbiddenService.class.uniqueId4     |   Bin 0 -> 12736 bytes
+ .../GlobalExceptionHandler.class.uniqueId25        |   Bin 0 -> 5687 bytes
+ .../stash-dir/ImportErrorEntity.class.uniqueId9    |   Bin 0 -> 2771 bytes
+ .../ImportErrorRepository.class.uniqueId19         |   Bin 0 -> 740 bytes
+ .../stash-dir/ImportErrorVo.class.uniqueId36       |   Bin 0 -> 2374 bytes
+ .../stash-dir/ImportHistoryVo.class.uniqueId29     |   Bin 0 -> 4255 bytes
+ .../stash-dir/ImportJobController.class.uniqueId22 |   Bin 0 -> 8108 bytes
+ .../stash-dir/ImportJobEntity.class.uniqueId5      |   Bin 0 -> 4892 bytes
+ .../ImportJobRecoveryListener.class.uniqueId30     |   Bin 0 -> 2211 bytes
+ .../stash-dir/ImportJobRepository.class.uniqueId35 |   Bin 0 -> 2664 bytes
+ .../ImportJobService$ProcessStats.class.uniqueId11 |   Bin 0 -> 1236 bytes
+ .../stash-dir/ImportJobService.class.uniqueId1     |   Bin 0 -> 17860 bytes
+ ...mmaryVo$ImportSummaryVoBuilder.class.uniqueId15 |   Bin 0 -> 1412 bytes
+ .../stash-dir/ImportSummaryVo.class.uniqueId31     |   Bin 0 -> 1273 bytes
+ .../stash-dir/PageResponse.class.uniqueId32        |   Bin 0 -> 1876 bytes
+ .../stash-dir/SecurityConfig.class.uniqueId26      |   Bin 0 -> 10748 bytes
+ .../stash-dir/WordController.class.uniqueId23      |   Bin 0 -> 2513 bytes
+ .../stash-dir/WordDtlVo.class.uniqueId8            |   Bin 0 -> 4360 bytes
+ .../stash-dir/WordEntity.class.uniqueId40          |   Bin 0 -> 5917 bytes
+ .../stash-dir/WordListVo.class.uniqueId2           |   Bin 0 -> 2791 bytes
+ .../stash-dir/WordRepository.class.uniqueId17      |   Bin 0 -> 572 bytes
+ .../stash-dir/WordService.class.uniqueId16         |   Bin 0 -> 12589 bytes
+ .../tmp/compileJava/previous-compilation-data.bin  |   Bin 0 -> 129864 bytes
+ .../compileTestJava/previous-compilation-data.bin  |   Bin 0 -> 99476 bytes
+ backend/build/tmp/jar/MANIFEST.MF                  |     2 +
+ backend/gradle/wrapper/gradle-wrapper.jar          |   Bin 0 -> 43583 bytes
+ backend/gradle/wrapper/gradle-wrapper.properties   |     7 +
+ backend/gradlew                                    |   252 +
+ backend/gradlew.bat                                |    94 +
+ backend/lib/tibero7-jdbc-18.jar                    |   Bin 0 -> 1710825 bytes
+ backend/settings.gradle                            |     1 +
+ .../com/devwogns/trmdict/TrmDictApplication.java   |    13 +
+ .../devwogns/trmdict/common/async/JobStatus.java   |     9 +
+ .../common/exception/BusinessException.java        |    19 +
+ .../trmdict/common/exception/ErrorCode.java        |    54 +
+ .../common/exception/GlobalExceptionHandler.java   |    47 +
+ .../trmdict/common/paging/PageRequest.java         |    51 +
+ .../trmdict/common/response/ApiResponse.java       |    40 +
+ .../trmdict/common/response/PageResponse.java      |    25 +
+ .../trmdict/common/security/AuthPrincipal.java     |    12 +
+ .../trmdict/common/security/CookieProperties.java  |    41 +
+ .../common/security/JwtAuthenticationFilter.java   |    61 +
+ .../trmdict/common/security/JwtTokenProvider.java  |    56 +
+ .../trmdict/common/security/SecurityConfig.java    |    78 +
+ .../com/devwogns/trmdict/config/AsyncConfig.java   |    47 +
+ .../devwogns/trmdict/config/DataSourceConfig.java  |    12 +
+ .../com/devwogns/trmdict/config/JpaConfig.java     |     9 +
+ .../com/devwogns/trmdict/config/SpaController.java |    13 +
+ .../com/devwogns/trmdict/config/TiberoDialect.java |    10 +
+ .../module/auth/controller/AuthController.java     |    95 +
+ .../devwogns/trmdict/module/auth/dto/LoginDto.java |    22 +
+ .../trmdict/module/auth/entity/AuthUserEntity.java |    43 +
+ .../module/auth/repository/AuthRepository.java     |    11 +
+ .../trmdict/module/auth/service/AuthService.java   |    70 +
+ .../trmdict/module/auth/vo/AuthUserVo.java         |    19 +
+ .../module/domain/controller/DomainController.java |    35 +
+ .../trmdict/module/domain/dto/DomainSearchDto.java |    20 +
+ .../trmdict/module/domain/entity/DomainEntity.java |    95 +
+ .../module/domain/repository/DomainRepository.java |     8 +
+ .../module/domain/service/DomainService.java       |   143 +
+ .../trmdict/module/domain/vo/DomainDtlVo.java      |    68 +
+ .../trmdict/module/domain/vo/DomainListVo.java     |    36 +
+ .../forbidden/controller/ForbiddenController.java  |    35 +
+ .../module/forbidden/dto/ForbiddenSearchDto.java   |    17 +
+ .../module/forbidden/entity/ForbiddenEntity.java   |    92 +
+ .../forbidden/repository/ForbiddenRepository.java  |     8 +
+ .../module/forbidden/service/ForbiddenService.java |   167 +
+ .../module/forbidden/vo/ForbiddenDtlVo.java        |    36 +
+ .../module/forbidden/vo/ForbiddenListVo.java       |    28 +
+ .../importjob/controller/ImportJobController.java  |   134 +
+ .../module/importjob/entity/ImportErrorEntity.java |    49 +
+ .../module/importjob/entity/ImportJobEntity.java   |    76 +
+ .../listener/ImportJobRecoveryListener.java        |    35 +
+ .../module/importjob/parser/CsvImportParser.java   |   101 +
+ .../module/importjob/parser/ImportType.java        |    60 +
+ .../persistence/ImportJobNativePersistence.java    |   217 +
+ .../repository/ImportErrorRepository.java          |    11 +
+ .../importjob/repository/ImportJobRepository.java  |    47 +
+ .../module/importjob/service/ImportJobService.java |   290 +
+ .../trmdict/module/importjob/vo/ImportErrorVo.java |    21 +
+ .../module/importjob/vo/ImportHistoryVo.java       |    31 +
+ .../module/importjob/vo/ImportSummaryVo.java       |    13 +
+ .../module/word/controller/WordController.java     |    35 +
+ .../trmdict/module/word/dto/WordSearchDto.java     |    21 +
+ .../trmdict/module/word/entity/WordEntity.java     |    91 +
+ .../module/word/repository/WordRepository.java     |     8 +
+ .../trmdict/module/word/service/WordService.java   |   160 +
+ .../devwogns/trmdict/module/word/vo/WordDtlVo.java |    48 +
+ .../trmdict/module/word/vo/WordListVo.java         |    32 +
+ backend/src/main/resources/application-local.yml   |    46 +
+ backend/src/main/resources/application-prod.yml    |    48 +
+ backend/src/main/resources/application.yml         |    16 +
+ backend/src/main/resources/db-ddl/00_common.sql    |    90 +
+ backend/src/main/resources/db-ddl/01_import.sql    |    63 +
+ backend/src/main/resources/db-ddl/02_staging.sql   |   109 +
+ backend/src/main/resources/db-ddl/03_domain.sql    |    41 +
+ backend/src/main/resources/db-ddl/04_word.sql      |    38 +
+ backend/src/main/resources/db-ddl/05_term.sql      |    40 +
+ backend/src/main/resources/db-ddl/06_forbidden.sql |    34 +
+ backend/src/main/resources/db-ddl/drop_legacy.sql  |    55 +
+ .../resources/static/assets/DetailPage-BpnZfOp3.js |     1 +
+ .../resources/static/assets/DetailView-DJesx_FC.js |    73 +
+ .../static/assets/DomainListPage-CngLpfQi.js       |     1 +
+ .../static/assets/ForbiddenListPage-Cg7xhvIz.js    |     1 +
+ .../resources/static/assets/HomePage-DyoFQzL4.js   |     1 +
+ .../resources/static/assets/LoginPage-D7YwJgQU.js  |     1 +
+ .../resources/static/assets/UploadPage-CQHR6vif.js |     1 +
+ .../static/assets/WordListPage-CgiOKy0W.js         |     1 +
+ .../resources/static/assets/dialog-CYwC4q4S.js     |     1 +
+ .../static/assets/import.model-CUFs7txB.js         |     1 +
+ .../main/resources/static/assets/index-Cj896_6D.js |    63 +
+ .../resources/static/assets/index-D078ev5I.css     |     1 +
+ .../main/resources/static/assets/input-Dp1zXjib.js |     1 +
+ .../static/assets/useMutation-RQor87G_.js          |     1 +
+ .../main/resources/static/assets/xlsx-Bme4aJTu.js  |   105 +
+ backend/src/main/resources/static/favicon.svg      |     7 +
+ backend/src/main/resources/static/index.html       |    14 +
+ .../devwogns/trmdict/TrmDictApplicationTests.java  |    33 +
+ .../trmdict/common/async/JobStatusTest.java        |    35 +
+ .../trmdict/common/exception/ErrorCodeTest.java    |    39 +
+ .../exception/GlobalExceptionHandlerTest.java      |    33 +
+ .../trmdict/common/paging/PageRequestTest.java     |    66 +
+ .../trmdict/common/response/ApiResponseTest.java   |    43 +
+ .../trmdict/common/response/PageResponseTest.java  |    28 +
+ .../security/JwtAuthenticationFilterTest.java      |    86 +
+ .../common/security/JwtTokenProviderTest.java      |    54 +
+ .../common/security/SecurityConfigTest.java        |    47 +
+ .../devwogns/trmdict/config/AsyncConfigTest.java   |    33 +
+ .../com/devwogns/trmdict/db/SchemaVerifyTest.java  |    52 +
+ .../trmdict/module/auth/AuthIntegrationTest.java   |   147 +
+ .../module/auth/controller/AuthControllerTest.java |   133 +
+ .../module/auth/repository/AuthRepositoryTest.java |    26 +
+ .../module/auth/service/AuthServiceTest.java       |   111 +
+ .../domain/controller/DomainControllerTest.java    |   124 +
+ .../module/domain/service/DomainServiceTest.java   |   139 +
+ .../controller/ForbiddenControllerTest.java        |   144 +
+ .../forbidden/service/ForbiddenServiceJpaTest.java |   154 +
+ .../forbidden/service/ForbiddenServiceTest.java    |   261 +
+ .../module/importjob/ImportJobIntegrationTest.java |    12 +
+ .../controller/ImportJobControllerTest.java        |   125 +
+ .../listener/ImportJobRecoveryListenerTest.java    |    64 +
+ .../importjob/parser/CsvImportParserTest.java      |    97 +
+ .../importjob/service/ImportJobServiceTest.java    |   252 +
+ .../module/word/controller/WordControllerTest.java |   140 +
+ .../module/word/service/WordServiceJpaTest.java    |    88 +
+ .../module/word/service/WordServiceTest.java       |   230 +
+ docs/component-structure.html                      |   343 +
+ docs/cycles/01-c0-backend-core/plan.md             |  3346 ++++
+ docs/cycles/01-c0-backend-core/spec.md             |   324 +
+ docs/cycles/01-c0-backend-core/status.md           |   279 +
+ docs/cycles/02-c1-async-infra/plan.md              |  1149 ++
+ docs/cycles/02-c1-async-infra/spec.md              |   341 +
+ docs/cycles/02-c1-async-infra/status.md            |    98 +
+ docs/cycles/03-c2-frontend-core/plan.md            |  2159 +++
+ docs/cycles/03-c2-frontend-core/spec.md            |   542 +
+ docs/cycles/03-c2-frontend-core/status.md          |   100 +
+ docs/cycles/04-i0-import-backend/plan.md           |  3140 ++++
+ docs/cycles/04-i0-import-backend/spec.md           |   662 +
+ docs/cycles/04-i0-import-backend/status.md         |    67 +
+ docs/cycles/05-rename-naming-alignment/plan.md     |  1796 ++
+ docs/cycles/05-rename-naming-alignment/spec.md     |    68 +
+ docs/cycles/05-rename-naming-alignment/status.md   |    75 +
+ docs/cycles/06-i1-import-frontend/plan.md          |  2379 +++
+ docs/cycles/06-i1-import-frontend/spec.md          |   525 +
+ docs/cycles/06-i1-import-frontend/status.md        |   113 +
+ docs/cycles/07-m-d-r-domain-read/plan.md           |  2491 +++
+ docs/cycles/07-m-d-r-domain-read/spec.md           |   665 +
+ docs/cycles/07-m-d-r-domain-read/status.md         |   185 +
+ docs/decisions.md                                  |  1092 ++
+ docs/dev-guide/conventions-backend.md              |   274 +
+ docs/dev-guide/conventions-frontend.md             |   452 +
+ docs/handoff.md                                    |   195 +
+ docs/migrations/2026-05-19-dependency-upgrade.md   |   251 +
+ .../2026-05-19-forbidden-read-backend.md           |   200 +
+ docs/migrations/2026-05-19-forbidden-schema-gap.md |   135 +
+ docs/migrations/2026-05-19-word-search-backend.md  |   205 +
+ docs/plan.md                                       |   270 +
+ docs/plans/2026-05-20-mcp-server-design.md         |   347 +
+ docs/plans/2026-05-20-mcp-server-plan.md           |  1206 ++
+ docs/reviews/2026-05-20-frontend-review.md         |   129 +
+ docs/reviews/2026-05-21-frontend-review.md         |   234 +
+ docs/reviews/2026-05-21_2-frontend-review.md       |   136 +
+ docs/sampleHtml/forbidden-words.html               |   627 +
+ docs/sampleHtml/index.html                         |   638 +
+ docs/sampleHtml/term-detail.html                   |   669 +
+ docs/sampleHtml/termbase-glossary.html             |   603 +
+ .../plans/2026-05-18-backend-jpa-cutover.md        |   119 +
+ .../superpowers/plans/2026-05-19-forbidden-read.md |    84 +
+ .../superpowers/plans/2026-05-19-ui-improvement.md |   157 +
+ docs/superpowers/plans/2026-05-19-word-search.md   |   615 +
+ .../specs/2026-05-03-code-structure-design.md      |   405 +
+ .../specs/2026-05-03-cycle-decomposition-design.md |   257 +
+ ...2026-05-06-naming-standards-alignment-design.md |   412 +
+ .../specs/2026-05-18-backend-jpa-cutover-design.md |   222 +
+ .../specs/2026-05-19-auth-cookie-design.md         |   141 +
+ .../specs/2026-05-19-forbidden-read-design.md      |   230 +
+ .../specs/2026-05-19-word-search-design.md         |   190 +
+ docs/superpowers/ygKim/01. system.md               |    61 +
+ docs/superpowers/ygKim/01. systemArchitecture.md   |    29 +
+ docs/superpowers/ygKim/02. endPointRole.md         |    57 +
+ docs/superpowers/ygKim/03. testServer.md           |    31 +
+ docs/tips.md                                       |    38 +
+ docs/worklog.md                                    |   155 +
+ ...4\244\200\353\213\250\354\226\264_20251101.csv" |  3285 ++++
+ ...3\217\204\353\251\224\354\235\270_20251101.csv" |   130 +
+ ...4\244\200\354\232\251\354\226\264_20251101.csv" | 13177 ++++++++++++++
+ frontend/.editorconfig                             |    16 +
+ frontend/.gitignore                                |    46 +
+ frontend/.omc/project-memory.json                  |   423 +
+ ...play-77ac2710-f058-4a8a-9d86-8090b523ae3e.jsonl |    33 +
+ ...play-cfcb8994-65d3-4063-ae8a-ff2a9d40efa3.jsonl |     2 +
+ ...play-d5f1b03d-ebab-4702-8e37-897a3482639a.jsonl |     4 +
+ .../checkpoint-2026-05-18T07-51-14-897Z.json       |    16 +
+ .../checkpoint-2026-05-18T09-01-24-422Z.json       |    16 +
+ .../checkpoint-2026-05-19T08-29-30-402Z.json       |    16 +
+ .../checkpoint-2026-05-20T05-44-20-822Z.json       |    16 +
+ frontend/.omc/state/last-tool-error.json           |     7 +
+ frontend/.omc/state/mission-state.json             |   187 +
+ .../session-started.json                           |     6 +
+ .../session-started.json                           |     6 +
+ .../session-started.json                           |     6 +
+ frontend/.omc/state/subagent-tracking.json         |    80 +
+ frontend/.prettierignore                           |     6 +
+ frontend/.prettierrc                               |    10 +
+ frontend/README.md                                 |    51 +
+ frontend/components.json                           |    21 +
+ frontend/e2e/.gitkeep                              |     0
+ frontend/e2e/auth.spec.js                          |    39 +
+ frontend/e2e/fixtures/domain-valid.csv             |    32 +
+ frontend/e2e/fixtures/word-duplicate-key.csv       |     4 +
+ frontend/e2e/fixtures/word-invalid-header.csv      |     2 +
+ frontend/e2e/fixtures/word-valid-3rows.csv         |     4 +
+ frontend/eslint.config.js                          |    55 +
+ frontend/index.html                                |    13 +
+ frontend/package-lock.json                         | 10574 +++++++++++
+ frontend/package.json                              |    61 +
+ frontend/playwright.config.js                      |    12 +
+ frontend/postcss.config.js                         |     6 +
+ frontend/public/favicon.svg                        |     7 +
+ frontend/src/app/ProtectedRoute.jsx                |    24 +
+ frontend/src/app/ProtectedRoute.test.jsx           |    56 +
+ frontend/src/app/providers.jsx                     |    89 +
+ frontend/src/app/router.jsx                        |    68 +
+ frontend/src/assets/.gitkeep                       |     0
+ frontend/src/core/api/axiosInstance.js             |    65 +
+ frontend/src/core/api/axiosInstance.test.js        |    55 +
+ frontend/src/favicon.ico                           |   Bin 0 -> 948 bytes
+ frontend/src/features/auth/LoginPage.jsx           |   140 +
+ frontend/src/features/auth/LoginPage.test.jsx      |   150 +
+ frontend/src/features/auth/authApi.js              |    41 +
+ frontend/src/features/auth/login.schema.js         |     6 +
+ .../src/features/domain/DomainDetailDialog.jsx     |    42 +
+ frontend/src/features/domain/DomainListPage.jsx    |   159 +
+ .../src/features/domain/DomainListPage.test.jsx    |   139 +
+ frontend/src/features/domain/domainApi.js          |    11 +
+ .../features/forbidden/ForbiddenDetailDialog.jsx   |    57 +
+ .../src/features/forbidden/ForbiddenListPage.jsx   |   106 +
+ .../features/forbidden/ForbiddenListPage.test.jsx  |   131 +
+ frontend/src/features/forbidden/forbiddenApi.js    |    11 +
+ .../src/features/forbidden/forbiddenApi.test.js    |    46 +
+ frontend/src/features/home/HomePage.jsx            |   186 +
+ frontend/src/features/home/HomePage.test.jsx       |    47 +
+ frontend/src/features/import/DetailPage.jsx        |   170 +
+ frontend/src/features/import/DetailPage.test.jsx   |   104 +
+ frontend/src/features/import/UploadPage.jsx        |   115 +
+ frontend/src/features/import/UploadPage.test.jsx   |   108 +
+ frontend/src/features/import/import.model.js       |    13 +
+ frontend/src/features/import/import.model.test.js  |    11 +
+ frontend/src/features/import/importApi.js          |    83 +
+ frontend/src/features/word/WordDetailDialog.jsx    |    64 +
+ frontend/src/features/word/WordListPage.jsx        |   154 +
+ frontend/src/features/word/WordListPage.test.jsx   |   121 +
+ frontend/src/features/word/wordApi.js              |    11 +
+ frontend/src/features/word/wordApi.test.js         |    42 +
+ frontend/src/layouts/BlankLayout.jsx               |    10 +
+ frontend/src/layouts/BlankLayout.test.jsx          |    21 +
+ frontend/src/layouts/Breadcrumbs.jsx               |   106 +
+ frontend/src/layouts/MainLayout.jsx                |    43 +
+ frontend/src/layouts/MainLayout.test.jsx           |   149 +
+ .../src/layouts/components/CenteredLayoutShell.jsx |     7 +
+ frontend/src/layouts/components/LayoutHeader.jsx   |    56 +
+ frontend/src/layouts/components/SidebarSurface.jsx |   104 +
+ frontend/src/layouts/menuItems.js                  |     7 +
+ frontend/src/lib/utils.js                          |     6 +
+ frontend/src/main.jsx                              |    11 +
+ .../src/shared/components/DataGrid/DataGrid.jsx    |   533 +
+ .../shared/components/DataGrid/DataGrid.test.jsx   |   223 +
+ .../src/shared/components/DataGrid/columnDef.js    |    12 +
+ .../shared/components/DetailPanel/DetailPanel.jsx  |    41 +
+ .../components/DetailPanel/DetailPanel.test.jsx    |    32 +
+ .../shared/components/DetailView/DetailView.jsx    |    90 +
+ .../shared/components/EditDrawer/EditDrawer.jsx    |    21 +
+ .../components/EditDrawer/EditDrawer.test.jsx      |    24 +
+ .../shared/components/FileUpload/FileUpload.jsx    |    67 +
+ .../components/FileUpload/FileUpload.test.jsx      |    45 +
+ .../shared/components/SearchForm/SearchForm.jsx    |    29 +
+ .../components/SearchForm/SearchForm.test.jsx      |    40 +
+ .../shared/components/ThemeToggle/ThemeToggle.jsx  |    26 +
+ .../components/ThemeToggle/ThemeToggle.test.jsx    |    31 +
+ frontend/src/shared/components/ui/avatar.jsx       |    34 +
+ frontend/src/shared/components/ui/avatar.test.jsx  |    16 +
+ frontend/src/shared/components/ui/button.jsx       |    48 +
+ frontend/src/shared/components/ui/button.test.jsx  |    17 +
+ frontend/src/shared/components/ui/card.jsx         |    48 +
+ frontend/src/shared/components/ui/card.test.jsx    |    23 +
+ frontend/src/shared/components/ui/dialog.jsx       |   101 +
+ frontend/src/shared/components/ui/dialog.test.jsx  |    33 +
+ frontend/src/shared/components/ui/input.jsx        |    17 +
+ frontend/src/shared/components/ui/scroll-area.jsx  |    37 +
+ .../src/shared/components/ui/scroll-area.test.jsx  |    15 +
+ frontend/src/shared/components/ui/separator.jsx    |    23 +
+ frontend/src/shared/components/ui/sheet.jsx        |   118 +
+ frontend/src/shared/components/ui/sheet.test.jsx   |    33 +
+ frontend/src/shared/components/ui/table.jsx        |    84 +
+ frontend/src/shared/hooks/useListPage.js           |    52 +
+ frontend/src/shared/query/queryHelpers.js          |    32 +
+ frontend/src/shared/query/queryHelpers.test.js     |    13 +
+ frontend/src/store/useAuthStore.js                 |     8 +
+ frontend/src/store/useAuthStore.test.js            |    38 +
+ frontend/src/store/useLoadingStore.js              |    18 +
+ frontend/src/store/useLoadingStore.test.js         |    49 +
+ frontend/src/store/useThemeStore.js                |    16 +
+ frontend/src/styles/globals.css                    |    68 +
+ frontend/src/test-setup.js                         |     1 +
+ frontend/tailwind.config.js                        |    50 +
+ frontend/vite.config.js                            |    34 +
+ 1333 files changed, 219939 insertions(+)

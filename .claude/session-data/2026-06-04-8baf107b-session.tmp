@@ -1,0 +1,41 @@
+# Session: 2026-06-04
+**Date:** 2026-06-04
+**Started:** 17:29
+**Last Updated:** 18:01
+**Project:** haness
+**Branch:** unknown
+**Worktree:** D:\haness
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- @sp-omc-ecc-gs-harness-comparison.md 해당 문서 학인
+- 해당 문서 기반으로 하여 내 사용 경험을 추가하여 AX전환을 위한 소개글을 작성하려고 함
+- Base directory for this skill: C:\Users\ygkim\.claude\plugins\cache\superpowers-marketplace\superpowers\4.3.1\skills\brainstorming  # Brainstorming Ideas Into Designs  ## Overview  Help turn ideas int
+- B로
+- 1번은 빼고 2번부 시작
+- Base directory for this skill: C:\Users\ygkim\.claude\plugins\cache\everything-claude-code\everything-claude-code\2.0.0-rc.1\skills\article-writing  # Article Writing  Write long-form content that s
+- 파일로 저장
+- @sp-omc-ecc-gs-harness-comparison.md 해당 문서에 명령어도 최신화가 조금 필요할거 같아 이를태면 claude의 goal명령어라던지
+- 적용 업무    레거시 시스템 분석, 온보딩 자료 생성, 지식 베이스 구축 활용 방법    1. 지식 그래프 생성 /understand --language ko 2. 도메인 그래프 생성 /understand-domain 3. 대시보드 탐색 /understand-dashboard 4. 자연어 질의 /understand-chat 5. 온보딩 가이드 자동 생성·
+
+### Files Modified
+- D:\haness\2026-06-04-ax-harness-introduction.md
+- D:\haness\sp-omc-ecc-gs-harness-comparison.md
+
+### Tools Used
+Skill, Glob, AskUserQuestion, Write, Read, Edit
+
+### Stats
+- Total user messages: 9
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

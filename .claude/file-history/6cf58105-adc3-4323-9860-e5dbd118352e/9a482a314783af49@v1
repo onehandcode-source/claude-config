@@ -1,0 +1,186 @@
+import { Link } from 'react-router-dom';
+import {
+    Card,
+    CardDescription,
+    CardContent,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/shared/components/ui/card';
+import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/useAuthStore';
+import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right.js';
+import Ban from 'lucide-react/dist/esm/icons/ban.js';
+import BookOpen from 'lucide-react/dist/esm/icons/book-open.js';
+import Database from 'lucide-react/dist/esm/icons/database.js';
+import FolderTree from 'lucide-react/dist/esm/icons/folder-tree.js';
+
+const quickEntries = [
+    {
+        title: 'Import Data',
+        description: 'Upload word, domain, or forbidden-term CSV files from one place.',
+        to: '/import',
+        icon: Database,
+        color: 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400',
+    },
+    {
+        title: 'Domain Management',
+        description: 'Review domain metadata and manage classification hierarchy.',
+        to: '/domain',
+        icon: FolderTree,
+        color: 'bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400',
+    },
+    {
+        title: 'Word Management',
+        description: 'Check approved terms and keep metadata up to date.',
+        to: '/word',
+        icon: BookOpen,
+        color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400',
+    },
+    {
+        title: 'Forbidden Terms',
+        description: 'Search restricted words and review the latest status.',
+        to: '/forbidden',
+        icon: Ban,
+        color: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400',
+    },
+];
+
+const kpiItems = [
+    { label: 'Total domains', value: '-', icon: FolderTree },
+    { label: 'Total words', value: '-', icon: BookOpen },
+    { label: 'Forbidden terms', value: '-', icon: Ban },
+    { label: 'Import history', value: '-', icon: Database },
+];
+
+const heroStatItems = [
+    { label: 'Role', getValue: (user) => user?.role ?? '-' },
+    { label: 'Mode', getValue: () => 'Admin' },
+    { label: 'Status', getValue: () => 'Ready' },
+];
+
+const HeroStatCard = ({ label, value }) => {
+    return (
+        <Card className='border-white/10 bg-white/5 text-white backdrop-blur'>
+            <CardHeader className='space-y-1.5 p-4'>
+                <CardDescription className='text-xs uppercase tracking-widest text-slate-400'>
+                    {label}
+                </CardDescription>
+                <CardTitle className='text-base font-semibold text-white'>{value}</CardTitle>
+            </CardHeader>
+        </Card>
+    );
+};
+
+const MetricCard = ({ icon: Icon, label, value }) => {
+    return (
+            <Card className='min-h-32 transition hover:-translate-y-0.5 hover:shadow-md'>
+                <CardHeader className='space-y-3 p-5'>
+                    <div className='inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 shadow-sm dark:border-slate-700 dark:bg-slate-800'>
+                        <Icon aria-hidden='true' className='h-4 w-4 text-slate-600 dark:text-slate-400' />
+                    </div>
+                <div className='space-y-1'>
+                    <CardDescription className='text-sm text-slate-500 dark:text-slate-400'>{label}</CardDescription>
+                    <CardTitle className='text-2xl font-semibold text-slate-900 dark:text-slate-100'>
+                        {value}
+                    </CardTitle>
+                </div>
+            </CardHeader>
+        </Card>
+    );
+};
+
+const QuickEntryCard = ({ icon: Icon, title, description, to, color }) => {
+    return (
+        <li>
+            <Card className='overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md'>
+                <Link
+                    to={to}
+                    className='group flex h-full min-h-40 flex-col justify-between transition hover:border-slate-300 dark:hover:border-slate-700'
+                >
+                    <CardHeader className='space-y-4 p-5'>
+                        <div className={cn('inline-flex rounded-lg p-2.5', color)}>
+                            <Icon aria-hidden='true' className='h-4 w-4' />
+                        </div>
+                        <div className='space-y-1.5'>
+                            <CardTitle className='text-sm font-semibold text-slate-900 dark:text-slate-100'>
+                                {title}
+                            </CardTitle>
+                            <CardDescription className='text-xs leading-5 text-slate-500 dark:text-slate-400'>
+                                {description}
+                            </CardDescription>
+                        </div>
+                    </CardHeader>
+                    <CardFooter className='mt-6 justify-end p-5 pt-0 text-xs font-medium text-slate-500 transition group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200'>
+                        Go now
+                        <ArrowRight aria-hidden='true' className='ml-1 h-4 w-4' />
+                    </CardFooter>
+                </Link>
+            </Card>
+        </li>
+    );
+};
+
+export const HomePage = () => {
+    const user = useAuthStore((state) => state.user);
+
+    return (
+        <div className='space-y-6'>
+            <h1 className='sr-only'>TrmWordDict home</h1>
+
+            <Card className='overflow-hidden border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white shadow-lg dark:border-slate-700'>
+                <CardHeader className='gap-6 p-8 pb-0 lg:flex-row lg:items-end lg:justify-between'>
+                    <div className='max-w-2xl space-y-3'>
+                        <CardDescription className='text-xs font-medium uppercase tracking-[0.3em] text-slate-400'>
+                            Workspace hub
+                        </CardDescription>
+                        <h2 className='text-3xl font-semibold tracking-tight text-white md:text-4xl'>
+                            Welcome back <span className='text-cyan-300'>{user?.name ?? 'user'}</span>
+                        </h2>
+                        <CardDescription className='max-w-xl text-sm leading-6 text-slate-300 md:text-base'>
+                            Move between imports, domains, words, and forbidden terms from one place.
+                        </CardDescription>
+                    </div>
+                </CardHeader>
+                <CardContent className='p-8 pt-6'>
+                    <div className='w-full lg:ml-auto lg:w-[360px]'>
+                        <div className='grid gap-3 sm:grid-cols-3 lg:grid-cols-3'>
+                            {heroStatItems.map((item) => (
+                                <HeroStatCard
+                                    key={item.label}
+                                    label={item.label}
+                                    value={item.getValue(user)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <section aria-label='Overview'>
+                <ul className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
+                    {kpiItems.map((kpi) => (
+                        <li key={kpi.label}>
+                            <MetricCard icon={kpi.icon} label={kpi.label} value={kpi.value} />
+                        </li>
+                    ))}
+                </ul>
+            </section>
+
+            <section aria-label='Quick access'>
+                <ul className='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
+                    {quickEntries.map((entry) => (
+                        <QuickEntryCard
+                            key={entry.to}
+                            icon={entry.icon}
+                            title={entry.title}
+                            description={entry.description}
+                            to={entry.to}
+                            color={entry.color}
+                        />
+                    ))}
+                </ul>
+            </section>
+        </div>
+    );
+};

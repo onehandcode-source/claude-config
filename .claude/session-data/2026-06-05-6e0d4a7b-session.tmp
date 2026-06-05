@@ -1,0 +1,47 @@
+# Session: 2026-06-05
+**Date:** 2026-06-05
+**Started:** 10:37
+**Last Updated:** 13:39
+**Project:** TrmWordDict2
+**Branch:** yg_v0.2
+**Worktree:** D:\20. POC\TrmWordDict2
+
+---
+<!-- ECC:SUMMARY:START -->
+## Session Summary
+
+### Tasks
+- Stop hook feedback: [pnpm prisma migrate deploy pnpm seed:users pnpm dev 실행해서 오류나는문제 수정해]: Transcript shows \`pnpm prisma migrate deploy\` failed with DNS error: 'db.xdhnrymphmffckkqdiyu.supabase.co Nam
+- Stop hook feedback: [pnpm prisma migrate deploy pnpm seed:users pnpm dev 실행해서 오류나는문제 수정해]: transcript shows \`pnpm prisma migrate deploy\` failed with DNS error: 'db.xdhnrymphmffckkqdiyu.supabase.co Nam
+- Stop hook feedback: [pnpm prisma migrate deploy pnpm seed:users pnpm dev 실행해서 오류나는문제 수정해]: Transcript shows \`pnpm prisma migrate deploy\` failed with DNS error: 'db.xdhnrymphmffckkqdiyu.supabase.co Nam
+- Stop hook feedback: [pnpm prisma migrate deploy pnpm seed:users pnpm dev 실행해서 오류나는문제 수정해]: 사용자 조건 '\`pnpm prisma migrate deploy\` \`pnpm seed:users\` \`pnpm dev\` 실행해서 오류나는문제 수정해'는 세 명령 모두 성공적으로 실행되어야 하는데, 
+- Stop hook feedback: [pnpm prisma migrate deploy pnpm seed:users pnpm dev 실행해서 오류나는문제 수정해]: Transcript shows only \`pnpm prisma migrate deploy\` was attempted multiple times with various region configura
+- Stop hook feedback: [pnpm prisma migrate deploy pnpm seed:users pnpm dev 실행해서 오류나는문제 수정해]: Transcript shows \`pnpm seed:users\` completed successfully with output '✅ 생성 완료: admin@uracle.co.kr' and '✅ 생성
+- Stop hook feedback: [pnpm prisma migrate deploy pnpm seed:users pnpm dev 실행해서 오류나는문제 수정해]: Transcript shows \`pnpm seed:users\` completed successfully ('✅ 생성 완료: admin@uracle.co.kr'), \`pnpm dev\` started
+- Stop hook feedback: [pnpm prisma migrate deploy pnpm seed:users pnpm dev 실행해서 오류나는문제 수정해]: Transcript shows \`pnpm seed:users\` completed successfully ('✅ 생성 완료: admin@uracle.co.kr', '✅ 생성 완료: user@urac
+- Stop hook feedback: [pnpm prisma migrate deploy pnpm seed:users pnpm dev 실행해서 오류나는문제 수정해]: Only 2 of 3 commands executed successfully. \`pnpm seed:users\` completed with '✅ 생성 완료: admin@uracle.co.kr' an
+- Stop hook feedback: [pnpm prisma migrate deploy pnpm seed:users pnpm dev 실행해서 오류나는문제 수정해]: Transcript shows only 2 of 3 required commands executed successfully: \`pnpm seed:users\` completed with '✅ 생성 
+
+### Files Modified
+- D:\20. POC\TrmWordDict2\.env.local
+- D:\20. POC\TrmWordDict2\scripts\seed-users.ts
+- D:\20. POC\TrmWordDict2\package.json
+- D:\20. POC\TrmWordDict2\tsconfig.json
+- D:\20. POC\TrmWordDict2\.env
+- D:\20. POC\TrmWordDict2\prisma-manual-apply.sql
+- D:\20. POC\TrmWordDict2\scripts\local-pg-server.mjs
+
+### Tools Used
+Read, Glob, Edit, Write, Bash, PowerShell, ToolSearch
+
+### Stats
+- Total user messages: 27
+<!-- ECC:SUMMARY:END -->
+
+### Notes for Next Session
+-
+
+### Context to Load
+```
+[relevant files]
+```

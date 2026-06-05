@@ -1,0 +1,30 @@
+'use client';
+
+import './globals.css';
+import { ReactNode } from 'react';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="ko">
+      <head>
+        <title>Playwright Test Automation Tool</title>
+        <meta name="description" content="Automated testing with Playwright" />
+      </head>
+      <body className="bg-gray-50">
+        <div className="min-h-screen">
+          <header className="bg-white shadow">
+            <div className="max-w-7xl mx-auto px-4 py-4">
+              <h1 className="text-3xl font-bold text-gray-900">
+                🎭 Playwright Test Automation
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Compare as-is and to-be versions with automated testing
+              </p>
+            </div>
+          </header>
+          <main className="max-w-7xl mx-auto">{children}</main>
+        </div>
+      </body>
+    </html>
+  );
+}

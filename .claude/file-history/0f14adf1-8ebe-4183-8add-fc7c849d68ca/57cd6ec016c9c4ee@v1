@@ -1,0 +1,60 @@
+"""Claude PM agent — workspace.md의 Task를 읽고 claude CLI를 호출합니다."""
+import sys
+import subprocess
+import time
+from pathlib import Path
+
+BASE_DIR = Path(__file__).parent.parent.parent
+WORKSPACE = BASE_DIR / "workspace.md"
+ROLE_FILE = Path(__file__).parent.parent / "roles" / "pm.md"
+
+
+def build_prompt(task: str) -> str:
+    workspace = WORKSPACE.read_text(encoding="utf-8")
+    role = ROLE_FILE.read_text(encoding="utf-8") if ROLE_FILE.exists() else ""
+    return f"""<role>
+{role}
+</role>
+
+<workspace>
+{workspace}
+</workspace>
+
+<task>
+{task}
+</task>
+
+위 workspace.md를 읽고 할당된 Task를 수행하세요.
+완료 후 role에 명시된 대로 workspace.md를 업데이트하세요.
+"""
+
+
+def run(task: str):
+    prompt = build_prompt(task)
+    print(f"[Claude] Task: {task[:80]}", flush=True)
+
+    log_dir = Path(__file__).parent.parent / "log"
+    log_dir.mkdir(exist_ok=True)
+    log_file = log_dir / f"claude-{time.strftime('%Y%m%d-%H%M%S')}.log"
+
+    try:
+        result = subprocess.run(
+            ["claude", "-p", prompt],
+            capture_output=True, text=True, timeout=300,
+            cwd=str(BASE_DIR),
+        )
+        output = result.stdout
+        if result.returncode != 0:
+            output += f"\n[stderr]\n{result.stderr}"
+        log_file.write_text(output, encoding="utf-8")
+        print(output[-2000:] if len(output) > 2000 else output, flush=True)
+        print(f"[로그] {log_file}", flush=True)
+    except FileNotFoundError:
+        print("[오류] 'claude' 명령어를 찾을 수 없습니다. Claude CLI가 설치되어 있는지 확인하세요.")
+    except subprocess.TimeoutExpired:
+        print("[타임아웃] claude 실행이 300초를 초과했습니다.")
+
+
+if __name__ == "__main__":
+    task = sys.argv[1] if len(sys.argv) > 1 else "workspace.md 확인 후 대기 중인 Task 수행"
+    run(task)

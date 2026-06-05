@@ -1,0 +1,34 @@
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { ProtectedRoute } from '@/router/ProtectedRoute';
+import { MainLayout } from '@/layouts/MainLayout';
+import { BlankLayout } from '@/layouts/BlankLayout';
+import { LoginPage } from '@/features/auth/LoginPage';
+import { HomePage } from '@/features/home/HomePage';
+import { DomainListPage } from '@/features/domain/DomainListPage';
+import { UploadPage } from '@/features/import/UploadPage';
+import { DetailPage } from '@/features/import/DetailPage';
+
+export const router = createBrowserRouter([
+    {
+        element: <BlankLayout />,
+        children: [{ path: '/login', element: <LoginPage /> }],
+    },
+    {
+        element: (
+            <ProtectedRoute>
+                <MainLayout />
+            </ProtectedRoute>
+        ),
+        children: [
+            { index: true, element: <Navigate to="/home" replace /> },
+            { path: '/home', element: <HomePage /> },
+            { path: '/domain', element: <DomainListPage /> },
+            { path: '/import', element: <UploadPage /> },
+            { path: '/import/:historyId', element: <DetailPage /> },
+        ],
+    },
+    {
+        path: '*',
+        element: <Navigate to="/home" replace />,
+    },
+]);
